@@ -2,7 +2,7 @@
 
 **Status: DEFERRED — NOT PART OF THE CURRENT MVP.** This document preserves reusable design decisions and defines a *proposed* future direction. It is **not authorization to implement AI endpoints, screens, credential flows or paid calls** during the current MVP.
 
-**Authority:** [01 — Product overview](01-taotale-overview-and-features.md) determines scope; [03 — Client](03-client.md) defines SolidJS architecture; [04 — Backend](04-backend.md) defines Go/Gin/provider adapters; [05 — Database](05-database.md) defines the current local PostgreSQL model; [06 — Segmentation and audio](06-taotale-segmentation-and-audio.md) defines the existing Azure TTS / Reader pipeline. The old Mandarin Reader AIT-01–15 and D-56–61 are **historical design input**, not automatically approved implementation or authorization methods.
+**Authority:** [01 — Product overview](01-taotale-overview-and-features.md) determines scope; [03 — Client](03-taotale-client.md) defines SolidJS architecture; [04 — Backend](04-taotale-backend.md) defines Go/Gin/provider adapters; [05 — Database](05-taotale-database.md) defines the current local PostgreSQL model; [06 — Segmentation and audio](06-taotale-segmentation-and-audio.md) defines the existing Azure TTS / Reader pipeline. The old Mandarin Reader AIT-01–15 and D-56–61 are **historical design input**, not automatically approved implementation or authorization methods.
 
 ## 1. Feature boundary and objective
 
@@ -148,7 +148,7 @@ The workspace eventually delegates to the existing `LibraryItem` / `GenerationJo
 
 ## 8. UX and performance expectations (future SolidJS client)
 
-- Build the workspace with **SolidJS + TypeScript + Vite + Solid Router** and the separately specified component system (Kobalte primitives as appropriate; **no Tailwind**). The complete design-system specification is reserved for the separately planned `08-taotale-design-system.md` (not yet authored); it does not belong in this document.
+- Build the workspace with **SolidJS + TypeScript + Vite + Solid Router** and the standalone UI library specified in [08](08-taotale-design-system.md) (**no Kobalte, no Tailwind**). Design-system details belong in 08, not in this document.
 - Load the AI route and any optional provider UI **lazily** when introduced. The MVP bundle and startup should not contain a required AI connection or model-catalog fetch.
 - Keep form edits, word selections, candidate comparison and errors in Solid primitives; avoid global mutable stores for a single workspace. Use native fetch plus the shared typed API contract. Avoid adding framework-sized form/query packages without demonstrated need.
 - Show clear pending states, provider-unavailable/usage-limit errors, unknown outcome, explicit Retry, character limits, missing required words and a “data sent externally” disclosure before generation.

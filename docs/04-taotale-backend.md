@@ -2,7 +2,7 @@
 
 **Status:** Target MVP architecture — approved stack; implementation details and exact versions require verification.
 
-**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) governs product scope; [`02-decision-register.md`](02-decision-register.md) records decisions; [`03-client.md`](03-client.md) describes the SolidJS client; [`05-database.md`](05-database.md) defines the logical persistence model. This document supersedes the **NestJS/Node/Prisma architecture** of Mandarin Reader. The historical behavior is a reference, not permission to reintroduce obsolete features.
+**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) governs product scope; [`02-taotale-decision-register.md`](02-taotale-decision-register.md) records decisions; [`03-taotale-client.md`](03-taotale-client.md) describes the SolidJS client; [`05-taotale-database.md`](05-taotale-database.md) defines the logical persistence model. This document supersedes the **NestJS/Node/Prisma architecture** of Mandarin Reader. The historical behavior is a reference, not permission to reintroduce obsolete features.
 
 ## 1. Selected stack and deployment
 
@@ -91,7 +91,7 @@ Do not introduce a Japanese strategy package until `ja-JP` support is planned; k
 - Use short DB transactions and row locks / unique constraints as correctness mechanisms. Retain advisory locks only where they simplify real cross-entity invariants; avoid unnecessarily serializing unrelated reads. One-process operation is a deployment assumption, **not** an excuse to skip transactional race safety.
 - Treat `sqlc` output as database-layer types, not JSON DTOs. Map nullable values, timestamps, UUIDs, enums and JSONB explicitly at the transport boundary; never expose internal storage keys.
 
-See `05-database.md` for the language, ownership and referential constraints that SQL must enforce.
+See `05-taotale-database.md` for the language, ownership and referential constraints that SQL must enforce.
 
 ## 4. HTTP contract, validation and local security
 
@@ -218,4 +218,4 @@ type Segment struct {
 | BE-OPEN-06 | Whether optional Chinese automatic vocab matching passes MVP tests; Korean fallback remains manual. |
 | BE-OPEN-07 | Local backup/restore packaging and whether a one-click UI follows the first stable release. |
 
-**Maintenance:** When updating `02-decision-register.md`, record **Go + Gin + pgx/v5 + sqlc** as the selected backend stack and mark Node/NestJS/Prisma as superseded. Update OpenAPI and `05-database.md` together whenever DB/API invariants change. No AI implementation is implied by preserving its adapter design.
+**Maintenance:** When updating `02-taotale-decision-register.md`, record **Go + Gin + pgx/v5 + sqlc** as the selected backend stack and mark Node/NestJS/Prisma as superseded. Update OpenAPI and `05-taotale-database.md` together whenever DB/API invariants change. No AI implementation is implied by preserving its adapter design.

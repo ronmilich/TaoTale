@@ -2,7 +2,7 @@
 
 **Status:** **Target operation inventory**, revised 23 November 2026; **not** a substitute for a machine-readable OpenAPI 3.1 file. The **new TaoTale OpenAPI contract must be authored and validated** before implementing Gin handlers and generating SolidJS client types. Where route spellings differ from Mandarin Reader, the paths below are **proposed target paths**, not a claim that an existing YAML file already implements them.
 
-**Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-backend.md), [05 — PostgreSQL/sqlc schema](05-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md) and [09 — UI states](09-taotale-ui-states.md).
+**Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-taotale-backend.md), [05 — PostgreSQL/sqlc schema](05-taotale-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md) and [09 — UI states](09-taotale-ui-states.md).
 
 ## 1. Architecture and security boundary
 

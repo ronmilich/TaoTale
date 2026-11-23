@@ -8,7 +8,7 @@ When documents conflict, apply these rules **in order**:
 
 1. **Latest explicit TaoTale owner decisions** — current user approvals, reflected in [01](01-taotale-overview-and-features.md) and [02](02-taotale-decision-register.md), override inherited Mandarin Reader plans, even if historical code does something else.
 2. **Product scope:** [01 — TaoTale overview](01-taotale-overview-and-features.md) determines MVP vs post-MVP. A detailed older document or UI screenshot **cannot** add a deferred feature to MVP.
-3. **Approved architectural boundaries:** [02 — Decision register](02-taotale-decision-register.md) plus [03 — Solid app](03-taotale-client.md), [04 — Go backend](04-backend.md), [05 — SQL schema](05-database.md), [06 — language-specific segmentation](06-taotale-segmentation-and-audio.md), [08 — UI library/design](08-taotale-design-system.md).
+3. **Approved architectural boundaries:** [02 — Decision register](02-taotale-decision-register.md) plus [03 — Solid app](03-taotale-client.md), [04 — Go backend](04-taotale-backend.md), [05 — SQL schema](05-taotale-database.md), [06 — language-specific segmentation](06-taotale-segmentation-and-audio.md), [08 — UI library/design](08-taotale-design-system.md).
 4. **Specific operational contracts:** [09 — UI states](09-taotale-ui-states.md), [10 — target API inventory](10-taotale-api.md), [11 — local operations](11-taotale-operations-and-security.md), [12 — acceptance](12-taotale-quality-and-acceptance.md) refine but cannot override higher-priority approved decisions.
 5. **Post-MVP design reference:** [07 — AI text generation](07-taotale-ai-text-generation.md) is **not** an authorization to create AI routes/UI/schema in MVP. [13 — Rebuild roadmap](13-taotale-rebuild-decisions.md) sequences work but is not evidence that a stage has shipped.
 6. **Historical Mandarin Reader repository/docs and image references** are source material only when not superseded, and must be checked against the actual code/migration SQL for import or parity work.
@@ -22,8 +22,8 @@ When documents conflict, apply these rules **in order**:
 | 01 | [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) | Product, languages, Favorites, difficulty, local deployment, MVP/post-MVP boundary | **Primary product authority** |
 | 02 | [`02-taotale-decision-register.md`](02-taotale-decision-register.md) | Adopted TT decisions, historical D-01–61 dispositions, open questions | **Decision authority** |
 | 03 | [`03-taotale-client.md`](03-taotale-client.md) | SolidJS/TypeScript/Vite/Router architecture; consumes external UI package | **Client architecture** |
-| 04 | [`04-backend.md`](04-backend.md) | Go/Gin services, Azure adapter, workers, storage, API and validation | **Backend architecture**; older filename retained |
-| 05 | [`05-database.md`](05-database.md) | PostgreSQL Docker/pgx/sqlc logical entities, indexes, transactions, migration | **Target logical model**; not executable DDL |
+| 04 | [`04-taotale-backend.md`](04-taotale-backend.md) | Go/Gin services, Azure adapter, workers, storage, API and validation | **Backend architecture** |
+| 05 | [`05-taotale-database.md`](05-taotale-database.md) | PostgreSQL Docker/pgx/sqlc logical entities, indexes, transactions, migration | **Target logical model**; not executable DDL |
 | 06 | [`06-taotale-segmentation-and-audio.md`](06-taotale-segmentation-and-audio.md) | Mandarin/Korean strategies, UTF-16 offsets, provider timing/MP3 validation | **MVP audio contract** |
 | 07 | [`07-taotale-ai-text-generation.md`](07-taotale-ai-text-generation.md) | AI text workspace design for later release | **Post-MVP reference** |
 | 08 | [`08-taotale-design-system.md`](08-taotale-design-system.md) | Standalone SolidJS-only npm UI library, accessibility/theming plus Quiet Study app theme | **Library/UI design authority** |
@@ -33,8 +33,10 @@ When documents conflict, apply these rules **in order**:
 | 12 | [`12-taotale-quality-and-acceptance.md`](12-taotale-quality-and-acceptance.md) | Go/SQL/Solid/UI-library tests, bilingual fixtures and MVP release gates | **Proposed tests; not executed** |
 | 13 | [`13-taotale-rebuild-decisions.md`](13-taotale-rebuild-decisions.md) | Locked choices, staged vertical-slice implementation and unresolved details | **Roadmap / governance** |
 | 14 | [`14-taotale-sources-and-coverage.md`](14-taotale-sources-and-coverage.md) | This authority/provenance/traceability inventory | **Companion index** |
+| — | [`roadmap/ui-library-roadmap.md`](roadmap/ui-library-roadmap.md) | Milestones for the standalone UI library: product, name, licence, infrastructure, in-house behavior layer, components, 1.0 launch | **Plan**; not evidence of completed work |
+| — | [`roadmap/taotale-roadmap.md`](roadmap/taotale-roadmap.md) | TaoTale MVP and post-MVP milestones, each gated on a UI Library milestone | **Plan**; not evidence of completed work |
 
-**Naming policy:** Newly created Markdown specifications use **`number-taotale-filename.md`**. Existing 04/05 files in this working set predate the naming rule; references above use their *actual current filenames* rather than pretending they have already been renamed. Renaming them should be accompanied by link updates; it is not part of revising 09–14.
+**Naming policy:** All specifications use **`number-taotale-filename.md`**; 04 and 05 have been renamed and every link updated. Roadmaps live in `roadmap/` without numbers.
 
 ## 3. Historical baseline and provenance
 
@@ -65,7 +67,7 @@ Other references in the historical repository include M12 Library, M13 Create, M
 | Local one-user deployment and internal owner | 01, 02, 04, 05, 11 | Docker startup, loopback checks, migrations/seed, absence of account routes; 12 |
 | Go + Gin, PostgreSQL/pgx/v5/sqlc, SQL migrations | 02, 04, 05, 10, 11 | Real Gin/sqlc integration, DDL/lock/rollback, benchmark; 12 |
 | SolidJS-only app with external npm UI library | 02, 03, 08, 09 | Installable package exports/ESM/CSS/types, single Solid runtime, theme/a11y tests; 12 |
-| No direct Kobalte or Tailwind in TaoTale | 02, 03, 08 | Dependency/import/bundle audit; 12 |
+| No Kobalte (in TaoTale or the UI library) and no Tailwind | 02, 03, 08 | Dependency/import/bundle audit, including the installed UI package's dependency tree; 12 |
 | Mandarin and Korean language selection | 01, 04, 05, 06, 10 | Valid language/voice lookup and isolated Library/Vocabulary, bilingual fixtures; 12 |
 | Per-language segmentation + immutable validated audio | 01, 04, 05, 06, 10 | Real Azure Chinese/Korean offsets, Go UTF-16 vectors, MP3 measurement, Reader sync; 12 |
 | Draft → preview/generate → published/revision integrity | 01, 04–06, 09–11 | Race/restart/idempotency and old-active-asset preservation; 12 |
@@ -83,7 +85,7 @@ Other references in the historical repository include M12 Library, M13 Create, M
 | Product named Mandarin Reader or Talezi, single `zh-CN` | **TaoTale** with `zh-CN` and `ko-KR`; item/word language explicit. |
 | Node/NestJS/Prisma | **Go/Gin + PostgreSQL/pgx/v5/sqlc**, reviewed SQL migrations. |
 | React/MUI/TanStack Query/React Hook Form | **SolidJS** and native Solid/browser primitives; external Solid-only npm UI package. |
-| Kobalte directly in app or Tailwind CSS | **Neither in TaoTale**. UI package may use Kobalte internally; theming is via package public API. |
+| Kobalte directly in app or Tailwind CSS | **Neither in TaoTale.** The UI package doesn't use Kobalte either; it implements its own primitives (TT-032). Theming is via the package's public API. |
 | UI system part of TaoTale application itself | Independent npm library owns reusable components, accessibility and transition plumbing; Quiet Study remains TaoTale-specific. |
 | HSK or `native` as general difficulty | **Beginner / Intermediate / Advanced**, nullable Unspecified; legacy unsupported values reviewed explicitly. |
 | 5 MiB cover uploads | **1,000,000 encoded bytes** for new/replacements; legacy images remain readable. |
@@ -98,7 +100,7 @@ Other references in the historical repository include M12 Library, M13 Create, M
 ## 6. Remaining source-of-truth gaps and maintenance procedure
 
 - **Machine-readable API** is not yet authored: [`10`](10-taotale-api.md) is an operation inventory. Lock a new OpenAPI 3.1 YAML and regenerate client contract types; decide `/topics` rename/compatibility and route responses.
-- **Physical SQL migrations and sqlc queries** are not created by [`05`](05-database.md). Write and test them against an actual copy of old PostgreSQL records, not merely the legacy Prisma schema summary.
+- **Physical SQL migrations and sqlc queries** are not created by [`05`](05-taotale-database.md). Write and test them against an actual copy of old PostgreSQL records, not merely the legacy Prisma schema summary.
 - **Mandarin/Korean Go Azure word-boundary evidence**, MP3 decoding and exact segmentation golden versions must be collected. [`06`](06-taotale-segmentation-and-audio.md) is the contract, not provider certification.
 - **Independent npm UI package** name/peer versions, public theme hooks and package release remain implementation decisions. [`08`](08-taotale-design-system.md) specifies requirements, **not a published package that has been verified**.
 - **Performance, accessibility, restore and migration evidence** remain to be run and recorded. [`12`](12-taotale-quality-and-acceptance.md) is an acceptance plan, not an executed acceptance ledger.

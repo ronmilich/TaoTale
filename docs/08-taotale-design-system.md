@@ -2,7 +2,7 @@
 
 **Status:** Product and architecture specification for the standalone UI library and its TaoTale integration. Package name, exact public prop names, and first release version remain to be selected.
 
-**Authority:** `01-taotale-overview-and-features.md` determines TaoTale's MVP scope; `03-client.md` determines the SolidJS application architecture; this document defines (1) the reusable UI-library contract and (2) the TaoTale-specific theme, visual rules, and composition. The old Mandarin Reader design and D-24/39–46/48–52/61 are historical references, not permission to reintroduce deferred features.
+**Authority:** `01-taotale-overview-and-features.md` determines TaoTale's MVP scope; `03-taotale-client.md` determines the SolidJS application architecture; this document defines (1) the reusable UI-library contract and (2) the TaoTale-specific theme, visual rules, and composition. The old Mandarin Reader design and D-24/39–46/48–52/61 are historical references, not permission to reintroduce deferred features.
 
 ## 1. Core decision and product boundaries
 
@@ -11,7 +11,7 @@ TaoTale will **consume an independently developed, published npm UI-component li
 - **Framework:** SolidJS and TypeScript. No React, Vue, Angular, Web Components compatibility layer, framework-neutral virtual DOM, or dual framework builds.
 - **Distribution:** a separately versioned package published to the public npm registry. The npm package name and repository topology are **TBD**. The library must be usable outside TaoTale, independently of TaoTale's app, backend, and domain data.
 - **Styling:** authored/compiled CSS with a public customization contract. **No Tailwind CSS** or consumer Tailwind configuration required. Do not choose a runtime CSS-in-JS engine by default. Internal CSS organization (plain CSS versus CSS Modules, etc.) is an implementation choice as long as published CSS and override mechanisms are reliable.
-- **Behavior:** the library implements reusable client-side UI behavior such as keyboard interaction, focus management, overlay positioning/presence, tooltip timing, menus, accessible dialogs, transitions, and reduced-motion handling. Prefer native browser capabilities and SolidJS primitives; use **Kobalte internally where appropriate** rather than reimplementing complex accessibility from scratch.
+- **Behavior:** the library implements reusable client-side UI behavior such as keyboard interaction, focus management, overlay positioning/presence, tooltip timing, menus, accessible dialogs, transitions, and reduced-motion handling. Prefer native browser capabilities and SolidJS primitives. **These behaviors are implemented in-house** (§2.3): the library does **not** use Kobalte or any other headless UI library (TT-032).
 - **Responsibility:** the library owns reusable UI mechanics and presentation APIs; **TaoTale owns product workflows**, language-aware reading, text selection, audio playback and synchronization, vocabulary matching, persistence, API requests, routes, and local preferences.
 - **Performance:** minimize runtime dependencies and avoid work on unrelated reactive updates. Dependency count is a constraint, not a reason to compromise accessible interaction behavior.
 
@@ -36,8 +36,8 @@ The UI package **must not import** TaoTale modules, schemas, endpoints, fonts, t
 
 - Implement components as native SolidJS components using fine-grained reactive primitives (`createSignal`, `createMemo`, `createEffect` only for actual side effects, context for shared configuration); avoid React-style repeated component rerenders, mirrored state, or a second reactive runtime.
 - Prefer semantic HTML (`button`, `a`, `input`, `label`, `fieldset`, native forms) for controls that do not need a headless primitive.
-- Where behavior is nontrivial, wrap/compose selected `@kobalte/core` primitives. **Kobalte is an internal implementation choice**, not a mandatory consumer API and not a license to export its internal structure as the library's public contract.
-- Do not require developers to install Kobalte directly, learn Kobalte-specific composition for basic library components, or maintain ARIA/focus/tooltip timing themselves. Preserve useful advanced composition slots rather than hiding essential capabilities.
+- Where behavior is nontrivial, compose the library's own internal primitives (§2.3). They are internal by default; exposing any of them publicly is a deliberate public-API decision, not a side effect.
+- Do not require developers to install a headless library, learn library-internal composition for basic components, or maintain ARIA/focus/tooltip timing themselves. Preserve useful advanced composition slots rather than hiding essential capabilities.
 - The package exposes predictable controlled and uncontrolled forms where meaningful (`value`/`defaultValue`/change callback; `open`/`defaultOpen`/open-change callback). Never silently mix both modes.
 - Components support `class`, `style`, appropriate native HTML attributes/events and documented slots/parts. Forward refs where supported and merge consumers' handlers without suppressing necessary internal behavior.
 - Ensure disabled, pending, readonly, required, invalid, loading, hover, focus-visible, checked, selected, and expanded states have documented semantics. Do not style state using color alone.
@@ -46,7 +46,7 @@ The UI package **must not import** TaoTale modules, schemas, endpoints, fonts, t
 ### 2.2 Public package distribution
 
 - Publish **ES modules, TypeScript declarations, and distributable CSS**. Use explicit `package.json` `exports`, `files`, and CSS entry points. Avoid shipping raw TSX requiring special consumer transpilation unless deliberately documented and tested.
-- Declare `solid-js` as a **peer dependency**, preventing an accidentally bundled second Solid runtime. Keep non-peer dependencies as few as practical. Verify compatible Solid/Kobalte versions before release; do not copy legacy React-era versions.
+- Declare `solid-js` as a **peer dependency**, preventing an accidentally bundled second Solid runtime. Keep non-peer dependencies as few as practical — no headless UI or positioning library (TT-032). Verify compatible Solid versions before release; do not copy legacy React-era versions.
 - Permit per-component imports (subpath exports or otherwise verified tree-shakeable exports). Avoid one barrel that eagerly pulls all dialogs, icons, motion behavior, and CSS into a simple button usage.
 - If CSS is imported from component entry points, publish correct `sideEffects` metadata so bundlers do not discard it; alternatively provide a clearly documented required stylesheet import. **The styling delivery mechanism must be proven in a real consuming app.**
 - Library code must be safe to import without a browser global at module initialization. Browser-only DOM work belongs in client effects/handlers; treat SSR/hydration compatibility as a documented design concern even though TaoTale MVP is a local SPA.
@@ -55,6 +55,24 @@ The UI package **must not import** TaoTale modules, schemas, endpoints, fonts, t
 - The package's public README/reference should cover installation, component examples, light/dark themes, custom theme overrides, component-level style overrides, accessibility assumptions, and migration notes.
 
 **No package name, licensing model, CSS build tool, icon library, or motion library is approved by this document.** Select them deliberately after a small working library prototype.
+
+### 2.3 In-house behavior primitives
+
+The library builds its own accessible behavior layer instead of wrapping a headless library (TT-032, owner decision of 23 November 2026). The layer is internal by default and covers:
+
+- **Interaction:** input-modality tracking for focus-visible, pointer/touch/mouse normalisation (no hover triggered by touch), keyboard handling with RTL-aware arrow keys, and IME-composition guards so keyboard handling and filtering never interrupt Chinese, Japanese or Korean input.
+- **Focus:** tabbable-element queries, focus scopes that contain focus in modals, an initial-focus policy, and focus restoration after close.
+- **Layering and dismissal:** top layer or portals, one stack for all overlays, Escape and outside-interaction dismissal that respects nested layers, an inert background and scroll locking.
+- **Positioning:** anchored placement with offset, flip, shift, size and arrow; virtual anchors (e.g. a text range); updates on scroll and resize.
+- **Presence:** keeping content mounted for exit animations, with cleanup of interrupted transitions and reduced-motion handling.
+- **Collections:** roving tabindex, `aria-activedescendant` virtual focus, typeahead and selection management for radio groups, toggle groups, tabs, menus, listboxes and comboboxes.
+
+Rules:
+
+- The **WAI-ARIA Authoring Practices** patterns and the HTML specification are the behavioral specification. Each widget's keyboard table becomes an executable test.
+- **Native first:** use platform features such as `<dialog>`, the Popover API, the `inert` attribute and CSS anchor positioning where the supported-browser matrix allows and their behavior meets these requirements; use JavaScript implementations otherwise.
+- **Verification:** every primitive is tested in Chromium, Firefox and WebKit, with a manual screen-reader check before the components built on it ship.
+- **Clean room:** implement from specifications and our own tests. Do not copy third-party code unless its licence allows it and the attribution is recorded.
 
 ## 3. Public styling and customization architecture
 
@@ -75,14 +93,14 @@ The library is **styled by default**, but styling must never be welded to the Ta
 - Ship attractive, accessible **generic defaults** in the UI package. Ship TaoTale's Quiet Study values as a **consumer-owned theme**, not as defaults hardwired into the library. Optional reusable theme presets may be introduced later.
 - A theme change should update CSS variables/attributes without remounting component trees or destroying dialog/input/player state.
 - Use CSS transitions/animations for ordinary visual effects. Provide reusable entry/exit **presence handling** for overlays that must stay mounted until an exit animation completes; define focus restoration and cleanup when a transition finishes or is canceled.
-- Support configurable placement, collision handling, delays, dismiss behavior and overlay layering where appropriate. Prefer existing Kobalte capabilities before adding a positioning or animation dependency.
+- Support configurable placement, collision handling, delays, dismiss behavior and overlay layering where appropriate. Positioning and presence come from the in-house primitives (§2.3); do not add a positioning or animation dependency.
 - Honor `prefers-reduced-motion` and offer an explicit disable/reduced-motion override for consumers. Animation must not block interaction or be required to understand state.
 - Provide consistent overlay z-index and portal behavior across tooltip, popover, select, dialog, and toast. A portaled component must still receive the intended theme variables; document how a nested theme scope works with portals.
 - Use logical CSS properties and avoid assuming left-to-right text; preserve native focus indicators, zoom and font scaling.
 
 ## 4. Library accessibility and interaction requirements
 
-**Target:** WCAG 2.2 AA for supported components and documented compositions, with conformance evaluated per component and use case. Using Kobalte is a foundation, **not an automatic accessibility guarantee** for every custom wrapper or consumer composition.
+**Target:** WCAG 2.2 AA for supported components and documented compositions, with conformance evaluated per component and use case. Following the WAI-ARIA Authoring Practices is a foundation, **not an automatic accessibility guarantee**: every in-house primitive, component and consumer composition needs its own keyboard, screen-reader and browser verification.
 
 - Keyboard activation, arrow-key navigation for composite widgets, Tab behavior, Escape dismiss, and focus return follow the appropriate native/WAI-ARIA patterns.
 - Dialogs provide modal semantics, focus containment, initial focus policy, inert background behavior, Escape/close behavior, and reliable focus restoration; nested overlays must not steal focus unexpectedly.
@@ -100,7 +118,7 @@ This roadmap is **library development scope**, not a promise that every control 
 | Priority | Component types | Behavior guidance |
 |---|---|---|
 | Foundation | Button, IconButton, TextField, Textarea, Checkbox, Radio, Switch, Label, Badge, Card, Separator, Spinner/Skeleton | Native HTML/Solid-first, clear state and labeling contracts |
-| Core overlays | Dialog/AlertDialog, Tooltip, Popover, DropdownMenu | Kobalte-backed where useful; focus, dismissal, placement, presence/exit |
+| Core overlays | Dialog/AlertDialog, Tooltip, Popover, DropdownMenu | Built on the in-house overlay primitives (§2.3); focus, dismissal, placement, presence/exit |
 | Selection and navigation | Select, Combobox/Autocomplete, Tabs, Pagination | Correct roles, keyboard selection, focus and controlled state |
 | Feedback | Alert, Toast, Progress | Announcements, queue/dismiss handling, accessible feedback |
 | Later as needed | Slider, calendar/date picker, data table primitives, drag-and-drop, complex navigation, rich motion | Add only for demonstrated consumer needs; evaluate native options and bundle cost |
@@ -113,7 +131,7 @@ This roadmap is **library development scope**, not a promise that every control 
 - Avoid global event listeners when no relevant overlay is mounted; clean up listeners, observers, timers and portals on disposal. Don't create effects that track irrelevant signals or rerender large component trees for a single state change.
 - Favor CSS-based state and animations over frame-by-frame JavaScript work. Ensure animations, tooltip positioning, and focus changes do not interfere with a consuming app's audio playback or text selection.
 - Test each public component in light/dark and custom themes, keyboard-only navigation, screen-reader-relevant ARIA state, mouse and touch, reduced motion, 200% zoom, and disabled/loading/error states.
-- Use component tests plus browser integration tests (e.g. Vitest and Playwright) with automated accessibility checks and manual keyboard/focus review. Test both internal Kobalte wrappers and the **published package in a consuming app**.
+- Use component tests plus browser integration tests (e.g. Vitest and Playwright) with automated accessibility checks and manual keyboard/focus review. Test both the internal primitives directly and the **published package in a consuming app**.
 - Test theming and CSS overrides as contractual features: nested themes, portal inheritance, overridden variants, custom token values, and fallback when a token is missing.
 - Release only after `npm pack` consumer smoke tests, TypeScript declaration checks, accessibility regression checks, and versioned changes/changelog. Avoid publishing TaoTale-only assets, user data or secrets.
 
@@ -215,7 +233,7 @@ Seeded defaults and naming/contrast constraints remain TaoTale responsibilities.
 1. **The npm package is a dependency** of TaoTale, pinned according to the application's normal dependency policy; do not copy/fork UI package source into each feature directory.
 2. TaoTale defines its own Quiet Study theme using the library's public CSS tokens/theme API. Keep any TaoTale-only design tokens/styles in the application, not the generic package.
 3. Shared generic UI controls are imported from the package. `src/components/ui` in TaoTale, if retained, should contain **thin app-specific compositions or aliases**, not duplicate implementations of Button, Dialog, Menu, Tooltip, etc.
-4. TaoTale feature code may import public library exports only; do not couple to Kobalte internals or undocumented package paths. For missing capabilities, prefer improving the reusable package if broadly applicable; otherwise keep the feature implementation local.
+4. TaoTale feature code may import public library exports only; do not couple to library internals or undocumented package paths. For missing capabilities, prefer improving the reusable package if broadly applicable; otherwise keep the feature implementation local.
 5. Theme switching, dialog open/close, tooltips, and animations must not reinitialize the Reader audio element, invalidate transcript segment offsets, or cause unrelated Library/Vocabulary refetches.
 6. During development, test the library both in its own isolated component/examples environment **and** as an installed dependency in TaoTale. No unpublished package API is assumed stable merely because local linking works.
 7. Public library accessibility and theme APIs should be documented and covered by compatibility tests before app features depend on them heavily.
@@ -241,7 +259,7 @@ Seeded defaults and naming/contrast constraints remain TaoTale responsibilities.
 
 1. Initialize the independent SolidJS npm library: package build/exports/types/CSS and a tiny consumer playground.
 2. Establish generic CSS tokens, theming/override hooks and one styled native component (`Button`). Validate external customization and bundling.
-3. Implement Kobalte-backed Tooltip, Dialog, Popover/Menu with controlled state, focus, presence and reduced-motion tests.
+3. Implement the in-house interaction, focus, layering, positioning and presence primitives (§2.3), then Tooltip, Dialog, Popover/Menu with controlled state, focus, presence and reduced-motion tests.
 4. Publish an initial version (or install a packaged prerelease) and integrate it into TaoTale's app shell.
 5. Add Select/Combobox, forms, feedback and other primitives **as actual TaoTale screens need them**; avoid building a large speculative catalog before the application works.
 6. Apply Quiet Study colors/layouts in TaoTale and run end-to-end accessibility/performance checks.
@@ -251,7 +269,7 @@ Seeded defaults and naming/contrast constraints remain TaoTale responsibilities.
 - Public package name, repository ownership/license and publication workflow.
 - Public token prefix, slot/selector naming, component variant contract and explicit CSS import strategy.
 - Internal styling/build implementation and whether a small example/docs site is bundled with the project.
-- Exact Kobalte dependency strategy and compatible versions, animation/presence implementation, and which components are part of the v1 stability commitment.
+- Architecture of the in-house primitive layer (internal module, or a later public headless package), the native-first choices for overlays, animation/presence implementation, and which components are part of the v1 stability commitment.
 - Scope of component-level theming helpers and whether an `unstyled` mode is supported. **Not required** merely because the library supports overrides.
 
 These choices are left open intentionally; no TaoTale MVP requirement depends on inventing their final names now.
@@ -259,8 +277,8 @@ These choices are left open intentionally; no TaoTale MVP requirement depends on
 ## 11. Reference and provenance
 
 - Historical design source: `08-design-system(1).md` (Quiet Study tokens, topic palettes and screen layout guidance); framework-specific MUI/React-era details are not normative.
-- Kobalte: [introduction](https://kobalte.dev/docs/core/overview/introduction), [styling and component states](https://kobalte.dev/docs/core/overview/styling), [tooltip](https://kobalte.dev/docs/core/components/tooltip), [dialog](https://kobalte.dev/docs/core/components/dialog).
+- [WAI-ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/) — behavioral specification for the in-house primitives (§2.3).
 - SolidJS: [styling components](https://docs.solidjs.com/guides/styling-your-components), [context](https://docs.solidjs.com/concepts/context).
 - npm: [package metadata and peer dependencies](https://docs.npmjs.com/files/package.json/).
 
-**Documentation follow-up:** `03-client.md` and `02-decision-register.md` should explicitly replace the historical “in-app custom UI primitives” wording with “consume the standalone SolidJS UI package” at their next reconciliation. They are **not modified by this document**.
+**Documentation follow-up:** `03-taotale-client.md` and `02-taotale-decision-register.md` should explicitly replace the historical “in-app custom UI primitives” wording with “consume the standalone SolidJS UI package” at their next reconciliation. They are **not modified by this document**.

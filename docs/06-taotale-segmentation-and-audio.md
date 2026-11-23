@@ -2,7 +2,7 @@
 
 **Status:** MVP implementation specification for `zh-CN` and `ko-KR`. Language-specific strategies, Go/Azure feasibility, and migration compatibility must be verified in implementation; sample language rules below are **proposed starting policies**, not evidence of verified provider behavior.
 
-**Authority:** [01 — Product overview](01-taotale-overview-and-features.md) defines MVP scope; [03 — Client](03-client.md) defines the SolidJS Reader; [04 — Backend](04-backend.md) defines Go/Gin/Azure adapters; [05 — Database](05-database.md) defines persisted job, asset and segment fields. Historical reference: Mandarin Reader SYN/SEG/ALN rules and D-08/23/31–33/37/45/54/55. Where they conflict, current TaoTale decisions win.
+**Authority:** [01 — Product overview](01-taotale-overview-and-features.md) defines MVP scope; [03 — Client](03-taotale-client.md) defines the SolidJS Reader; [04 — Backend](04-taotale-backend.md) defines Go/Gin/Azure adapters; [05 — Database](05-taotale-database.md) defines persisted job, asset and segment fields. Historical reference: Mandarin Reader SYN/SEG/ALN rules and D-08/23/31–33/37/45/54/55. Where they conflict, current TaoTale decisions win.
 
 ## 1. Scope and non-negotiable invariants
 
@@ -158,7 +158,7 @@ The Go generation worker may persist an immutable `AudioAsset` and set a job to 
 
 At draft/direct/revision publication, verify the persisted candidate **again** (identity, asset reference, alignment, expected version and current saved inputs). Reject any mismatch; **do not repair/resegment in the publish transaction**. Publication failure must leave the old published recording playable and must not silently trigger another Azure synthesis.
 
-Persisted job states remain `PENDING → PROCESSING → READY` or `FAILED`; interrupted uncertain jobs become `FAILED` plus a documented failure code, and **must not be automatically re-submitted as paid calls**. `OUTDATED` is a computed compatibility state. Idempotency, short PostgreSQL transactions, staging files, atomic renames and orphan cleanup are owned by [04](04-backend.md) and [05](05-database.md).
+Persisted job states remain `PENDING → PROCESSING → READY` or `FAILED`; interrupted uncertain jobs become `FAILED` plus a documented failure code, and **must not be automatically re-submitted as paid calls**. `OUTDATED` is a computed compatibility state. Idempotency, short PostgreSQL transactions, staging files, atomic renames and orphan cleanup are owned by [04](04-taotale-backend.md) and [05](05-taotale-database.md).
 
 ## 7. Reader synchronization (SolidJS)
 

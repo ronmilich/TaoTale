@@ -2,7 +2,7 @@
 
 **Status:** Target **logical** schema for the current local single-user MVP. **Not executable migration SQL.** Physical DDL, constraint names and query files will be authored as reviewed SQL migrations and sqlc inputs.
 
-**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) defines product behavior; [`02-decision-register.md`](02-decision-register.md) tracks decisions; [`04-backend.md`](04-backend.md) defines the **Go + Gin + pgx/v5 + sqlc** architecture. This replaces the old **Prisma-centric** database document without discarding valid data-integrity decisions from Mandarin Reader.
+**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) defines product behavior; [`02-taotale-decision-register.md`](02-taotale-decision-register.md) tracks decisions; [`04-taotale-backend.md`](04-taotale-backend.md) defines the **Go + Gin + pgx/v5 + sqlc** architecture. This replaces the old **Prisma-centric** database document without discarding valid data-integrity decisions from Mandarin Reader.
 
 ## 1. Storage and modeling rules
 
@@ -213,4 +213,4 @@ These examples show the intended **SQL-first** pattern. Real queries must match 
 
 **Open physical-design decisions:** exact PostgreSQL/Go/sqlc versions and migration tool; whether `LearningLanguage` is physically a table or migration-controlled reference catalog (this specification **recommends a table** for FKs); explicit enum vs `TEXT CHECK` for difficulty/status; whether to retire `source_item_id` now or later; JSONB segments vs a separate table if querying per-segment ever becomes necessary; exact composite FK layout; MP3 integrity metadata; role of optional language-specific automatic vocabulary matching.
 
-**Maintenance:** Do not change the logical invariants solely to simplify code generation. A database change must update ordered migration SQL, `sqlc` query files/generated Go, API contract, matching domain behavior and regression tests. Record the **Go + Gin + sqlc** stack choice as a new `TT-` decision in `02-decision-register.md` when that register is next revised.
+**Maintenance:** Do not change the logical invariants solely to simplify code generation. A database change must update ordered migration SQL, `sqlc` query files/generated Go, API contract, matching domain behavior and regression tests. Record the **Go + Gin + sqlc** stack choice as a new `TT-` decision in `02-taotale-decision-register.md` when that register is next revised.

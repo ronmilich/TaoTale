@@ -2,7 +2,7 @@
 
 **Status:** Proposed measurable release gates and test strategy for a **new Go/SolidJS implementation** (23 November 2026). **No TaoTale implementation tests or benchmarks were run to produce this document.** Historical Mandarin Reader results are reference evidence only and **cannot** be credited as TaoTale pass results.
 
-**Authority:** [01 — MVP scope](01-taotale-overview-and-features.md), [03 — Solid client](03-taotale-client.md), [04 — Go backend](04-backend.md), [05 — Database](05-database.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — UI library](08-taotale-design-system.md), [09 — States](09-taotale-ui-states.md), [10 — API](10-taotale-api.md), [11 — Operations](11-taotale-operations-and-security.md).
+**Authority:** [01 — MVP scope](01-taotale-overview-and-features.md), [03 — Solid client](03-taotale-client.md), [04 — Go backend](04-taotale-backend.md), [05 — Database](05-taotale-database.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — UI library](08-taotale-design-system.md), [09 — States](09-taotale-ui-states.md), [10 — API](10-taotale-api.md), [11 — Operations](11-taotale-operations-and-security.md).
 
 ## 1. Scope of release certification
 

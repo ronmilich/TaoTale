@@ -17,7 +17,7 @@ TaoTale is a **locally hosted, single-user, desktop/tablet web application**. It
 | Routing | **`@solidjs/router`** | Official Solid router for URL state, nested views, navigation and leave guards. |
 | Styling | **No Tailwind CSS** | Consume the UI package's published CSS and theming contract. TaoTale may author CSS for **app-specific layouts/domain components**; package internals and token/override rules are specified in 08. |
 | Generic UI and design system | **Independent, versioned, npm-published SolidJS-only UI library** | TaoTale imports its public Button/Input/Dialog/Tooltip/Menu/etc. components. The package owns generic behavior, styling, accessibility, focus, overlays and transitions; TaoTale supplies its Quiet Study theme. |
-| Headless primitives | **No direct Kobalte usage in TaoTale** | No app import or declared direct dependency on `@kobalte/core`. The UI package may use Kobalte **internally**; its internals are not an app API. |
+| Headless primitives | **No Kobalte — in TaoTale or in the UI package** | No app import or declared dependency on `@kobalte/core` or any other headless UI library. The UI package implements its own accessible primitives (TT-032); its internals are not an app API. |
 | Local/derived state | `createSignal`, `createStore`, `createMemo`, `createContext` as appropriate | Prefer Solid primitives and component-local state; no default global-state dependency. |
 | Asynchronous state | Solid resources and/or Solid Router `query` + `createAsync` + targeted revalidation | Use the primitives already available in the selected stack; do not introduce a general-purpose request-cache library by default. |
 | HTTP transport | Browser **`fetch`** + narrow typed API wrapper | Same-origin `/api/v1`; typed errors, cancellation and explicit mutation behavior without Axios. |
@@ -26,19 +26,19 @@ TaoTale is a **locally hosted, single-user, desktop/tablet web application**. It
 | Preferences | Small typed local-storage adapter + Solid state | No Zustand, Redux, or application-wide persistence framework. |
 | Audio | Native `HTMLAudioElement` | No audio-player framework; use browser media APIs directly. |
 
-**Not selected as TaoTale app dependencies:** React, React Compiler, React Router, MUI, Zustand, TanStack Query, Axios, React Hook Form, **Kobalte (`@kobalte/core`) or Tailwind CSS**. Kobalte may be used **inside the separate UI package**; that does not authorize TaoTale to import it. Removing historical dependencies does not remove associated user-facing behavior.
+**Not selected as TaoTale app dependencies:** React, React Compiler, React Router, MUI, Zustand, TanStack Query, Axios, React Hook Form, **Kobalte (`@kobalte/core`) or Tailwind CSS**. The separate UI package does not use Kobalte either (TT-032). Removing historical dependencies does not remove associated user-facing behavior.
 
 ### 1.2 Minimal-dependency policy
 
 1. **Solid-first:** use Solid's native reactivity, control flow, contexts, stores, resources, effects, lazy loading and lifecycle helpers before reaching for another runtime package.
 2. **Platform-first:** prefer HTML forms, semantic elements, `fetch`, `AbortController`, `URLSearchParams`, `Intl`, CSS, and `HTMLAudioElement` where they solve the problem correctly.
-3. **Use the npm UI library for generic controls:** import its public components for dialogs, popovers, menus, select/combobox, tooltips, buttons, inputs and transitions. **Do not import Kobalte directly** or duplicate those accessibility/overlay mechanisms in TaoTale. The package may use Kobalte as an implementation detail.
+3. **Use the npm UI library for generic controls:** import its public components for dialogs, popovers, menus, select/combobox, tooltips, buttons, inputs and transitions. **Do not import Kobalte** (or any other headless UI library) or duplicate those accessibility/overlay mechanisms in TaoTale. The package implements them itself (TT-032).
 4. **Avoid component-library stacking:** no second headless library, MUI, Tailwind, alternate design-system framework, CSS-in-JS runtime, animation framework or broad icon package without a demonstrated gap.
 5. **Require justification for a new application runtime dependency:** identify why Solid, browser APIs and the **UI package public APIs** are insufficient; check bundle/maintenance impact and a measurable benefit. If a generic capability is missing, consider adding it **to the independent UI library**, not bypassing it.
 6. **Development tooling is a separate category:** tests, type generation, linting, formatting and build tools are allowed when useful; minimizing *runtime* dependencies must not compromise quality.
 7. **Do not reimplement hard solved problems poorly:** the goal is low total complexity and good performance, **not** the smallest possible `package.json` at the expense of accessibility, correctness or security.
 
-**Version policy:** pin compatible **SolidJS, Solid Router, Vite and npm UI-library versions** when initializing the client. Test package peer-dependency compatibility and bundled CSS/types in the consuming app. **Kobalte versions are chosen by the UI-library project**, not by TaoTale. No historical React-era version pins apply.
+**Version policy:** pin compatible **SolidJS, Solid Router, Vite and npm UI-library versions** when initializing the client. Test package peer-dependency compatibility and bundled CSS/types in the consuming app. No historical React-era version pins apply.
 
 ## 2. Client organization and dependency boundaries
 
@@ -145,7 +145,7 @@ Solid components **set up reactive bindings**; they do not run again for every s
 The **authoritative specification already exists** in [`08-taotale-design-system.md`](08-taotale-design-system.md). It distinguishes (a) an independently developed, **SolidJS-only**, npm-published UI component library and (b) the TaoTale-specific **Quiet Study** theme and page composition. This client document defines the **consumer integration**, not generic component implementations or the library's public styling API.
 
 - **TaoTale uses the published UI package** for generic controls (Button, Input, Dialog, AlertDialog, Tooltip, Popover, Menu, Select, etc.) where available. Add the UI package as a versioned app dependency; import only **public package exports**, not its source files, private CSS selectors or undocumented internals.
-- **No direct Kobalte in TaoTale:** do not declare `@kobalte/core` as an application dependency, import its primitives, or wrap Kobalte in feature code. **The standalone UI-library project may use Kobalte internally** to implement accessible primitives; any transitive dependency stays an implementation detail of that package.
+- **No Kobalte:** do not declare `@kobalte/core` as an application dependency, import its primitives, or wrap Kobalte in feature code. **The standalone UI library does not use Kobalte either**: it implements its accessible primitives in-house (TT-032), and TaoTale never depends on its internals.
 - **No Tailwind CSS:** neither TaoTale nor the UI library requires Tailwind as a runtime/build/styling dependency. The UI package publishes its own styled components/CSS and documented theme tokens, variants, parts and customization hooks as specified in 08. TaoTale authors **only application-specific styles** for page composition and domain features.
 - **Ownership:** the UI library owns reusable ARIA/keyboard/focus behavior, tooltip timers, overlay dismissal/positioning, transition/presence behavior and reduced-motion defaults. TaoTale supplies domain data, dialogs' content/actions, navigation, reading/text-selection rules, audio synchronization, error states and **end-to-end accessible composition**.
 - **Theme:** TaoTale applies Quiet Study using the package's **public theme API/CSS custom properties**, with light/dark/system selection persisted locally and applied before first paint. Do not fork package components or reach into private classes merely to change their appearance.
@@ -253,7 +253,7 @@ The **Azure TTS adapter** remains part of the backend integration in MVP. The **
 | Risk / anti-pattern | Safeguard |
 |---|---|
 | React mental model copied into Solid | Review for destructured props, mistaken component re-renders, hooks and unnecessary effects; write Solid-native reactive code. |
-| Minimal dependencies interpreted as hand-building inaccessible controls | Import accessible generic controls from the **independent UI library**; do not write app-level Kobalte wrappers or inaccessible substitutes. The library may use Kobalte internally. |
+| Minimal dependencies interpreted as hand-building inaccessible controls | Import accessible generic controls from the **independent UI library**; do not write app-level Kobalte wrappers or inaccessible substitutes. The library builds and tests these primitives itself (TT-032). |
 | One global store for all app state | Route URL state, server-derived data, editor state, media state and preferences each have a clear owner. |
 | Duplicate query cache layers | Use router queries or isolated resources with documented targeted refresh; no automatic extra cache package. |
 | Audio time broadcasts to whole app | Native media element + isolated progress display + active segment changes only. |
@@ -280,7 +280,7 @@ The **Azure TTS adapter** remains part of the backend integration in MVP. The **
 
 ### 13.2 Open implementation choices (not reversals of approved decisions)
 
-- Pin exact **SolidJS, Solid Router, Vite and external UI-library package versions** after checking compatibility, exports and TSX tooling. **Kobalte versioning is owned by the UI-library project, not TaoTale.** A local SPA does not require SolidStart/SSR by default.
+- Pin exact **SolidJS, Solid Router, Vite and external UI-library package versions** after checking compatibility, exports and TSX tooling. A local SPA does not require SolidStart/SSR by default.
 - Choose a consistent rule for **route queries vs component resources**, including targeted invalidation and stale-data presentation, to avoid accidental duplicate data ownership.
 - Use the **existing `08-taotale-design-system.md`** for the UI package CSS/theming API, slots, styling overrides, animations and accessibility contracts. TaoTale still needs an implementation convention for **app-specific CSS** but must not create a second generic styling system or use Tailwind.
 - Define testable **bundle and interaction performance budgets** from a first functioning build, rather than claiming unmeasured speedups.
@@ -293,8 +293,8 @@ The **Azure TTS adapter** remains part of the backend integration in MVP. The **
 - [Solid Router — Search parameters](https://docs.solidjs.com/solid-router/concepts/search-parameters)
 - [Solid Router — Leave guards](https://docs.solidjs.com/solid-router/reference/primitives/use-before-leave)
 - [Solid Router — Query revalidation](https://docs.solidjs.com/solid-router/data-fetching/revalidation)
-- [`08-taotale-design-system.md`](08-taotale-design-system.md) — independent SolidJS-only npm library, Kobalte **internal to library only**, theming, component API and TaoTale Quiet Study visuals.
+- [`08-taotale-design-system.md`](08-taotale-design-system.md) — independent SolidJS-only npm library with in-house accessible primitives (no Kobalte), theming, component API and TaoTale Quiet Study visuals.
 
 ---
 
-**Maintenance note:** the matching current decisions are recorded in [`02-taotale-decision-register.md`](02-taotale-decision-register.md), especially TT-027–031: **SolidJS**, minimal runtime dependencies, **external npm UI package**, **no direct Kobalte in TaoTale**, **no Tailwind**, and the separate design-system contract in 08. The overview remains authoritative for MVP scope; the npm library is responsible for reusable generic accessible UI.
+**Maintenance note:** the matching current decisions are recorded in [`02-taotale-decision-register.md`](02-taotale-decision-register.md), especially TT-027–032: **SolidJS**, minimal runtime dependencies, **external npm UI package**, **no Kobalte in TaoTale or the library**, **no Tailwind**, and the separate design-system contract in 08. The overview remains authoritative for MVP scope; the npm library is responsible for reusable generic accessible UI.

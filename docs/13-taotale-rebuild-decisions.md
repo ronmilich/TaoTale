@@ -2,7 +2,7 @@
 
 **Status:** Implementation roadmap and **decision-boundary document**, revised 23 November 2026. This **replaces** the old comparative NestJS/Go/Rust and React/Solid review: the major choices have been made. Remaining questions are implementation details or future feature decisions, **not** an invitation to silently re-open the agreed technology or MVP scope.
 
-**Normative authorities:** [01 — Product](01-taotale-overview-and-features.md), [02 — Decision register](02-taotale-decision-register.md), [03 — Client](03-taotale-client.md), [04 — Backend](04-backend.md), [05 — Database](05-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md), [08 — Design system](08-taotale-design-system.md).
+**Normative authorities:** [01 — Product](01-taotale-overview-and-features.md), [02 — Decision register](02-taotale-decision-register.md), [03 — Client](03-taotale-client.md), [04 — Backend](04-taotale-backend.md), [05 — Database](05-taotale-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md), [08 — Design system](08-taotale-design-system.md).
 
 ## 1. Locked project direction
 
@@ -12,7 +12,7 @@
 | Learning languages | **Simplified Mandarin `zh-CN` + Korean `ko-KR`** initially, English app interface | Mandarin-only schema and assumptions; unapproved automatic support for Japanese/other languages. |
 | Client | **SolidJS + TypeScript + Vite + `@solidjs/router`** | React/MUI/Zustand/React Hook Form/TanStack Query/React Router defaults. |
 | UI library | TaoTale **consumes independently versioned npm-published SolidJS-only component package** | Building all generic components inside TaoTale; framework-agnostic component API. |
-| UI behavior/styling | npm package owns generic accessibility/overlays/transitions/theming hooks; TaoTale owns Quiet Study and domain UI | Direct app use of **Kobalte** or **Tailwind**. The package may use Kobalte internally. |
+| UI behavior/styling | npm package owns generic accessibility/overlays/transitions/theming hooks, implemented in-house (TT-032); TaoTale owns Quiet Study and domain UI | Direct app use of **Kobalte** or **Tailwind**, and Kobalte inside the package. |
 | Backend | **Go modular monolith + Gin** with adapters and persistent in-process jobs | NestJS/Node as selected runtime, Go/Rust open evaluation. |
 | Database | **PostgreSQL locally in Docker**, `pgx/v5` + **sqlc** + reviewed SQL migrations | Prisma ORM/migrations and managed SaaS databases. |
 | Media | Local files + metadata/segments in PostgreSQL; paired recoverable backups | Hosted object storage and assuming DB-only backups suffice. |

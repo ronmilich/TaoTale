@@ -1,6 +1,6 @@
 # 11 — TaoTale local operations, deployment and security
 
-**Status:** Target MVP operating model, revised 23 November 2026. **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-backend.md), [05 — PostgreSQL model](05-database.md), [10 — API](10-taotale-api.md), and [12 — Quality](12-taotale-quality-and-acceptance.md). Commands and configuration keys shown here are **proposed implementation conventions**, not verified commands from an existing TaoTale repository.
+**Status:** Target MVP operating model, revised 23 November 2026. **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-taotale-backend.md), [05 — PostgreSQL model](05-taotale-database.md), [10 — API](10-taotale-api.md), and [12 — Quality](12-taotale-quality-and-acceptance.md). Commands and configuration keys shown here are **proposed implementation conventions**, not verified commands from an existing TaoTale repository.
 
 ## 1. Deployment boundary and selected stack
 
