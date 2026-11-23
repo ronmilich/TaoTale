@@ -323,7 +323,7 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 - `.gitignore` for env files, media and dumps; secret scanning; formatting and lint hooks.
 - CI skeleton with the stages from 12 §6 as placeholders.
 - **Dependency guard:** CI fails if `@kobalte/core` (or any other headless UI library) or `tailwindcss` appears in TaoTale's manifests, imports or resolved dependency tree. Checking the tree also confirms the UI library ships without Kobalte (TT-032). Add a rule that every new runtime dependency needs a written justification (03 §1.2).
-- How TaoTale gets library builds: registry versions pinned exactly, or prerelease tarballs from the library's release pipeline.
+- Apply TT-034: pin exact published registry versions. UL-20 supplies the first TAO-09 consumer release. Internal canaries and tarballs serve library fixtures only.
 
 **Exit criteria**
 - [ ] CI green on the skeleton.
