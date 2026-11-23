@@ -4,7 +4,7 @@
 
 **Scope authority:** [01 — Overview](../01-taotale-overview-and-features.md) decides MVP vs post-MVP; [02 — Decision register](../02-taotale-decision-register.md) records decisions. Technical sources are [03](../03-taotale-client.md)–[06](../06-taotale-segmentation-and-audio.md) and [08](../08-taotale-design-system.md)–[12](../12-taotale-quality-and-acceptance.md). This roadmap breaks the stage plans in 01 §9 and 13 §3 into small, gated milestones.
 
-**Depends on:** the [UI Library roadmap](ui-library-roadmap.md). **Every TaoTale milestone has a UI Library gate.** It cannot start until that library milestone is Done.
+**Depends on:** the [UI Library roadmap](https://github.com/ronmilich/eroxo-ui/blob/main/docs/ui-library-roadmap.md). **Every TaoTale milestone has a UI Library gate.** It cannot start until that library milestone is Done.
 
 ---
 

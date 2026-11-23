@@ -1,6 +1,6 @@
 # UI Library — implementation roadmap
 
-**Status:** Planned — no milestone started (created 23 November 2026). This is a plan, not evidence of implemented work.
+**Historical planning snapshot.** The [Eroxo UI roadmap](https://github.com/ronmilich/eroxo-ui/blob/main/docs/ui-library-roadmap.md) is the source of current milestone status, exit criteria and TaoTale gates. This file preserves the original plan and its section links.
 
 **Product:** an independent, commercial-grade, **SolidJS-only** UI component library published to npm. Working codename **UL** until [UL-02](#ul-02--name-selection-and-brand-reservation) selects the public name. Below, `<pkg>` stands for the npm package name and `<p>` for the CSS/data-attribute prefix.
 

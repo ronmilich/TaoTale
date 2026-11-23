@@ -33,7 +33,7 @@ When documents conflict, apply these rules **in order**:
 | 12 | [`12-taotale-quality-and-acceptance.md`](12-taotale-quality-and-acceptance.md) | Go/SQL/Solid/UI-library tests, bilingual fixtures and MVP release gates | **Proposed tests; not executed** |
 | 13 | [`13-taotale-rebuild-decisions.md`](13-taotale-rebuild-decisions.md) | Locked choices, staged vertical-slice implementation and unresolved details | **Roadmap / governance** |
 | 14 | [`14-taotale-sources-and-coverage.md`](14-taotale-sources-and-coverage.md) | This authority/provenance/traceability inventory | **Companion index** |
-| — | [`roadmap/ui-library-roadmap.md`](roadmap/ui-library-roadmap.md) | Milestones for the standalone UI library: product, name, licence, infrastructure, in-house behavior layer, components, 1.0 launch | **Plan**; not evidence of completed work |
+| — | [`roadmap/ui-library-roadmap.md`](https://github.com/ronmilich/eroxo-ui/blob/main/docs/ui-library-roadmap.md) | Milestones for the standalone UI library: product, name, licence, infrastructure, in-house behavior layer, components, 1.0 launch | **Plan**; not evidence of completed work |
 | — | [`roadmap/taotale-roadmap.md`](roadmap/taotale-roadmap.md) | TaoTale MVP and post-MVP milestones, each gated on a UI Library milestone | **Plan**; not evidence of completed work |
 
 **Naming policy:** All specifications use **`number-taotale-filename.md`**; 04 and 05 have been renamed and every link updated. Roadmaps live in `roadmap/` without numbers.
