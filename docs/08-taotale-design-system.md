@@ -1,6 +1,6 @@
 # 08 — TaoTale design system and SolidJS UI library
 
-**Status:** Product and architecture specification for the standalone UI library and its TaoTale integration. Package name, exact public prop names, and first release version remain to be selected.
+**Status:** Product and architecture specification for the standalone UI library and its TaoTale integration. TT-033 records the package name, licence and CSS prefixes. Exact public prop names and the first published version remain to be verified.
 
 **Authority:** `01-taotale-overview-and-features.md` determines TaoTale's MVP scope; `03-taotale-client.md` determines the SolidJS application architecture; this document defines (1) the reusable UI-library contract and (2) the TaoTale-specific theme, visual rules, and composition. The old Mandarin Reader design and D-24/39–46/48–52/61 are historical references, not permission to reintroduce deferred features.
 
@@ -9,7 +9,7 @@
 TaoTale will **consume an independently developed, published npm UI-component library**. That library is itself a reusable product for other developers building **SolidJS applications only**. It is **opinionated**: components have polished defaults, coherent styling, predictable interaction states, and accessibility behavior out of the box. It is also **customizable**: developers can change themes, tokens, variants, component styles, and composition without forking the library.
 
 - **Framework:** SolidJS and TypeScript. No React, Vue, Angular, Web Components compatibility layer, framework-neutral virtual DOM, or dual framework builds.
-- **Distribution:** a separately versioned package published to the public npm registry. The npm package name and repository topology are **TBD**. The library must be usable outside TaoTale, independently of TaoTale's app, backend, and domain data.
+- **Distribution:** a separately versioned package published to the public npm registry. The MIT package is `eroxo-ui` and its current repository is `ronmilich/eroxo-ui` (TT-033). The library must be usable outside TaoTale, independently of TaoTale's app, backend, and domain data.
 - **Styling:** authored/compiled CSS with a public customization contract. **No Tailwind CSS** or consumer Tailwind configuration required. Do not choose a runtime CSS-in-JS engine by default. Internal CSS organization (plain CSS versus CSS Modules, etc.) is an implementation choice as long as published CSS and override mechanisms are reliable.
 - **Behavior:** the library implements reusable client-side UI behavior such as keyboard interaction, focus management, overlay positioning/presence, tooltip timing, menus, accessible dialogs, transitions, and reduced-motion handling. Prefer native browser capabilities and SolidJS primitives. **These behaviors are implemented in-house** (§2.3): the library does **not** use Kobalte or any other headless UI library (TT-032).
 - **Responsibility:** the library owns reusable UI mechanics and presentation APIs; **TaoTale owns product workflows**, language-aware reading, text selection, audio playback and synchronization, vocabulary matching, persistence, API requests, routes, and local preferences.
@@ -86,7 +86,7 @@ The library is **styled by default**, but styling must never be welded to the Ta
 4. **Slots/parts and state hooks:** stable documented selectors or a slots/classes prop for relevant internal parts (trigger, content, label, icon, overlay, etc.). Expose only supported customization surfaces; do not require users to target volatile DOM implementation details.
 5. **Direct style overrides:** allow a consumer's class, inline style and CSS overrides to work with documented cascade/layer precedence. Avoid `!important` as a normal styling mechanism.
 
-**Provisional naming guidance:** namespace public CSS custom properties and selectors to avoid collisions (e.g. `--ui-color-surface`, `data-ui-slot="dialog-content"`). The definitive prefix is chosen alongside the npm package name, before v1; example names here are not a committed API.
+**Public prefixes (TT-033).** Eroxo UI uses `--erx-` for CSS custom properties and `data-erx-` for data attributes. Specific token names and slot values follow the UL-06 styling contract.
 
 ### 3.2 Themes, animations, and configuration
 
@@ -266,8 +266,8 @@ Seeded defaults and naming/contrast constraints remain TaoTale responsibilities.
 
 ## 10. Decisions to finalize before the first public npm release
 
-- Public package name, repository ownership/license and publication workflow.
-- Public token prefix, slot/selector naming, component variant contract and explicit CSS import strategy.
+- Future repository ownership and publication workflow. TT-033 records the current repository, package name and MIT licence.
+- Slot/selector naming, component variant contract and explicit CSS import strategy within the prefixes recorded in TT-033.
 - Internal styling/build implementation and whether a small example/docs site is bundled with the project.
 - Architecture of the in-house primitive layer (internal module, or a later public headless package), the native-first choices for overlays, animation/presence implementation, and which components are part of the v1 stability commitment.
 - Scope of component-level theming helpers and whether an `unstyled` mode is supported. **Not required** merely because the library supports overrides.
