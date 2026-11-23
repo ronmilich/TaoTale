@@ -86,7 +86,7 @@ The library is **styled by default**, but styling must never be welded to the Ta
 4. **Slots/parts and state hooks:** stable documented selectors or a slots/classes prop for relevant internal parts (trigger, content, label, icon, overlay, etc.). Expose only supported customization surfaces; do not require users to target volatile DOM implementation details.
 5. **Direct style overrides:** allow a consumer's class, inline style and CSS overrides to work with documented cascade/layer precedence. Avoid `!important` as a normal styling mechanism.
 
-**Public prefixes (TT-033).** Eroxo UI uses `--erx-` for CSS custom properties and `data-erx-` for data attributes. Specific token names and slot values follow the UL-06 styling contract.
+**Public prefixes (TT-033).** Eroxo UI uses `--erx-` for CSS custom properties and `data-erx-` for data attributes. TT-035 adopts the [UL-06 styling contract](https://github.com/ronmilich/eroxo-ui/blob/main/docs/design-system/eroxo-iris-component-anatomy-api-spec.md). Target documented part classes such as `.erx-button__label`, use `data-erx-*` for state, and set `--erx-density-*` on a density scope. An omitted control size inherits that scope.
 
 ### 3.2 Themes, animations, and configuration
 
@@ -267,7 +267,7 @@ Seeded defaults and naming/contrast constraints remain TaoTale responsibilities.
 ## 10. Decisions to finalize before the first public npm release
 
 - Future repository ownership and publication workflow. TT-033 records the current repository, package name and MIT licence.
-- Slot/selector naming, component variant contract and explicit CSS import strategy within the prefixes recorded in TT-033.
+- Verify the TT-035 part selectors and variant contract, and the explicit CSS imports, against the first adopted registry release.
 - Internal styling/build implementation and whether a small example/docs site is bundled with the project.
 - Architecture of the in-house primitive layer (internal module, or a later public headless package), the native-first choices for overlays, animation/presence implementation, and which components are part of the v1 stability commitment.
 - Scope of component-level theming helpers and whether an `unstyled` mode is supported. **Not required** merely because the library supports overrides.
