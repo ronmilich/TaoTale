@@ -1,0 +1,46 @@
+openapi: 3.1.0
+info:
+  title: TaoTale backend
+  version: 0.1.0
+servers:
+  - url: /api/v1
+  - url: /
+paths:
+  /health/live:
+    get:
+      operationId: healthLive
+      responses:
+        '200':
+          $ref: '#/components/responses/Healthy'
+  /health/ready:
+    get:
+      operationId: healthReady
+      responses:
+        '200':
+          $ref: '#/components/responses/Healthy'
+        '503':
+          description: PostgreSQL or the media directory is unavailable.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: object
+                    required: [code, message, requestId]
+                    properties:
+                      code: {const: SERVICE_UNAVAILABLE}
+                      message: {type: string}
+                      requestId: {type: string}
+components:
+  responses:
+    Healthy:
+      description: The health check passed.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status: {const: ok}

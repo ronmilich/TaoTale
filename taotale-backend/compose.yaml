@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:17.11
+    environment:
+      POSTGRES_DB: taotale
+      POSTGRES_USER: taotale
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD before starting Compose}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "taotale", "-d", "taotale"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: taotale
+      PGUSER: taotale
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD before starting Compose}
+      PGSSLMODE: disable
+      MEDIA_ROOT: /var/lib/taotale/media
+    ports:
+      - "127.0.0.1:${PORT:-8080}:8080"
+    volumes:
+      - media:/var/lib/taotale/media
+
+volumes:
+  postgres:
+  media:
