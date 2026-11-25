@@ -99,4 +99,4 @@ Canonical labels: Library, Vocabulary, Settings, Create New Item, Save Draft, Ge
 
 **Critical acceptance:** (1) Favorite survives restart without version/audio change; (2) Chinese/Korean contexts stay separate; (3) invalid timing preserves readable transcript; (4) leaving never falsely promises a save; (5) invalid 1,000,001-byte replacement cover preserves old cover; (6) failed revision leaves published recording safe; (7) theme/panels do not remount Reader audio; (8) Iris appearance is cohesive light/dark on desktop/tablet; (9) no external UI package or complicated custom component behavior; (10) no post-MVP views in the shipped shell.
 
-**Related:** [10 — API](10-taotale-api.md), [12 — Quality](12-taotale-quality-and-acceptance.md), [13 — Plan](13-taotale-rebuild-decisions.md), [15 — Tasks](15-taotale-implementation-tasks.md).
+Related specifications include the [API](10-taotale-api.md), [quality gates](12-taotale-quality-and-acceptance.md), [rebuild plan](13-taotale-rebuild-decisions.md) and [TaoTale roadmap](taotale-roadmap.md).

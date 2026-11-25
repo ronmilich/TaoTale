@@ -1,8 +1,8 @@
 # TaoTale — implementation roadmap
 
-**Status:** Planned — no milestone started (created 23 November 2026; revised 25 November 2026). This describes target work. It is not evidence that anything is implemented (12 §1).
+The milestone table records progress. Each completed milestone links to or describes its verification evidence.
 
-**Scope authority:** [01 — Overview](../01-taotale-overview-and-features.md) decides MVP vs post-MVP; [02 — Decision register](../02-taotale-decision-register.md) records decisions. Technical sources are [03](../03-taotale-client.md)–[06](../06-taotale-segmentation-and-audio.md) and [08](../08-taotale-design-system.md)–[12](../12-taotale-quality-and-acceptance.md). This roadmap breaks the stage plans in 01 §9 and 13 §3 into small, internally dependent milestones.
+The [product overview](01-taotale-overview-and-features.md) defines MVP scope. The [decision register](02-taotale-decision-register.md) owns decision IDs. The [specification index](14-taotale-sources-and-coverage.md) identifies the technical authorities, and the [rebuild plan](13-taotale-rebuild-decisions.md) describes the stages.
 
 **Execution authority:** This is the canonical detailed TaoTale roadmap. All UI work is implemented in the TaoTale client. No external project, component package release or public component API is a prerequisite. The latest owner decision and documents 02, 03 and 08 supersede the former library-first plan.
 
@@ -25,7 +25,7 @@
 ## 2. Execution and UI ownership rules
 
 1. A milestone can start when its **TaoTale dependencies** are Done. No external release gates or artificial sequencing constraints.
-2. Build controls directly in `frontend/` using native HTML, small SolidJS components, CSS Modules and shared CSS variables. Build reusable controls only when a real screen needs them.
+2. Build controls directly in the TaoTale client using native HTML, small SolidJS components, CSS Modules and shared CSS variables. Build reusable controls when a real screen needs them.
 3. Use the **Iris Reading Studio** design in 08: violet/lavender, periwinkle and orchid, light/dark paper surfaces, typography, whitespace and restrained CSS effects.
 4. No external UI component packages, Kobalte, Tailwind, public slot or theme API, custom focus/keyboard/overlay engine, or formal accessibility certification. Keep native browser behavior and ordinary labels, readable controls and clear states.
 5. JavaScript remains for actual product behavior: routing, state, forms, selection, audio, synchronization, persistence and API calls. Keep dialogs native or use simple inline panels; no generic overlay positioning or animation infrastructure.
@@ -54,8 +54,8 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 
 | ID | Milestone | Phase | Depends on | Status |
 |---|---|---|---|---|
-| TAO-01 | Legacy inventory and migration strategy | 0 | — | Planned |
-| TAO-02 | Specification reconciliation | 0 | — | Planned |
+| TAO-01 | Legacy inventory and migration strategy | 0 | — | Done |
+| TAO-02 | Specification reconciliation | 0 | — | Done |
 | TAO-03 | Azure Go SDK feasibility spike | 0 | — | Planned |
 | TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Planned |
 | TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Planned |
@@ -175,9 +175,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Choose between importing into a fresh TaoTale schema and upgrading in place. 13 Stage 0 prefers rehearsing on a disposable copy.
 
 **Exit criteria**
-- [ ] Backup restore verified on a disposable instance.
-- [ ] Inventory report and migration strategy recorded as a new TT- decision in 02, with open items for 02 OPEN-07 listed.
-- [ ] Legacy golden vectors committed as fixtures.
+- [x] Verified the paired backup on a disposable PostgreSQL 17.11 instance and fresh media directory. All 13 table digests and four media hashes matched.
+- [x] Recorded the [inventory, baseline and restore evidence](tao-01-legacy-inventory.md) and the fresh-schema decision TT-033. Listed remaining difficulty and cover choices under OPEN-07.
+- [x] Added [eight segmentation and five fingerprint golden vectors](../testdata/legacy/mandarin-v1.json) and checked them against the pinned legacy source.
 
 **Depends on:** —
 
@@ -185,23 +185,21 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 
 **Goal:** Bring the specification set in line with current decisions before any code starts.
 
-*The original roadmap is superseded by this 25 November revision. Reconcile the actual repository documentation before marking this milestone Done.*
-
 **Scope**
 - Confirm the app-owned UI decision, Iris palette and CSS approach in 02 (TT-028–031; OPEN-10/11 resolved). Remove obsolete external-release obligations from the actual repository.
-- Resolve duplicated `OPEN-xx` numbering between 02 and 13: use one canonical register in 02 and update references by decision subject; the roadmap identifies the originating document until reconciliation is done.
+- Keep the canonical decision IDs in 02. Refer to them by subject throughout the specs and roadmap.
 - Verify 03, 08, 09, 12, 13 and 14 point to the current app-owned design and this canonical roadmap; retire the separate duplicate task tracker.
 
 **Exit criteria**
-- [ ] Decisions recorded in 02 with TT- IDs.
-- [ ] One `OPEN-xx` numbering scheme across 02 and 13.
-- [ ] No stale notes or broken links remain.
+- [x] Confirmed TT-028–031 and recorded roadmap and register ownership in TT-032.
+- [x] Consolidated open choices in 02 and checked references against the canonical IDs.
+- [x] Verified local Markdown links and anchors, removed old tracker references, and checked the client manifests, lockfile and tracked sources for an external UI dependency or release gate.
 
 **Depends on:** —
 
 #### TAO-03 — Azure Go SDK feasibility spike
 
-**Goal:** Before building the backend, prove that Go can produce MP3 audio **and** reliable word-boundary timing for both `zh-CN` and `ko-KR` (13 Stage 2, 13 OPEN-03, BE-OPEN-03).
+**Goal:** Before building the audio backend, prove that Go can produce MP3 audio and reliable word-boundary timing for both `zh-CN` and `ko-KR` (13 Stage 2, OPEN-12).
 
 **Scope**
 - A throwaway Go program in `spikes/` on the target OS. Record the SDK's native/CGO dependencies and installation steps.
@@ -231,7 +229,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 
 **Scope**
 - Layout per 11 §2: `frontend/`, `backend/`, `infra/`, `docs/`, `spikes/`, and a gitignored `local-data/`.
-- Pin the Go, Node and package-manager versions (02 OPEN-01).
+- Pin the Go, Node and package-manager versions (OPEN-01).
 - `.gitignore` for env files, media and dumps; secret scanning; formatting and lint hooks.
 - CI skeleton with the stages from 12 §6 as placeholders.
 - **Dependency guard:** reject external styled/headless UI packages, Kobalte and Tailwind in TaoTale manifests/imports. Keep runtime dependencies small; justify additions per 03 §1.
@@ -248,7 +246,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 **Goal:** Persistent, loopback-only local infrastructure.
 
 **Scope**
-- Decide whether Go runs on the host or in Compose (02 OPEN-02, 13 OPEN-01).
+- Decide whether Go runs on the host or in Compose (OPEN-02).
 - Compose service:
   - pinned PostgreSQL image, named volume, health check;
   - non-default credentials from a gitignored env file;
@@ -290,7 +288,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 **Goal:** A versioned schema workflow with idempotent seeding.
 
 **Scope**
-- Choose the migration runner (BE-OPEN-01). Configure sqlc with `pgx/v5`, and add a CI check that generated code hasn't drifted.
+- Choose the migration runner (OPEN-02). Configure sqlc with `pgx/v5`, and add a CI check that generated code hasn't drifted.
 - First migrations: `users`, `learning_languages` (`zh-CN`, `ko-KR`), and `topics` (name key, system key, four colors).
 - Seeds: one stable user, the enabled languages, and eight protected default topics. Rerunning the seed keeps IDs and user edits (NFR-15).
 - Integration tests on a disposable PostgreSQL. Readiness checks the schema version.
@@ -308,7 +306,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 
 **Scope**
 - The canonical TaoTale OpenAPI 3.1 file with conventions, the error envelope, `X-Request-Id`, health, `GET /languages` and `GET /topics`.
-- Linting; TypeScript type generation for the client; and the Go conformance approach — generated interfaces or request/response validation tests (13 OPEN-02).
+- Choose linting, TypeScript type generation for the client and the Go conformance approach (OPEN-16).
 - CI fails on stale generated types or on a mismatch between contract and implementation.
 - Rule for all later milestones: extend the contract before writing handlers.
 
@@ -382,7 +380,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 **Scope**
 - A registry keyed by language code + strategy ID/version. No fallback to Chinese rules, and no Japanese placeholder.
 - `zh-cn-legacy-v1`, reproducing the historical behavior exactly (06 §3.1), for existing recordings.
-- `zh-cn-phrase` v1 for new generations. Its punctuation, quote and paragraph rules are frozen through owner-approved golden vectors (02 OPEN-03).
+- `zh-cn-phrase` v1 for new generations. Freeze its punctuation, quote and paragraph rules through owner-approved golden vectors (OPEN-03).
 - Fixtures F1-CN and F2, including exact reconstruction of the gaps between segments.
 
 **Exit criteria**
@@ -416,7 +414,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 **Scope**
 - A domain `TTSProvider` interface: list voices, and synthesize → MP3 + boundary events + typed errors.
 - The Azure adapter, productionized from TAO-03: backend-only credentials, region, timeout, cancellation and error mapping.
-- A per-language voice allowlist with verified `zh-CN`/`ko-KR` voices and the rates each voice supports (02 OPEN-08), served by `GET /tts/voices?languageCode=`.
+- A per-language voice allowlist with verified `zh-CN`/`ko-KR` voices and the rates each voice supports (OPEN-08), served by `GET /tts/voices?languageCode=`.
 - A deterministic mock provider, visibly labelled "(mock)", used by every automated test. No paid calls in CI.
 - With credentials missing, generation reports `TTS_UNAVAILABLE` and reading is unaffected.
 
@@ -430,12 +428,12 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 **Goal:** Audio is marked READY only on verified evidence (06 §5–§6).
 
 **Scope**
-- Choose and verify an MP3 decoder/probe that measures duration (BE-OPEN-05, 13 OPEN-05).
+- Choose and verify an MP3 decoder/probe that measures duration (OPEN-13).
 - SSML generation with escaping and an index map back to the source text.
 - Boundary normalization: validate the raw events, coalesce events per segment, and apply floor/ceil only after validation.
 - The READY validation gate with a typed `ALIGNMENT_UNRELIABLE` error. The legacy 50 ms clamp applies only when validating legacy assets.
 - Fixtures F4 and F5; replay the real outputs recorded in TAO-03.
-- Decide the source-length policy: keep 1,500 UTF-16 units or plan chunking (02 OPEN-04).
+- Decide whether to keep 1,500 UTF-16 units or plan chunking (OPEN-04).
 
 **Exit criteria**
 - [ ] The recorded `zh-CN` and `ko-KR` outputs validate; corrupt fixtures fail with typed errors.
@@ -481,7 +479,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   - preset colors are resolved by the server (08 §2.3); retain stored color validation from 05;
   - default topics are protected; deletion removes joins only;
   - duplicate errors include the existing ID; usage counts are returned.
-- Settle `/topics` naming and whether any `/tags` alias is needed (13 OPEN-08).
+- Settle `/topics` naming and whether any `/tags` alias is needed (OPEN-14).
 
 **Exit criteria**
 - [ ] Tests pass, including a seed rerun that keeps renamed or recolored defaults.
@@ -929,7 +927,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 
 #### TAO-41 — Verified Chinese automatic matching (conditional)
 
-**Goal:** Turn on automatic highlighting **only** where tests prove it is trustworthy (02 OPEN-05, 13 OPEN-06).
+**Goal:** Turn on automatic highlighting only where tests prove it is trustworthy (OPEN-05).
 
 **Scope**
 - Exact-match annotation for `zh-CN` (longest match, then earliest, then stable ID), behind a per-language capability flag.
@@ -1001,7 +999,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   4. a manifest: timestamp, schema revision, app and segmentation versions, checksums.
 
   Store backups outside Docker volumes and the source tree.
-- Restore rehearsal into a fresh volume and an empty media root, followed by an integrity comparison. Commands for the target OS (02 OPEN-06, BE-OPEN-07).
+- Rehearse restore into a fresh volume and an empty media root, then compare integrity. Verify commands for the target OS (OPEN-06).
 
 **Exit criteria**
 - [ ] NFR-08: the restored instance has zero missing active assets, and identical fingerprints, timings, favorites, topics and vocabulary.
@@ -1023,7 +1021,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   - statuses, and references (the legacy source pointer becomes a manual reference);
   - audio bytes, with their legacy fingerprint and `zh-cn-legacy-v1` identity.
 - Backfill: `zh-CN`, `is_favorite=false`, pinyin → `reading` with `reading_system='pinyin'`, and the Learning/Acquired status.
-- Report `native` or other unexpected difficulty values and covers over 1,000,000 bytes. Apply only owner-approved mappings (02 OPEN-07); never delete covers.
+- Report `native` or other unexpected difficulty values and covers over 1,000,000 bytes. Apply only owner-approved mappings (OPEN-07) and preserve covers.
 - Idempotent: running it twice gives the same result.
 
 **Exit criteria**
@@ -1058,7 +1056,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 
 **Scope**
 - Review Library, Editor, Reader, Vocabulary and Settings against 08: Iris palette, typography, spacing, cards, visual hierarchy, consistent controls, loading/empty/error states, coordinated light/dark themes.
-- Review desktop at 1280/1440 px and a representative tablet (768–1024 px); confirm no blocking overflow, hidden actions, clipped text or player overlap. Use Chromium first; record supported browser/viewport baseline (13 OPEN-09). Phone QA is deferred.
+- Review desktop at 1280/1440 px and a representative tablet (768–1024 px). Check overflow, hidden actions, clipped text and player overlap. Use Chromium first and record the supported browser/viewport baseline (OPEN-15). Phone QA is deferred.
 - Check ordinary native interactions, text selection and stable playback during theme and panel changes. No formal accessibility certification or component behavior audit.
 
 **Exit criteria**
@@ -1144,7 +1142,7 @@ Each item needs a scope decision in 01 and 02 first (TAO-52). Each is broken int
 
 | ID | Milestone | Depends on | Notes |
 |---|---|---|---|
-| TAO-52 | Post-MVP scope approval and ordering | TAO-51 | Closes 02 OPEN-09; picks the order; updates 01 and 02. |
+| TAO-52 | Post-MVP scope approval and ordering | TAO-51 | Closes OPEN-09, picks the order and updates 01 and 02. |
 | TAO-53 | Dashboard | TAO-52 | 01 §8.1: active language, Continue Reading, recent items, Favorites, per-language counts. |
 | TAO-54 | Vocabulary Practice | TAO-52 | 01 §8.2: manual recall and reveal, explicit status changes; no SRS or scoring. |
 | TAO-55 | AI provider re-validation spike | TAO-52 | 07 §6: re-check the provider, authorization and credential storage on the target OS. Billable only with approval. |
@@ -1162,21 +1160,22 @@ Each item needs a scope decision in 01 and 02 first (TAO-52). Each is broken int
 
 | Open item | Source | Closed in |
 |---|---|---|
-| Exact versions and build tooling | 02 OPEN-01, 13 OPEN-02 | TAO-04 (toolchain), TAO-07 (DB stack), TAO-08 (OpenAPI tooling), TAO-09 (client) |
-| Go on the host vs in Compose; DB port; migration tool | 02 OPEN-02, 13 OPEN-01, BE-OPEN-01/02 | TAO-05, TAO-07 |
-| Segmentation rules and offset convention | 02 OPEN-03, 13 OPEN-04, BE-OPEN-04 | TAO-11, TAO-12, TAO-13 |
-| Source length vs chunking | 02 OPEN-04, 13 OPEN-04 | TAO-15 |
-| Azure Go SDK runtime and boundary fidelity | 13 OPEN-03, BE-OPEN-03 | TAO-03 |
-| MP3 decoder/probe | 13 OPEN-05, BE-OPEN-05 | TAO-15 |
-| Automatic vocabulary matching | 02 OPEN-05, 13 OPEN-06, BE-OPEN-06 | TAO-41 |
-| Backup workflow and packaging | 02 OPEN-06, BE-OPEN-07 | TAO-44 |
-| Legacy difficulty values and oversized covers | 02 OPEN-07, 13 OPEN-07 | TAO-01 (report), TAO-45 (decision) |
-| TTS limits, voices, provider configuration | 02 OPEN-08 | TAO-14, TAO-18 |
-| Post-MVP order | 02 OPEN-09 | TAO-52 |
-| App-local UI ownership (resolved) | 02 TT-028–029, OPEN-10 | TAO-02 confirms repository docs |
-| Iris CSS/tokens (resolved) | 02 TT-030–031, OPEN-11; 08 | TAO-09, TAO-10 |
-| `/topics` vs `/tags` | 13 OPEN-08 | TAO-17 |
-| Tablet/browser matrix, performance thresholds | 13 OPEN-09; 12 §2 | TAO-47, TAO-48 |
+| Exact versions and build tooling | OPEN-01 | TAO-04 (toolchain), TAO-07 (DB stack), TAO-09 (client) |
+| Go host vs Compose, DB port and migration tool | OPEN-02 | TAO-05, TAO-07 |
+| Segmentation rules and offset convention | OPEN-03 | TAO-11, TAO-12, TAO-13 |
+| Source length vs chunking | OPEN-04 | TAO-15 |
+| Automatic vocabulary matching | OPEN-05 | TAO-41 |
+| Backup workflow and packaging | OPEN-06 | TAO-44 |
+| Legacy difficulty values and oversized covers | OPEN-07 | TAO-01 (report), TAO-45 (decision) |
+| TTS limits, voices, provider configuration | OPEN-08 | TAO-14, TAO-18 |
+| Post-MVP order | OPEN-09 | TAO-52 |
+| App-local UI ownership (resolved) | OPEN-10, TT-028–029 | TAO-02 confirms repository docs |
+| Iris CSS/tokens (resolved) | OPEN-11, TT-030–031 | TAO-09, TAO-10 |
+| Azure Go SDK runtime and boundary fidelity | OPEN-12 | TAO-03 |
+| MP3 decoder/probe | OPEN-13 | TAO-15 |
+| `/topics` vs `/tags` | OPEN-14 | TAO-17 |
+| Tablet/browser matrix and performance thresholds | OPEN-15 | TAO-47, TAO-48 |
+| OpenAPI tooling and conformance | OPEN-16 | TAO-08 |
 | How much media path to show; in-app data reset | 01 §4.6 vs 10/11 | TAO-42 |
 
 ## 9. MVP acceptance traceability

@@ -1,0 +1,273 @@
+{
+  "legacyRevision": "dc71c1b1820345023585be95e72674bf1b3a4a00",
+  "segmentationStrategy": "zh-cn-legacy-v1",
+  "segmentationVersion": 1,
+  "offsetUnit": "utf16-code-unit",
+  "segmentation": [
+    {
+      "name": "delimiter-run-and-closing-quotes",
+      "text": "他说：「甲，。」乙。",
+      "segments": [
+        {
+          "index": 0,
+          "textStart": 0,
+          "textEnd": 8,
+          "text": "他说：「甲，。」"
+        },
+        {
+          "index": 1,
+          "textStart": 8,
+          "textEnd": 10,
+          "text": "乙。"
+        }
+      ],
+      "gaps": []
+    },
+    {
+      "name": "legacy-punctuation-is-not-a-boundary",
+      "text": "甲！乙？丙；丁：戊、己，庚。",
+      "segments": [
+        {
+          "index": 0,
+          "textStart": 0,
+          "textEnd": 12,
+          "text": "甲！乙？丙；丁：戊、己，"
+        },
+        {
+          "index": 1,
+          "textStart": 12,
+          "textEnd": 14,
+          "text": "庚。"
+        }
+      ],
+      "gaps": []
+    },
+    {
+      "name": "han-hyphens-with-horizontal-whitespace",
+      "text": "  甲-乙　-　𠀀 -\t丙  ",
+      "segments": [
+        {
+          "index": 0,
+          "textStart": 2,
+          "textEnd": 4,
+          "text": "甲-"
+        },
+        {
+          "index": 1,
+          "textStart": 4,
+          "textEnd": 7,
+          "text": "乙　-"
+        },
+        {
+          "index": 2,
+          "textStart": 8,
+          "textEnd": 12,
+          "text": "𠀀 -"
+        },
+        {
+          "index": 3,
+          "textStart": 13,
+          "textEnd": 14,
+          "text": "丙"
+        }
+      ],
+      "gaps": [
+        {
+          "textStart": 0,
+          "textEnd": 2,
+          "text": "  "
+        },
+        {
+          "textStart": 7,
+          "textEnd": 8,
+          "text": "　"
+        },
+        {
+          "textStart": 12,
+          "textEnd": 13,
+          "text": "\t"
+        },
+        {
+          "textStart": 14,
+          "textEnd": 16,
+          "text": "  "
+        }
+      ]
+    },
+    {
+      "name": "mixed-hyphens-are-retained",
+      "text": "甲-ABC 3-4 https://x.test/a-b，乙。",
+      "segments": [
+        {
+          "index": 0,
+          "textStart": 0,
+          "textEnd": 29,
+          "text": "甲-ABC 3-4 https://x.test/a-b，"
+        },
+        {
+          "index": 1,
+          "textStart": 29,
+          "textEnd": 31,
+          "text": "乙。"
+        }
+      ],
+      "gaps": []
+    },
+    {
+      "name": "utf16-and-structural-gaps",
+      "text": " \t甲𠀀😀。\r\n\r\n 乙\n丙\r丁  ",
+      "segments": [
+        {
+          "index": 0,
+          "textStart": 2,
+          "textEnd": 8,
+          "text": "甲𠀀😀。"
+        },
+        {
+          "index": 1,
+          "textStart": 13,
+          "textEnd": 14,
+          "text": "乙"
+        },
+        {
+          "index": 2,
+          "textStart": 15,
+          "textEnd": 16,
+          "text": "丙"
+        },
+        {
+          "index": 3,
+          "textStart": 17,
+          "textEnd": 18,
+          "text": "丁"
+        }
+      ],
+      "gaps": [
+        {
+          "textStart": 0,
+          "textEnd": 2,
+          "text": " \t"
+        },
+        {
+          "textStart": 8,
+          "textEnd": 13,
+          "text": "\r\n\r\n "
+        },
+        {
+          "textStart": 14,
+          "textEnd": 15,
+          "text": "\n"
+        },
+        {
+          "textStart": 16,
+          "textEnd": 17,
+          "text": "\r"
+        },
+        {
+          "textStart": 18,
+          "textEnd": 20,
+          "text": "  "
+        }
+      ]
+    },
+    {
+      "name": "punctuation-only-lines-become-gaps",
+      "text": "😀，。\n　\t！？\n 甲。  ",
+      "segments": [
+        {
+          "index": 0,
+          "textStart": 11,
+          "textEnd": 13,
+          "text": "甲。"
+        }
+      ],
+      "gaps": [
+        {
+          "textStart": 0,
+          "textEnd": 11,
+          "text": "😀，。\n　\t！？\n "
+        },
+        {
+          "textStart": 13,
+          "textEnd": 15,
+          "text": "  "
+        }
+      ]
+    },
+    {
+      "name": "no-speech",
+      "text": "  😀！？\r\n　",
+      "segments": [],
+      "gaps": [
+        {
+          "textStart": 0,
+          "textEnd": 9,
+          "text": "  😀！？\r\n　"
+        }
+      ]
+    },
+    {
+      "name": "empty-source",
+      "text": "",
+      "segments": [],
+      "gaps": []
+    }
+  ],
+  "fingerprints": [
+    {
+      "name": "exact-source-and-json-escapes",
+      "identity": {
+        "segmentationVersion": 1,
+        "speakingRate": 0.75,
+        "text": "  甲𠀀😀\r\n\"乙\"\\<&\t ",
+        "voiceId": "zh-CN-XiaoxiaoNeural"
+      },
+      "canonicalJson": "{\"segmentationVersion\":1,\"speakingRate\":0.75,\"text\":\"  甲𠀀😀\\r\\n\\\"乙\\\"\\\\<&\\t \",\"voiceId\":\"zh-CN-XiaoxiaoNeural\"}",
+      "sha256": "4d19c83241b5d988d98e5d98dc8a08190758f47042741497dec691e1cc4062c1"
+    },
+    {
+      "name": "line-ending-change",
+      "identity": {
+        "segmentationVersion": 1,
+        "speakingRate": 0.75,
+        "text": "  甲𠀀😀\n\"乙\"\\<&\t ",
+        "voiceId": "zh-CN-XiaoxiaoNeural"
+      },
+      "canonicalJson": "{\"segmentationVersion\":1,\"speakingRate\":0.75,\"text\":\"  甲𠀀😀\\n\\\"乙\\\"\\\\<&\\t \",\"voiceId\":\"zh-CN-XiaoxiaoNeural\"}",
+      "sha256": "91f01c49c2494cce10862a820e2ea707ee82cc44dd70b8468103c22ed537bf56"
+    },
+    {
+      "name": "integer-rate",
+      "identity": {
+        "segmentationVersion": 1,
+        "speakingRate": 1,
+        "text": "你好，世界。",
+        "voiceId": "zh-CN-YunxiNeural"
+      },
+      "canonicalJson": "{\"segmentationVersion\":1,\"speakingRate\":1,\"text\":\"你好，世界。\",\"voiceId\":\"zh-CN-YunxiNeural\"}",
+      "sha256": "dc5a5bdcd4221414d35fcd2885a0a35872805e95f08701a49e7e47b26561cd39"
+    },
+    {
+      "name": "fractional-rate",
+      "identity": {
+        "segmentationVersion": 1,
+        "speakingRate": 1.25,
+        "text": "你好，世界。",
+        "voiceId": "zh-CN-YunxiNeural"
+      },
+      "canonicalJson": "{\"segmentationVersion\":1,\"speakingRate\":1.25,\"text\":\"你好，世界。\",\"voiceId\":\"zh-CN-YunxiNeural\"}",
+      "sha256": "bb5b25795d9cec234528ab005075f551781de73aa2c2e202f50a2701a030515c"
+    },
+    {
+      "name": "voice-change",
+      "identity": {
+        "segmentationVersion": 1,
+        "speakingRate": 1,
+        "text": "你好，世界。",
+        "voiceId": "zh-CN-XiaoxiaoNeural"
+      },
+      "canonicalJson": "{\"segmentationVersion\":1,\"speakingRate\":1,\"text\":\"你好，世界。\",\"voiceId\":\"zh-CN-XiaoxiaoNeural\"}",
+      "sha256": "d9dcb62ff8c61ec5455ba3e820530054e52697179a612ee8c46ca9273145805e"
+    }
+  ]
+}

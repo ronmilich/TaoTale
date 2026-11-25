@@ -1,6 +1,6 @@
 # 13 — TaoTale rebuild plan, adopted decisions and remaining choices
 
-**Status:** Current MVP implementation roadmap, revised **25 November 2026**. **Primary authority:** [01 — Product](01-taotale-overview-and-features.md), [02 — Decision register](02-taotale-decision-register.md), [03 — Client](03-taotale-client.md), [04 — Go](04-taotale-backend.md), [05 — DB](05-taotale-database.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — Iris](08-taotale-design-system.md), [15 — Task checklist](15-taotale-implementation-tasks.md).
+This plan describes the rebuild stages. The [TaoTale roadmap](taotale-roadmap.md) owns milestones, dependencies and evidence. The [product overview](01-taotale-overview-and-features.md) defines release scope and the [decision register](02-taotale-decision-register.md) records implementation choices.
 
 ## 1. Locked direction
 
@@ -9,7 +9,7 @@
 | Product | Personal, local, single persisted user | Commercial SaaS/auth/billing |
 | Languages | `zh-CN` and `ko-KR` initially; UI English | Japanese until capability is verified |
 | Frontend | **SolidJS + TypeScript + Vite + Solid Router** | React/MUI/React Hook Form/Zustand |
-| UI ownership | **All components and styles inside TaoTale frontend**, with small app-local `components/ui` and CSS Modules | Standalone UI npm library, Eroxo integration, package publishing, external component SDK |
+| UI ownership | **All components and styles inside TaoTale frontend**, with small app-local `components/ui` and CSS Modules | Standalone component package or SDK |
 | UI mechanics | **Native HTML controls** with little custom behavior; CSS hover/transitions | Kobalte/Radix/complex menu/tooltip/combobox/focus/ARIA/overlay engines |
 | Visual direction | **Iris** brand: violet, lavender, periwinkle, orchid, quiet paper surfaces, polished light/dark screens | Old sage/mint Quiet Study palette, generic library theming engine |
 | Backend | Go modular monolith, Gin, explicit services/adapters | NestJS/Node backend |
@@ -40,10 +40,10 @@ The chosen technologies are target decisions, **not evidence that the rebuild is
 ### Stage 0 — Inventory and protect source data
 
 - Inspect Mandarin Reader schema/migrations, source text, MP3/cover paths, segmentation versions, vocabulary, Topic identity, old `native` difficulties and oversized cover files.
-- Back up nonempty source data before modification. Choose import to fresh TaoTale DB or an in-place upgrade based on a rehearsal; keep historical byte/offset evidence and UUIDs.
+- Back up the source data and rehearse recovery in isolation. TT-033 selects import from a disposable restore into a fresh TaoTale schema, preserving historical bytes, offsets and UUIDs.
 - Capture golden Chinese regression vectors and representative performance baseline. No historical test run counts as a new pass.
 
-**Exit:** a written migration inventory and recoverable baseline.
+**Exit:** a written migration inventory and recoverable baseline. See the [TAO-01 verification evidence](tao-01-legacy-inventory.md).
 
 ### Stage 1 — Runnable backend/client foundation + Iris UI
 
@@ -87,29 +87,16 @@ The chosen technologies are target decisions, **not evidence that the rebuild is
 
 **Exit:** target tests pass, verified backups exist and no separate UI-library tasks block release.
 
-## 4. Remaining decisions
+## 4. Implementation decisions
 
-| ID | Remaining choice | Recommended handling |
-|---|---|---|
-| OPEN-01 | Run Go on host vs within Compose | Pick easiest reliable local setup; preserve loopback and durable asset root |
-| OPEN-02 | Go/Gin/pgx/sqlc/migration tool versions, OpenAPI codegen | Pin after minimal working vertical slice |
-| OPEN-03 | Actual Azure Go SDK boundary/event reliability for both languages | Experiment before full audio port |
-| OPEN-04 | Exact language segmenter versions and maximum text/chunk policy | Golden-test and publish versions only after verified provider mapping |
-| OPEN-05 | MP3 decoder/probe on target OS | Choose verified duration/decoding evidence |
-| OPEN-06 | Chinese optional automatic match and Korean supported behavior | Start manual; activate only demonstrated strategy |
-| OPEN-07 | Legacy `native` values and >1MB covers | Report, preserve, and resolve without silent loss |
-| OPEN-08 | `/topics` vs historical `/tags` aliases | Decide when locking TaoTale OpenAPI |
-| OPEN-09 | Supported desktop/tablet browser/zoom baseline and screenshot set | Capture exact reference sizes during Stage 1 |
-| OPEN-10 | Windows-specific local backup/restore commands | Test on a disposable volume and media directory |
-
-**Resolved by the 25 Nov decision:** External UI-package name/API/licensing/theme delivery are **removed**, not pending decisions. CSS Modules + in-project Iris tokens/components are approved. The palette values and MVP visual rules are in [08](08-taotale-design-system.md).
+Use the [decision register](02-taotale-decision-register.md#6-implementation-decision-register) for open IDs and the [roadmap](taotale-roadmap.md#8-open-decisions-and-where-they-close) for their milestones. TT-028–031 record the app-owned UI decision. [Iris](08-taotale-design-system.md) specifies the palette, CSS and MVP visual rules.
 
 ## 5. Explicitly deferred work
 
-Dashboard; Vocabulary Practice/SRS; AI Text/Audio Generation Workspace; Islands Builder; phone-specific UI; Japanese and further languages; scoring, word-level dictionary/TTS, public sharing, accounts/billing/cloud sync. An independent UI-component library can exist as another business/project, but **TaoTale does not need it and must not integrate it**.
+Deferred work includes Dashboard, Vocabulary Practice/SRS, the AI Text/Audio Generation Workspace, Islands Builder, phone-specific UI, Japanese and further languages, scoring, word-level dictionary/TTS, public sharing, accounts, billing and cloud sync.
 
 Historical optional ideas (still not MVP): Reader word browser, vocabulary CSV/JSON export, A–B repeat, audio bookmarks, reader text-size preferences, richer diagnostics.
 
 ## 6. Governance and task tracking
 
-The executable work breakdown is [15 — Implementation tasks](15-taotale-implementation-tasks.md). A checkbox is unchecked until verified with real implementation evidence; documentation is not a completion claim. Product scope changes update [01](01-taotale-overview-and-features.md) and [02](02-taotale-decision-register.md); CSS/UX changes update [03](03-taotale-client.md), [08](08-taotale-design-system.md) and [09](09-taotale-ui-states.md); acceptance changes update [12](12-taotale-quality-and-acceptance.md); the source index is [14](14-taotale-sources-and-coverage.md).
+Record verified milestone exits and evidence in the [TaoTale roadmap](taotale-roadmap.md). Update the [product overview](01-taotale-overview-and-features.md) and [decision register](02-taotale-decision-register.md) for product scope changes. For CSS and UX changes, update the [client architecture](03-taotale-client.md), [Iris design](08-taotale-design-system.md) and [UI states](09-taotale-ui-states.md). The [quality gates](12-taotale-quality-and-acceptance.md) and [source index](14-taotale-sources-and-coverage.md) cover acceptance and provenance.

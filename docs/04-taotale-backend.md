@@ -2,7 +2,7 @@
 
 **Status:** Target MVP architecture — approved stack; implementation details and exact versions require verification.
 
-**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) governs product scope; [`02-decision-register.md`](02-taotale-decision-register.md) records decisions; [`03-taotale-client.md`](03-taotale-client.md) describes the SolidJS client; [`05-taotale-database.md`](05-taotale-database.md) defines the logical persistence model. This document supersedes the **NestJS/Node/Prisma architecture** of Mandarin Reader. The historical behavior is a reference, not permission to reintroduce obsolete features.
+**Authority:** [01](01-taotale-overview-and-features.md) governs product scope, [02](02-taotale-decision-register.md) records decisions, [03](03-taotale-client.md) describes the SolidJS client, and [05](05-taotale-database.md) defines the logical persistence model. This document supersedes the Mandarin Reader NestJS/Node/Prisma architecture.
 
 ## 1. Selected stack and deployment
 
@@ -201,21 +201,11 @@ type Segment struct {
 
 ### Migration from Mandarin Reader
 
-1. Inventory existing Prisma schema, migration SQL and on-disk files. Design equivalent PostgreSQL DDL and **sqlc queries**, not a mechanical translation of ORM objects.
-2. Preserve the original user UUID, item/word/topic/asset IDs and timestamps wherever possible; add language scope (`zh-CN` on historical data), item `is_favorite=false` and optional generic reading fields. Preserve legacy audio fingerprint/segmentation identity.
+1. Use the [verified disposable legacy restore](tao-01-legacy-inventory.md) as import input and create the fresh TaoTale schema with its own migrations (TT-033).
+2. Preserve the original user UUID, item/word/topic/asset IDs and timestamps. Add language scope (`zh-CN` on historical data), item `is_favorite=false` and optional generic reading fields. Preserve legacy audio fingerprint and segmentation identity.
 3. Review legacy difficulty values; **do not automatically map `native` → `advanced`**. Preserve legacy oversize covers and exact text. Backfill cross-language-safe constraints and join references only after validating data.
 4. Run checks comparing counts, checksums, published recordings, word links, metadata, previews and Reader offsets; test a nonempty backup/restore. Roll out Go backend against a **copy**, not the only original local database.
 
-## 11. Open implementation choices (not reversals of approved architecture)
+## 11. Implementation decisions
 
-| ID | Still to decide / verify |
-|---|---|
-| BE-OPEN-01 | Exact Go, Gin, pgx, sqlc, PostgreSQL versions, and which lightweight SQL migration runner. |
-| BE-OPEN-02 | Host-run Go service vs Compose-run Go service; platform-specific install/service lifecycle. |
-| BE-OPEN-03 | Azure Go SDK integration and word-boundary quality/platform runtime for Chinese + Korean. |
-| BE-OPEN-04 | Exact segmentation rules/versions and Go UTF-16 ↔ SSML/provider-offset mapping. |
-| BE-OPEN-05 | MP3 duration decoder/probe choice; validated timing precision and audio chunking policy. |
-| BE-OPEN-06 | Whether optional Chinese automatic vocab matching passes MVP tests; Korean fallback remains manual. |
-| BE-OPEN-07 | Local backup/restore packaging and whether a one-click UI follows the first stable release. |
-
-**Maintenance:** When updating `02-decision-register.md`, record **Go + Gin + pgx/v5 + sqlc** as the selected backend stack and mark Node/NestJS/Prisma as superseded. Update OpenAPI and `05-taotale-database.md` together whenever DB/API invariants change. No AI implementation is implied by preserving its adapter design.
+The backend stack is recorded in TT-025 and TT-026. The [decision register](02-taotale-decision-register.md#6-implementation-decision-register) owns the remaining choices. Update OpenAPI and [05](05-taotale-database.md) together when DB/API invariants change.

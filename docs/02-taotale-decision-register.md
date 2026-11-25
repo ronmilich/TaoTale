@@ -39,7 +39,7 @@ These are the current product and implementation decisions. `MVP` identifies fir
 | TT-019 | MVP + Post-MVP | **Desktop and tablet-sized browser layouts** are in MVP; native-button/form operation, readable typography and tablet-friendly touch targets apply. **Phone-sized layouts/testing are post-MVP.** Remote use from a second physical device is not implied by tablet CSS. | §1.2, §5.4, §8 |
 | TT-020 | MVP | Local storage is **not offline speech synthesis**. Previously saved text/audio should remain usable without internet, but Azure TTS requires a network connection and sends submitted text to its provider. Provider secrets and private text must not leak into logs. | §1.2, §5.1, §5.3, §5.5 |
 | TT-021 | MVP | Preserve **explicit save**, drafts, previews, durable generation jobs, working revisions, typed failures and tested restore. No implicit writes, silent invalid audio, automatic paid retries or false timing precision. | §1.3, §3–5 |
-| TT-022 | Migration | On migrating Mandarin Reader data, preserve IDs, source text, word statuses, references and pinned recordings. Backfill `userId`, `zh-CN` and `isFavorite=false`; review unsupported legacy difficulty (especially `native`), retain oversized legacy covers and original segmentation evidence. | §9, §12 |
+| TT-022 | Migration | Preserve legacy owner and record IDs, source text, word statuses, references and pinned recordings. Backfill `zh-CN` and `isFavorite=false`, retain oversized legacy covers and original segmentation evidence, and review unsupported difficulty values. | [Migration evidence](tao-01-legacy-inventory.md), TT-033 |
 | TT-023 | MVP | Editor preserves source text exactly; metadata (favorite, difficulty, title, topics, cover, notes) can change without regeneration. Text/voice/rate/language/segmentation identity changes require a new matching candidate. No rich-text editor or autosave promise. | §1.3, §4.2, §6 |
 | TT-024 | MVP | Local Settings cover active language, theme, per-language voice/rate defaults, Reader speed, vocabulary popup visibility and local storage/backup guidance; no account management page. A tested manual restore procedure is required; one-click UI is not. | §4.6 |
 | TT-025 | MVP | **Go** backend as a modular monolith with **Gin** HTTP handlers, explicit service boundaries, context/cancellation and provider adapters. **NestJS/Node is superseded**; performance claims require benchmarks. | [04](04-taotale-backend.md) §1–2 |
@@ -48,7 +48,9 @@ These are the current product and implementation decisions. `MVP` identifies fir
 | TT-028 | MVP | **All UI components are implemented directly in TaoTale** as small SolidJS components and native HTML. There is **no independent npm UI component library, no external UI-library integration and no package-publishing dependency**. Avoid extra public component APIs or abstractions. | [03](03-taotale-client.md), [08](08-taotale-design-system.md) |
 | TT-029 | MVP | **Native browser controls + simple CSS** replace Kobalte/headless component systems. No special JavaScript for generic component keyboard/ARIA/focus/tooltip/menu/overlay mechanics and no formal accessibility program. Keep normal labels, visible feedback and browser-default keyboard behavior; Reader/audio/domain JS remains necessary. | [03](03-taotale-client.md), [09](09-taotale-ui-states.md) |
 | TT-030 | MVP | **Iris visual identity** is the approved TaoTale theme: violet, lavender, periwinkle and orchid over calm light/dark paper surfaces. Use **app-owned CSS Modules, one token stylesheet and a few local styled components**. No Tailwind, CSS-in-JS or public theme SDK. The former Quiet Study sage/mint design is superseded. | [08](08-taotale-design-system.md) |
-| TT-031 | MVP | **Design quality comes from CSS, typography and page composition, not complex component infrastructure.** Deliver polished Library, Editor, Reader, Vocabulary and Settings in desktop/tablet light/dark. Test actual app screens and domain workflows; remove npm package/consumer/ARIA/overlay-suite release gates. | [08](08-taotale-design-system.md), [12](12-taotale-quality-and-acceptance.md), [15](15-taotale-implementation-tasks.md) |
+| TT-031 | MVP | **Design quality comes from CSS, typography and page composition, not complex component infrastructure.** Deliver polished Library, Editor, Reader, Vocabulary and Settings in desktop/tablet light/dark. Verify the actual app screens and domain workflows. | [08](08-taotale-design-system.md), [12](12-taotale-quality-and-acceptance.md), [Roadmap](taotale-roadmap.md) |
+| TT-032 | MVP | Track milestone dependencies, completion and evidence in the TaoTale roadmap. Keep open decision IDs in this register. The rebuild plan provides context for the implementation sequence. | [Roadmap](taotale-roadmap.md), [13](13-taotale-rebuild-decisions.md) |
+| TT-033 | Migration | Import from a verified disposable restore into a **fresh TaoTale schema**. Preserve original IDs, text, media, published pins, timing and vocabulary provenance. Keep the original database/media pair and backup for rollback. Resolve historical difficulty and oversized-cover handling under OPEN-07. | [TAO-01 inventory and restore evidence](tao-01-legacy-inventory.md) |
 
 
 ## 3. MVP implementation invariants and release gate
@@ -198,21 +200,26 @@ The old code may already implement many `D-` behaviors. This table is an **imple
 | QA | Test desktop/tablet native controls, visual quality and actual workflows; no formal WCAG/component keyboard/overlay suite. | Iris light/dark screenshots, visible states, readable text, selection and tablet pointer/touch tests. |
 | AI | Preserve existing chosen AI-provider design and adapter boundary if available, but remove it from MVP startup/release dependencies. | App works without AI connection; manual Azure generation still works. |
 
-## 6. Open implementation decisions — do not imply approval
+## 6. Implementation decision register
 
 | ID | Unresolved implementation choice | Constraint already decided |
 |---|---|---|
 | OPEN-01 | **Exact compatible versions and build/tooling choices** for the approved Go/Gin/pgx/sqlc and SolidJS/Vite/Router stacks. | Frameworks are **already selected** (TT-025–031); this is not permission to reconsider NestJS/Prisma/React. |
-| OPEN-02 | Host vs container runtime for backend; Docker Compose paths, migration tool, seed strategy and local DB port exposure. | PostgreSQL runs in Docker with persistent volume; any published port is loopback-bound only. |
+| OPEN-02 | Host vs container backend runtime, platform install/service lifecycle, Docker Compose paths, SQL migration runner, seed strategy and local DB port exposure. | PostgreSQL runs in Docker with a persistent volume. Published DB ports bind to loopback. |
 | OPEN-03 | Exact Chinese/Korean segmentation rules, offset convention and legacy-asset compatibility map. | Separate versioned language strategies and safe alignment are mandatory. |
 | OPEN-04 | Whether to retain 1,500 UTF-16 source-text units or implement verified TTS chunking for longer articles. | Exact text integrity and validated READY must hold. |
 | OPEN-05 | Extent of language-aware automatic vocabulary highlighting/linking at initial MVP. | Manual Reader collection works; do not promise Korean morphology/substring correctness. |
-| OPEN-06 | Tested backup workflow details and whether a UI-triggered backup is added after the first stable local release. | Minimum tested `pg_dump`/restore + asset backup is mandatory. |
-| OPEN-07 | Exact migration mapping for legacy difficulty values outside the new enum, and policy for old covers larger than 1 MB. | No silent data loss, `native` auto-mapping or silent deletion. |
+| OPEN-06 | Backup packaging, verified Windows backup/restore commands and whether a UI-triggered backup follows the first stable local release. | Rehearse paired `pg_dump`/restore and media recovery on a disposable database and media root. |
+| OPEN-07 | Policy for `native` and other unsupported difficulty values in future snapshots, and how to represent the two oversized covers from the TAO-01 snapshot. | Preserve original values for review and keep existing cover bytes and references. New and replacement covers retain the 1,000,000-byte limit. [Inventory](tao-01-legacy-inventory.md) |
 | OPEN-08 | Numeric local TTS request limits, voice defaults and provider configuration for each supported language. | Azure adapter, explicit provider usage, cost safeguards and per-language voice compatibility are mandatory. |
 | OPEN-09 | Order/design of post-MVP Dashboard, Practice, AI workspace, Islands and phone support. | These are not MVP completion criteria or required routes/services. |
 | OPEN-10 | **Resolved 25 Nov:** no standalone UI npm package or component API. | All components and Iris CSS live in TaoTale. No release task. |
 | OPEN-11 | **Resolved 25 Nov:** use app-local CSS Modules and the specific Iris tokens in document 08. | No public styling/theme contract, slot protocol, or Tailwind. |
+| OPEN-12 | Azure Go SDK runtime dependencies, provider event offsets and word-boundary reliability for Mandarin and Korean. | Verify both languages on the target runtime before accepting generated alignment. |
+| OPEN-13 | MP3 decoder/probe and verified duration/timing precision. | Use measurements of the persisted MP3 and validate timing against them. |
+| OPEN-14 | Whether the TaoTale `/topics` API needs a compatibility alias for legacy `/tags`. | Preserve Topic identity during data migration and settle API compatibility in OpenAPI. |
+| OPEN-15 | Supported desktop/tablet browser, viewport and zoom matrix, screenshot references and performance thresholds. | Measure comparable workloads and review app-owned Iris screens on the supported matrix. |
+| OPEN-16 | OpenAPI linting, client code generation and Go conformance strategy. | Use a canonical OpenAPI contract, generated client types and verified handler conformance. |
 
 ## 7. Document change protocol
 

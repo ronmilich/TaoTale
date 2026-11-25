@@ -7,7 +7,7 @@
 1. **Latest explicit owner decision:** on **25 Nov 2026**, TaoTale's client UI becomes fully **app-owned**, deliberately simple, using **Iris colors** and no external UI library or specialized component accessibility JavaScript. This supersedes old independent-library/Quiet Study decisions.
 2. **01 — Product** determines the MVP vs deferred feature boundary and critical content/audio invariants.
 3. **02 — Decisions** records the technical choices and superseded Mandarin Reader history; **03 — Client** and **08 — Iris visual design** now own actual app UI implementation and appearance.
-4. **04/05/06** own Go/PostgreSQL/audio semantics. **09/10/11/12** refine UI states, API, operations and test evidence. **13** orders work and **15** lists task-level execution.
+4. **04/05/06** own Go/PostgreSQL/audio semantics. **09/10/11/12** refine UI states, API, operations and test evidence. **13** describes the rebuild stages. The [TaoTale roadmap](taotale-roadmap.md) owns milestone execution.
 5. Prior Mandarin Reader specs/repository are historical reference **only** where not superseded. A screenshot cannot authorize deferred features or a new UI library.
 
 ## 2. Current specification index
@@ -26,9 +26,9 @@
 | 10 | [API inventory](10-taotale-api.md) | Target REST operations, OpenAPI to be authored |
 | 11 | [Operations and security](11-taotale-operations-and-security.md) | Local setup, secrets, media, jobs and paired backup |
 | 12 | [Testing / acceptance](12-taotale-quality-and-acceptance.md) | Domain gates, desktop/tablet Iris visual and basic usability checks |
-| 13 | [Rebuild roadmap](13-taotale-rebuild-decisions.md) | Stage ordering, risks and remaining decisions |
+| 13 | [Rebuild plan](13-taotale-rebuild-decisions.md) | Stage ordering and implementation invariants |
 | 14 | [Sources and coverage](14-taotale-sources-and-coverage.md) | This index and provenance |
-| 15 | [Implementation tasks](15-taotale-implementation-tasks.md) | **50 unchecked tasks**, stage exit criteria and explicitly cancelled UI-package work |
+| — | [TaoTale implementation roadmap](taotale-roadmap.md) | Milestones, dependencies, exit criteria, status and evidence |
 
 Files 04/05 have been standardized here to `04-taotale-backend.md` and `05-taotale-database.md`; links across this revision should point to those exact names.
 
@@ -36,17 +36,17 @@ Files 04/05 have been standardized here to `04-taotale-backend.md` and `05-taota
 
 | Topic | Requirements | Verification |
 |---|---|---|
-| Single user, local Docker/Go app | 01–05, 10–11 | 12, T005–T008, T038–T039 |
-| No standalone UI library / no custom component behavior engine | 02, 03, 08, 09, 13 | 12/F9, T009–T012, T046–T047 |
-| Iris palette, light/dark, five beautiful views | 03, 08, 09 | 12/NFR-11–12, F9, T011, T031, T040–T041, T047 |
-| Mandarin + Korean and language ownership | 01, 04–06, 10 | 12/F1/F8, T013–T017, T032–T033 |
-| Azure + source alignment + immutable audio | 01, 04–06, 09–11 | 12/F2–F5, T013–T028 |
-| Draft/revision integrity + idempotency | 01, 04–06, 09–11 | 12/NFR-05/13, T021–T027 |
-| Favorites independent of content/audio | 01, 05, 09, 10 | 12, T029–T030 |
-| Difficulty + 1 MB cover | 01, 05, 09–12 | 12/F6, T019/T024 |
-| Vocabulary and global Topics | 01, 04, 05, 09, 10 | 12/F8, T032–T036 |
-| Local protection and paired backup | 01, 04, 10, 11 | 12/NFR-08/09, T038–T039/T049 |
-| MVP vs post-MVP | 01, 02, 07, 13 | 12 and T050 release evidence |
+| Single user, local Docker/Go app | 01–05, 10–11 | 12, TAO-04–08, TAO-42–44, TAO-49 |
+| App-owned native controls | 02, 03, 08, 09, 13 | 12/F9, TAO-02, TAO-09–10, TAO-47 |
+| Iris palette, light/dark, five MVP views | 03, 08, 09 | 12/NFR-11–12 and F9, TAO-10, TAO-47 |
+| Mandarin + Korean and language ownership | 01, 04–06, 10 | 12/F1/F8, TAO-11–14, TAO-36, TAO-50 |
+| Azure + source alignment + immutable audio | 01, 04–06, 09–11 | 12/F2–F5, TAO-03, TAO-11–15, TAO-18–20, TAO-24–26, TAO-50 |
+| Draft/revision integrity + idempotency | 01, 04–06, 09–11 | 12/NFR-05/13, TAO-16, TAO-18–19, TAO-21–24, TAO-33–35 |
+| Favorites independent of content/audio | 01, 05, 09, 10 | 12, TAO-27, TAO-29 |
+| Difficulty + 1 MB cover | 01, 05, 09–12 | 12/F6, TAO-16, TAO-21, TAO-30–31, TAO-45 |
+| Vocabulary and global Topics | 01, 04, 05, 09, 10 | 12/F8, TAO-17, TAO-28, TAO-36–41 |
+| Local protection and paired backup | 01, 04, 10, 11 | 12/NFR-08/09, TAO-01, TAO-43–44, TAO-49 |
+| MVP vs post-MVP | 01, 02, 07, 13 | 12, TAO-51–52 |
 
 ## 4. Explicitly superseded historical rules
 
@@ -65,4 +65,4 @@ Files 04/05 have been standardized here to `04-taotale-backend.md` and `05-taota
 
 Mandarin Reader pinned baseline: [historical repository tree](https://github.com/ronmilich/mandarin-reader/tree/dc71c1b1820345023585be95e72674bf1b3a4a00) (17 Nov 2026). The earlier original specs covered product requirements, D-01–D-61 decisions, React frontend, Node/Prisma backend, Chinese segmentation, design screenshots, OpenAPI, tests, backup setup and feature proposals. These are migration clues, **not** current requirements. Historical raw data and the actual running SQL/media state must be inspected before import.
 
-**Key warnings:** Target logical schema is not executable migration SQL; target API inventory is not OpenAPI YAML; proposed Azure Go support is not verified until real tests pass; no task or test completion is implied by these documents. Use [15](15-taotale-implementation-tasks.md) for live progress tracking after implementation begins.
+The logical schema and API inventory describe the target contracts. Use the [roadmap](taotale-roadmap.md) for implementation status and test evidence, including the Azure Go feasibility result when available.

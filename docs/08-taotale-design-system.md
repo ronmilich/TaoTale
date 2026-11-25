@@ -249,7 +249,7 @@ A slim top navigation bar with TaoTale wordmark or simple iris icon, **Library**
 5. Style Vocabulary and Settings, including empty/error/pending states.
 6. Manually review screenshots of all MVP screens in light and dark at desktop and tablet widths; fix hierarchy, spacing and consistency. Test that Reader playback survives theme and panel changes.
 
-**Definition of done:** TaoTale looks cohesive, aesthetically attractive and comfortable to read, while the frontend has **zero external UI library integration** and no elaborate custom component mechanics. The implementation task list is [15 — Tasks](15-taotale-implementation-tasks.md).
+Review the TaoTale screens for reading comfort, consistent visuals and clear native interactions. The [TaoTale roadmap](taotale-roadmap.md) tracks the implementation and visual review.
 
 ## 9. Source and scope notes
 

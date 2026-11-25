@@ -81,7 +81,7 @@ Suggested registry entries:
 
 ### 3.1 Simplified Mandarin (`zh-CN`)
 
-The existing Mandarin Reader **legacy v1** used `，` and `。` as boundaries and ASCII `-` only when directly surrounded by Han characters; it absorbed consecutive delimiters and immediately following closing quotes. Line breaks were structural; `！？；：、` were *not* v1 split points. This odd-but-defined historical behavior must be preserved for existing assets and regression vectors, not quietly reinterpreted.
+Mandarin Reader **legacy v1** splits at `，` and `。`, and at ASCII `-` when the nearest non-whitespace characters on both sides of the same line are Han. It absorbs consecutive delimiters and immediately following closing quotes. CR and LF separate lines. The punctuation `！？；：、` stays inside its run. Preserve this behavior for recorded assets and verify it against the [legacy golden vectors](../testdata/legacy/mandarin-v1.json).
 
 For **new TaoTale Chinese generation**, start with a versioned, deliberately simple phrase strategy: segment at validated Chinese sentence/phrase punctuation (candidates include `，。！？；`), preserve closing quotes with their preceding run, and respect paragraph boundaries. Determine punctuation-only and quotation edge cases with explicit tests **before freezing the version**. Do not automatically split on spaces as if Chinese were English; do not reuse language detection as segmentation. If the existing v1 policy is retained for new generations initially, use its legacy ID/version until a newly tested successor is adopted.
 
