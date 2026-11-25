@@ -56,7 +56,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 |---|---|---|---|---|
 | TAO-01 | Legacy inventory and migration strategy | 0 | — | Done |
 | TAO-02 | Specification reconciliation | 0 | — | Done |
-| TAO-03 | Azure Go SDK feasibility spike | 0 | — | Planned |
+| TAO-03 | Azure Go SDK feasibility spike | 0 | — | Done |
 | TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Planned |
 | TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Planned |
 | TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Planned |
@@ -214,8 +214,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - **Billable:** run only with explicit owner approval, with credentials from the local environment only. Record the number of requests and their cost.
 
 **Exit criteria**
-- [ ] Evidence report (event dumps, observations per language) kept outside source control, except for small approved fixtures.
-- [ ] Go/no-go decision per language recorded in 02. If Korean fails, record it as a blocker with a chosen alternative — never fabricate timing and never silently drop the language (06 §9).
+- [x] Private evidence includes six decoded MP3s, raw events, cancellation outcomes and the per-language report. All 126 boundaries passed offline verification. [Spike and results](../spikes/azure-go/README.md)
+- [x] TT-034 records a go decision for each tested voice on Linux amd64. The adapter requires CGO and native runtime libraries.
 
 **Depends on:** —
 
