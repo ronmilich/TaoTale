@@ -1,6 +1,6 @@
 # 06 — TaoTale: Text segmentation, audio alignment and Reader synchronization
 
-**Status:** MVP implementation specification for `zh-CN` and `ko-KR`. Language-specific strategies, Go/Azure feasibility, and migration compatibility must be verified in implementation; sample language rules below are **proposed starting policies**, not evidence of verified provider behavior.
+**Status:** MVP implementation specification for `zh-CN` and `ko-KR`. TAO-03 verified Go/Azure feasibility for the two candidate voices on Linux amd64. Language-specific segmentation, migration compatibility and production recording validation have their own milestones.
 
 **Authority:** [01 — Product overview](01-taotale-overview-and-features.md) defines MVP scope; [03 — Client](03-taotale-client.md) defines the SolidJS Reader; [04 — Backend](04-taotale-backend.md) defines Go/Gin/Azure adapters; [05 — Database](05-taotale-database.md) defines persisted job, asset and segment fields. Historical reference: Mandarin Reader SYN/SEG/ALN rules and D-08/23/31–33/37/45/54/55. Where they conflict, current TaoTale decisions win.
 
@@ -135,6 +135,8 @@ The existing **Azure Speech** provider is retained behind a **Go adapter** (`TTS
 **Feasibility gate before switching from the old Node implementation:** On the actual target OS/runtime, prove that Azure's Go SDK can capture word-boundary events and MP3 output for **both** `zh-CN` and `ko-KR`. Check native library/CGO/runtime dependencies, event ordering, callback lifetime and cancellation. Go SDK API availability does **not** by itself prove event fidelity for all voices/languages. Reference: [Azure speech synthesis](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis) and [Go SDK event API](https://pkg.go.dev/github.com/Microsoft/cognitive-services-speech-sdk-go/speech).
 
 **Exact mapping process:**
+
+TAO-03 verified both candidate voices at 0.75, 1 and 1.25 on Linux amd64. The Go SDK returned offsets and lengths in Unicode code points of the full escaped SSML. Map both endpoints to original-source UTF-16 using the exact encoding map. Preserve the raw event text for comparison against the encoded slice. See [the feasibility results](../spikes/azure-go/README.md).
 
 1. Keep one immutable source snapshot. Generate SSML using correct XML escaping and track how the provider indexes escaped text versus actual spoken source; account for wrappers and offsets. Never infer source ranges by string-searching repeated spoken words.
 2. Convert each provider boundary into a verified **original-source UTF-16 span**, using the provider's actual documented offset units and a tested mapping. If returned text is available, check against the recovered source span. Reject invalid spans, surrogate splitting, out-of-order offsets or unexplained provider differences.

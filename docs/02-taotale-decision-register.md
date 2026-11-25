@@ -51,6 +51,7 @@ These are the current product and implementation decisions. `MVP` identifies fir
 | TT-031 | MVP | **Design quality comes from CSS, typography and page composition, not complex component infrastructure.** Deliver polished Library, Editor, Reader, Vocabulary and Settings in desktop/tablet light/dark. Verify the actual app screens and domain workflows. | [08](08-taotale-design-system.md), [12](12-taotale-quality-and-acceptance.md), [Roadmap](taotale-roadmap.md) |
 | TT-032 | MVP | Track milestone dependencies, completion and evidence in the TaoTale roadmap. Keep open decision IDs in this register. The rebuild plan provides context for the implementation sequence. | [Roadmap](taotale-roadmap.md), [13](13-taotale-rebuild-decisions.md) |
 | TT-033 | Migration | Import from a verified disposable restore into a **fresh TaoTale schema**. Preserve original IDs, text, media, published pins, timing and vocabulary provenance. Keep the original database/media pair and backup for rollback. Resolve historical difficulty and oversized-cover handling under OPEN-07. | [TAO-01 inventory and restore evidence](tao-01-legacy-inventory.md) |
+| TT-034 | MVP | Proceed with the Azure Go adapter for Mandarin (`zh-CN-XiaoxiaoNeural`) and Korean (`ko-KR-SunHiNeural`) on Linux amd64 with CGO and the native Speech SDK. Both passed all three tested rates. Map full escaped SSML code-point offsets to exact source UTF-16 spans and validate every recording. | [TAO-03 results](../spikes/azure-go/README.md), OPEN-12 |
 
 
 ## 3. MVP implementation invariants and release gate
@@ -215,7 +216,7 @@ The old code may already implement many `D-` behaviors. This table is an **imple
 | OPEN-09 | Order/design of post-MVP Dashboard, Practice, AI workspace, Islands and phone support. | These are not MVP completion criteria or required routes/services. |
 | OPEN-10 | **Resolved 25 Nov:** no standalone UI npm package or component API. | All components and Iris CSS live in TaoTale. No release task. |
 | OPEN-11 | **Resolved 25 Nov:** use app-local CSS Modules and the specific Iris tokens in document 08. | No public styling/theme contract, slot protocol, or Tailwind. |
-| OPEN-12 | Azure Go SDK runtime dependencies, provider event offsets and word-boundary reliability for Mandarin and Korean. | Verify both languages on the target runtime before accepting generated alignment. |
+| OPEN-12 | **Resolved 25 Nov, TT-034.** Go for both tested voices on Linux amd64 with SDK 1.53.0. | Preserve the observed offset convention and verify each recording before publication. |
 | OPEN-13 | MP3 decoder/probe and verified duration/timing precision. | Use measurements of the persisted MP3 and validate timing against them. |
 | OPEN-14 | Whether the TaoTale `/topics` API needs a compatibility alias for legacy `/tags`. | Preserve Topic identity during data migration and settle API compatibility in OpenAPI. |
 | OPEN-15 | Supported desktop/tablet browser, viewport and zoom matrix, screenshot references and performance thresholds. | Measure comparable workloads and review app-owned Iris screens on the supported matrix. |
