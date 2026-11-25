@@ -11,4 +11,3 @@ COPY --from=build /out/taotale /taotale
 COPY --from=build --chown=10001:10001 /out/media /var/lib/taotale/media/
 USER 10001:10001
 ENTRYPOINT ["/taotale"]
-CMD ["-listen", ":8080"]

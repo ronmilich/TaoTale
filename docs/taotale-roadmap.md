@@ -59,7 +59,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-03 | Azure Go SDK feasibility spike | 0 | — | Done |
 | TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Done |
 | TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Done |
-| TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Planned |
+| TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Done |
 | TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Planned |
 | TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Planned |
 | TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Planned |
@@ -277,9 +277,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - CI: formatting, vet, static analysis, unit tests and the race detector.
 
 **Exit criteria**
-- [ ] Service starts on loopback and the health endpoints respond.
-- [ ] Logs contain no request bodies.
-- [ ] CI green.
+- [x] The Compose smoke test verified loopback publication and both health paths. Database and media failures independently returned `503`, liveness stayed healthy, and readiness recovered after each failure. The API exited cleanly on `SIGTERM`.
+- [x] Structured request logs excluded synthetic body, URL and header values. Unit tests also verified panic redaction, Host and Origin checks, strict Unicode JSON decoding, both body-size limit paths and in-flight shutdown.
+- [x] CI runs Go format checks, module verification, vet, Staticcheck, unit tests and the race detector.
 
 **Depends on:** TAO-04, TAO-05
 

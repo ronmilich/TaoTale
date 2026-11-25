@@ -9,7 +9,7 @@
 - **REST JSON** under `/api/v1`; **Go + Gin** handles transport, service layer enforces invariants, **sqlc + pgx/v5** executes reviewed PostgreSQL queries. OpenAPI 3.1 is design-first; generate client TypeScript and validate implementation against one canonical contract. No runtime Prisma/NestJS/Swagger decorator assumptions.
 - **Single internal User**, resolved by backend. There is no authentication, registration, profile, session, billing or subscription API in MVP. Ignore/reject arbitrary client-provided `userId`; do not model an unauthenticated network API as safe for public exposure.
 - Same-origin on **loopback** by default; no browser secret keys, DB connection credentials or filesystem paths. Permit expected local development proxy origin only by explicit configuration. CSRF/cross-origin write restrictions remain relevant even without login.
-- JSON UTF-8, camelCase externally; UUIDs for resource IDs, BCP-47 learning-language code (`zh-CN`, `ko-KR`), SQL snake_case internally. Use documented max JSON body (legacy baseline 100 KB), strict validation, explicit `null` clears nullable PATCH fields, omission leaves unchanged. Length checks retain Unicode code-point vs UTF-16 distinctions.
+- JSON UTF-8 uses camelCase externally, UUIDs for resource IDs, BCP-47 learning-language codes (`zh-CN`, `ko-KR`) and SQL snake_case internally. JSON requests are capped at 100 KiB (102,400 bytes). Handlers reject unknown fields and malformed Unicode. An explicit `null` clears a nullable PATCH field and omission preserves its value. Length checks retain Unicode code-point vs UTF-16 distinctions.
 - `X-Request-Id` and sanitized typed error shape:
 
 ```json
