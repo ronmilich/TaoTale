@@ -26,7 +26,7 @@ The design should feel like a polished reading product, not a component-system s
 | Audio | **Native `HTMLAudioElement`** and application-specific Reader synchronization |
 | Preferences | Small validated `localStorage` adapter |
 
-**No UI framework/library integration:** do not add Eroxo, a separate component package, Kobalte, MUI, Radix, Tailwind, CSS-in-JS runtime, tooltip/overlay positioning engine or animation framework to the MVP. There is no `npm pack`, external theme API, UI-library version pin, component SDK, slot contract, or component release workflow.
+TT-028–031 govern the app-owned native controls, CSS Modules and Iris tokens. The [TaoTale roadmap](taotale-roadmap.md) tracks the client scaffold, Iris shell and screen delivery.
 
 **No accessibility framework/project:** there is no WCAG certification, comprehensive ARIA abstraction, custom focus trap, custom keyboard-navigation system, menu/typeahead framework or overlay manager. Use native elements correctly, keep visible labels, readable contrast and obvious interaction states. **Do not remove ordinary browser keyboard behavior or meaningful error messages.** The domain-specific JavaScript for the Reader/audio, forms, fetching and navigation remains necessary.
 

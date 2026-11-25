@@ -85,4 +85,4 @@ Use disposable Docker PostgreSQL with actual migrations and generated sqlc queri
 
 Capture OS, hardware, app commit, Go/SQL/TypeScript versions, schema revision, browser versions, test counts, real-provider Chinese/Korean evidence, performance samples, screenshot review, local security check and paired restore results. No historical test gets credit as a current pass. Routine CI: Go format/vet/tests, sqlc/migration checks, OpenAPI/types, Solid typecheck/build/component tests, browser core smoke and dependency/secret checks. **Remove UI-package build/publish/consumer/ARIA audit steps from CI.**
 
-Still to verify: Azure Go SDK behavior on target platform, Korean boundaries and optional word matching, MP3 probe, precise source length/chunking, migration of `native`, target browser/viewport baselines, and Windows-friendly backup commands. See [13 — Plan](13-taotale-rebuild-decisions.md) and [15 — Tasks](15-taotale-implementation-tasks.md).
+The [decision register](02-taotale-decision-register.md#6-implementation-decision-register) records open choices, and the [TaoTale roadmap](taotale-roadmap.md) identifies the milestone that verifies each one.

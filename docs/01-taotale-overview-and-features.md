@@ -2,7 +2,7 @@
 
 **Status:** Proposed local-first, single-user MVP specification (updated **25 November 2026**). This is a **target product specification**, not a statement that every feature has been implemented.
 
-**Starting point:** The Mandarin Reader overview and decision register (`02-decision-register.md`, D-01–61), plus the previous expansion proposal. This document supersedes the **product direction** in those files; technical choices and detailed requirements should be reconciled rather than assumed obsolete.
+The [specification index](14-taotale-sources-and-coverage.md) identifies the Mandarin Reader source baseline. The [TaoTale decision register](02-taotale-decision-register.md) records which legacy decisions carry forward.
 
 **Priority legend:** **MVP** = intended in the first usable TaoTale release; **Post-MVP** / **Later** = explicitly deferred and not required for MVP acceptance. There is **no commercial / paid-launch gate** in the current roadmap.
 
@@ -378,4 +378,4 @@ The following are **implementation details to resolve**, not reversals of approv
 
 ---
 
-**Document maintenance rule:** record the local-only/single-user shift, TaoTale rename, **three-level** difficulty system, Favorites, **PostgreSQL in local Docker**, **Azure TTS and chosen AI provider behind adapters**, **versioned language-specific segmentation**, **1 MB cover limit**, and the explicit decisions to **defer Dashboard, Vocabulary Practice, AI Text/Audio Workspace, Language Islands Builder and phone support until after MVP** in `02-decision-register.md` as superseding prior commercial/SaaS assumptions. Subsequent detailed specs for Library, Reader, Vocabulary and later AI must be reconciled with this overview. **This file is the updated target overview; the application code and other documents have not been changed by this revision.**
+The [decision register](02-taotale-decision-register.md) records the local single-user scope, naming, difficulty, Favorites, storage, provider adapters, segmentation, cover limit and deferred features. Keep the detailed specs aligned with this overview and track implementation in the [roadmap](taotale-roadmap.md).
