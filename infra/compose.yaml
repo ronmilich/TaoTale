@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "taotale", "-d", "taotale"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "taotale", "-d", "taotale"]
       interval: 5s
       timeout: 3s
       retries: 10

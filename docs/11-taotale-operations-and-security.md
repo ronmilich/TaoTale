@@ -29,7 +29,7 @@ local-data/                     # example of gitignored persisted media root
 
 - Keep real database volume and media directory **outside version-controlled/source build paths**. Docker container replacement must not remove data; ordinary shutdown must **never** use `docker compose down -v`.
 - Store **opaque, generated relative storage keys** in PostgreSQL, not client-provided file paths or audio BLOBs. Set absolute `MEDIA_ROOT`, create it with restrictive permissions, reject traversal and symlink/junction escapes, and serve media through checked HTTP routes.
-- Choose host-run vs Compose-run Go as an explicit setup decision. If host-run, publish PostgreSQL only to the host loopback; if Compose-run, use service DNS on its private network and never publish DB to all host interfaces.
+- TT-036 selects Compose-run Go. The API reaches PostgreSQL via `db:5432` on the Compose network. Only the API publishes a host port, on loopback. The named PostgreSQL and media volumes live outside the source tree and container layers. See the [backend start and stop instructions](../backend/README.md).
 - App should remain usable for **previously saved reading/audio without internet** as long as local frontend/backend/PostgreSQL and media are available. Azure synthesis remains an external network service.
 
 ## 3. Configuration and secrets
@@ -112,4 +112,4 @@ Settings should show honest manual instructions/status, **not** an inert Backup 
 
 **Deferred:** app accounts/auth/HTTPS for public exposure, billing and multi-tenant quotas, hosted database/storage, cross-device sync, public dashboards, AI runtime credentials/inference, phone support, network-connected tablet deployment, high-availability worker coordination and one-click backup UI.
 
-**To settle in executable setup:** host-run Go vs Compose service; chosen SQL migration runner; verified Azure Go SDK/word-boundary runtime on target OS; MP3 decoder/probe; exact local path convention and backups on Windows/macOS/Linux; developer origin allowlist; whether Chinese auto-sync qualifies for MVP. None should reopen the locked Go/Gin/PostgreSQL/sqlc or local-only choices without an explicit decision change.
+Remaining setup decisions include the SQL migration runner, production Azure runtime packaging, MP3 decoding, backup paths and procedures, developer origin allowlists, and Chinese automatic vocabulary matching. See the [decision register](02-taotale-decision-register.md#6-implementation-decision-register).

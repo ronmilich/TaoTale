@@ -58,7 +58,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-02 | Specification reconciliation | 0 | — | Done |
 | TAO-03 | Azure Go SDK feasibility spike | 0 | — | Done |
 | TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Done |
-| TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Planned |
+| TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Done |
 | TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Planned |
 | TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Planned |
 | TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Planned |
@@ -255,9 +255,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Start/stop documentation that marks `docker compose down -v` as forbidden for routine use.
 
 **Exit criteria**
-- [ ] Recreating or redeploying the container keeps the data.
-- [ ] The database port is unreachable from the LAN.
-- [ ] Decision recorded.
+- [x] A disposable Compose run preserved a PostgreSQL row and media bytes after `down` and `up` replaced both containers. The API reported ready before and after, and all media directories used mode `0700` and owner UID 10001.
+- [x] Docker reported no PostgreSQL host port bindings on either deployment. The API was published on `127.0.0.1` only.
+- [x] TT-036 records the Compose runtime, volume and network choices. The [backend setup](../backend/README.md) documents start and stop commands.
 
 **Depends on:** TAO-04
 
@@ -1161,7 +1161,7 @@ Each item needs a scope decision in 01 and 02 first (TAO-52). Each is broken int
 | Open item | Source | Closed in |
 |---|---|---|
 | Exact versions and build tooling | OPEN-01 | TAO-04 (toolchain), TAO-07 (DB stack), TAO-09 (client) |
-| Go host vs Compose, DB port and migration tool | OPEN-02 | TAO-05, TAO-07 |
+| Compose runtime and database port isolation, SQL migration runner and seed strategy | OPEN-02 | TAO-05 (runtime and isolation), TAO-07 (migration and seed) |
 | Segmentation rules and offset convention | OPEN-03 | TAO-11, TAO-12, TAO-13 |
 | Source length vs chunking | OPEN-04 | TAO-15 |
 | Automatic vocabulary matching | OPEN-05 | TAO-41 |

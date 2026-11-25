@@ -4,7 +4,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -o /out/taotale ./cmd/taotale
-RUN mkdir -p /out/media
+RUN mkdir -m 0700 /out/media
 
 FROM scratch
 COPY --from=build /out/taotale /taotale

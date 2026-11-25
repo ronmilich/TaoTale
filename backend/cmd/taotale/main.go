@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"taotale/backend/internal/httpapi"
+	"taotale/backend/internal/media"
 )
 
 func main() {
@@ -30,11 +30,8 @@ func main() {
 
 func run(ctx context.Context, listen string) error {
 	mediaRoot := os.Getenv("MEDIA_ROOT")
-	if !filepath.IsAbs(mediaRoot) {
-		return errors.New("MEDIA_ROOT must be an absolute path")
-	}
-	if err := os.MkdirAll(mediaRoot, 0700); err != nil {
-		return errors.New("cannot create media directory")
+	if err := media.PrepareRoot(mediaRoot); err != nil {
+		return err
 	}
 	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
