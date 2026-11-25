@@ -1,113 +1,102 @@
 # 09 — TaoTale UI states and interaction contract
 
-**Status:** Target MVP behavior, revised 23 November 2026. **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [03 — Client](03-taotale-client.md), [06 — Segmentation and audio](06-taotale-segmentation-and-audio.md), and [08 — Design system](08-taotale-design-system.md). This document defines application states and interactions, **not** the reusable npm package's component styling or implementation.
+**Status:** Simple MVP interaction specification, revised **25 November 2026**. **Authority:** [01 — Product](01-taotale-overview-and-features.md), [03 — Client](03-taotale-client.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — Iris design](08-taotale-design-system.md).
 
-## 1. Scope and UI ownership
+## 1. Scope and interaction philosophy
 
-TaoTale is a **single-user, locally hosted** SolidJS application. MVP views: **Library**, **Create/Edit**, **Reader**, **Vocabulary**, and **Settings / Local Data**. `/` enters `/library`; no account/onboarding screen. **Dashboard, Vocabulary Practice, AI text/audio workspace, Language Islands Builder and phone-specific UX are post-MVP.** Manual **Generate Audio** in Create/Edit remains MVP.
+TaoTale is one locally hosted SolidJS application. MVP screens: **Library**, **Create/Edit**, **Reader**, **Vocabulary**, **Settings / Local Data**. `/` enters `/library`. No account, AI workspace, Dashboard, Practice, Islands or phone-specific navigation. Manual Azure **Generate Audio** is in the Editor.
 
-- The **independent, SolidJS-only npm UI library** owns generic Button/Dialog/Tooltip/Menu/Popover behavior, keyboard and focus mechanics, transitions, theme customization and accessible primitives. **TaoTale does not import Kobalte directly or use Tailwind.**
-- TaoTale owns domain state, validation, navigation, generation progress, local persistence, transcript selection, audio synchronization, vocabulary interaction and API calls. Application-specific composites (Reader, LibraryCard, TopicManager, vocabulary dialogs) stay in TaoTale.
-- Use semantic labels, associated validation messages, focus management and live status updates; do not convey status by color alone. Honor reduced-motion. Do not let UI-library overlays remount or interrupt the Reader audio element.
+**Simple UI implementation:** ordinary app-owned CSS Modules and native controls. No external UI package, Kobalte/headless controls, custom menu/tooltip/combobox engines, focus-trap code, overlay portal system, or specialized accessibility JS. Use a native `select`, regular forms, inline panels, `window.confirm` for quick destructive confirmation, or native `<dialog>` when a polished modal materially improves a screen. Keep labels, messages and obvious button states. Reader/audio JavaScript remains domain-specific and essential.
 
-## 2. Global state and error contract
+All screens follow the Iris palette in [08](08-taotale-design-system.md): clear titles, spacious white/soft-lavender surfaces, violet main actions, subtle CSS hover/pressed transitions, and accessible-to-read typography without a formal accessibility certification project.
 
-| State | User-visible behavior |
+## 2. Common states
+
+| State | Required behavior |
 |---|---|
-| Initial loading | Skeleton/short progress announcement; do not show a false empty state. |
-| Ready | Display server-confirmed data and enabled actions only when their prerequisites hold. |
-| True empty | Explain there is no saved content; offer the relevant creation action. |
-| Filter empty | Explain no results match current filters; offer Clear filters without implying no data exists. |
-| Background loading | Keep valid previous results visible, indicate refresh without flashing content. |
-| Recoverable read failure | Preserve previously confirmed data where safe and show **Retry**. Never invent data or timing. |
-| Mutation pending | Disable duplicate/conflicting actions, preserve editable input; distinguish network pending from confirmed success. |
-| Validation failure | Inline field/code/message, focus first invalid control, keep all user input. |
-| Version conflict | Explain the record changed, allow review/reload/reapply; **never** silently overwrite. |
-| Uncertain write/generation outcome | Retain immutable request body and idempotency key, recover status with the **same** intent; do not automatically resubmit paid work. |
-| Offline / backend unavailable | Existing loaded content remains readable where possible; reads can retry on reconnection; writes fail explicitly, never queue silently. |
-| Unsupported route or missing item | Accessible not-found recovery to Library. A draft Reader URL directs to Continue Editing. |
+| Initial load | Skeleton or compact loading text; never show a false empty list |
+| Ready | Render server-confirmed content and actions whose prerequisites are satisfied |
+| Actual empty | Explain that no saved items/words exist; offer a clear create action |
+| Filtered empty | Explain no matches; offer Clear filters |
+| Refresh | Keep previous confirmed content while fetching if safe; show small update indicator |
+| Read error | Keep valid previous data if available; provide Retry |
+| Save/generation pending | Disable conflicting repeat actions; retain all editor input |
+| Validation error | Show message beside the field; keep entered data |
+| Save confirmed | Only show Saved/Published/Favorited after backend confirmation |
+| Version conflict | Explain item changed elsewhere and offer reload/review; never silently overwrite |
+| Uncertain paid generation | Reuse original request body/idempotency key for recovery; never auto-send a second Azure request |
+| Backend offline | Saved data already in memory can stay visible; writes fail clearly, no fake offline queue |
+| Missing route/item | Simple not-found page linking to Library; drafts point to Continue Editing |
 
-All errors use sanitized, actionable messages and may show a request ID; **never** surface SQL, server paths, Azure credentials, private source text or stack traces. Prefer stable labels over ambiguous generic toast-only feedback.
+Errors are human-readable and sanitized: no secrets, full private text, stack traces, SQL or absolute paths. Status has words, not only color.
 
-## 3. Shell and language selection
+## 3. Shell and learning language
 
-- Application opens to the **selected learning language**'s Library. MVP languages: **Simplified Mandarin (`zh-CN`)** and **Korean (`ko-KR`)**. A language selector changes Library, Vocabulary, Create defaults and compatible voices; it does **not** change an existing Reader item's stored language.
-- Show language-loading/empty/unavailable states honestly. If a language is disabled or missing from the server catalog, offer an available language without rewriting persisted items.
-- Route transitions preserve the relevant URL filters and can retain the previous view during lazy loading. Theme may be light/dark/system and must apply without unmounting Reader/audio or resetting forms.
-- Desktop and **tablet-sized** layouts, keyboard, zoom and pointer/touch use are in MVP; phone layouts are not acceptance requirements. Hover-only actions are insufficient for tablets.
+Active language controls Library, Vocabulary and defaults when creating a new item: **Simplified Mandarin `zh-CN`** and **Korean `ko-KR`**. A published Reader uses the item's stored language. Theme options: **Light / Dark / System**, stored in local preferences; apply theme by CSS `data-theme` without remounting audio or resetting forms.
 
-## 4. Language Library and Favorites
+Use desktop and tablet layouts, normal links/buttons/forms and touch-friendly spacing. No phone-specific acceptance gate. Language disabled/unavailable states never pretend content is usable; offer another enabled language.
 
-| Situation | Required behavior |
+## 4. Library
+
+| Situation | Behavior |
 |---|---|
-| Initial / refreshed list | Load one paginated, language-scoped mixed list of drafts and published items; maintain stable previous cards during refresh. |
-| Card presentation | Cover/fallback, title or **Untitled draft**, description, manual difficulty, up to two topics +N, draft/published indication, favorite button. Duration/play only for published matching READY audio. |
-| Filters | Search **literal title substring**, selected Topics (OR), difficulty (`beginner`/`intermediate`/`advanced`/Unspecified), status and **Favorites only**; combine groups with AND. |
-| Sort/pagination | Newest default, oldest, title A–Z/Z–A; stable ID tie-breaker; reset/clamp page when result count changes. |
-| Favorite toggle | Both drafts and published items; use explicit **set true/false**, not a blind inverse toggle. Show pending, confirmed state and retry on failure. It must not change audio, item content version or newest ordering. |
-| Unfavorite in Favorites-only filter | After confirmed success, remove from filtered results; maintain a sensible page. Failure keeps last confirmed state. |
-| Delete | Require confirmation with consequences. Deleting an item removes its own recording/joins when released but **keeps vocabulary entries**; preserve failed deletion state. |
-| Download | Only available for validated published audio. Expose unavailable/missing-media errors, not a bogus duration or disabled-but-clickable link. |
+| List | Language-scoped drafts and published items; **8 cards/page** initially |
+| Card | Cover/fallback, title or Untitled draft, short description, difficulty, up to 2 topics +N, Favorite, draft/published status; duration only for validated audio |
+| Filters | Literal title search, Topics (OR), manual difficulty or Unspecified, status, Favorites-only; groups combined with AND |
+| Sort | Newest (default), oldest, title A–Z/Z–A; stable page and tie ordering |
+| Favorite | Both drafts/published; explicit `true`/`false` API write; visible pending/error state; no audio/version/updatedAt change |
+| Unfavorite in Favorites-only | Remove after confirmed success and clamp page |
+| Delete | Native confirmation or simple dialog describing that linked vocabulary **entries remain**; show error if deletion fails |
+| Download | Only for verified published audio; no fictitious duration or invalid playable link |
 
-A card's Favorite control must be separately keyboard/pointer accessible and must not accidentally navigate to Reader. Loading or failure of one cover must not blank the collection.
+A Favorite star is a visible button rather than a hidden hover-only control. Cover load failure does not hide the collection. Use gentle hover and selected styles from 08.
 
-## 5. Create/Edit, drafts and audio generation
+## 5. Create/Edit and audio
 
-**Four editor modes:** unsaved new item, saved draft, published metadata edit, saved working revision. All share deliberate Save/Generate/Publish rules; **no autosave** and no persistence merely from choosing an image or playing a preview.
+Modes: **new unsaved**, **saved draft**, **published metadata**, **working revision**. No autosave. All use a straightforward page form and visible Save/Generate/Publish actions.
 
-| Mode or state | Behavior |
+| State | Behavior |
 |---|---|
-| New, clean / dirty | Title and source may be incomplete locally; Save Draft is explicit. New item chooses one enabled language, which governs voices and segmenter. |
-| Upload pending / invalid / failed | Validate encoded cover **≤1,000,000 bytes** plus actual JPEG/PNG/WebP format and dimensions; keep fields/old cover on failure, offer remove/retry. Existing oversized legacy cover remains viewable. |
-| Temporary preview | Generate may create an expiring, unsaved preview; it is **not** a draft. Distinguish Ready/Failed/Expired/Claimed. Saving a draft may claim a matching preview. |
-| Saved draft | Restores all saved fields and latest generation. If source/voice/rate changes, saved-target generation needs the current synthesis inputs saved first. Draft cannot open in Reader. |
-| Generation | `NOT_GENERATED` (computed), `PENDING`, `PROCESSING`, `READY`, `FAILED`, `OUTDATED` (computed). Interrupted jobs are `FAILED` with a specific interruption code. Poll the same generation ID; prevent concurrent duplicate submission. |
-| Ready candidate | Preview/download only when validated audio **matches** exact text, item language, voice, rate, segmentation strategy/version and fingerprint format. Display measured duration, not an estimate. |
-| Publish disabled | Persistent explanation: missing title/text, unsupported voice, unsaved synthesis changes, no matching READY asset, invalid alignment or pending mutation. |
-| Published metadata edit | Title, description, notes, difficulty, topics, cover and Favorite can change **without** audio regeneration. Text/voice/rate use a working revision. |
-| Working revision | Has its own saved candidate/version/job. Original published Reader remains playable through generation, failure, cancellation or discard. Atomic publish replaces only the validated source/audio pair. |
-| Conflict / unknown result | Preserve unsaved values; don't auto-merge. Unknown paid-result recovery uses original key/body. |
+| New, incomplete | Explicit Save Draft accepts incomplete title/text; choose enabled item language |
+| Invalid cover | Reject new/replacement image above **1,000,000 bytes**, wrong format or unsafe dimensions; retain previous cover and form |
+| Temporary preview | Unsaved temporary generation is not a draft; Ready/Failed/Expired/Claimed clearly indicated |
+| Draft | Restore saved fields and generation status; source/voice/rate changes must be saved before saved-target generation |
+| Generation | `NOT_GENERATED`, persisted `PENDING`/`PROCESSING`/`READY`/`FAILED`, computed `OUTDATED`; show progress as text, not fabricated % |
+| Ready | Preview/download only if matching validated source/language/voice/rate/strategy and actual measured duration |
+| Cannot publish | State the missing requirement: title/source, unsupported voice, unsaved synthesis changes, unmatched audio, invalid alignment or pending write |
+| Published metadata | Title/description/notes/difficulty/topics/cover/Favorite change **without** re-generating audio |
+| Working revision | Original published source/audio stays playable until a validated revision is atomically published |
+| Conflict or unknown outcome | Preserve input; never auto-merge or re-bill |
 
-Changing manually assigned difficulty does not modify generation identity. `native` is **not** a valid new difficulty value. Avoid accidental language changes to published material; creating a new item in another language is preferred.
+`native` is not a supported difficulty. Saving a new item with another learning language is distinct from changing published content language.
 
 ## 6. Reader
 
-- **Text:** render exact original characters, whitespace and blank lines. Valid UTF-16 source spans support timed highlighted segments; the Reader never resegments historical audio on the client. On missing/corrupt audio or invalid alignment, show **readable plain text** and disable misleading timed seeking, while keeping vocabulary operations available.
-- **Playback:** native HTML audio; play/pause, timeline, ±5 seconds, playback-rate control, elapsed/verified total, download, loading/buffering/error. No autoplay on restore. Resume position keyed by **item + immutable audio asset**; replacement asset resets previous resume. End clears active highlight.
-- **Seeking/selection:** segment click/keyboard activation seeks only a valid timed span and preserves paused/playing state. Text dragging or non-collapsed native selection suppresses seek and hover popups. Keep keyboard focus visible and text selectable, including Hangul, Han and mixed scripts.
-- **Vocabulary:** explicit selection → Add to Vocabulary; lookup uses **Reader item language**. Existing word links to item without overwriting spelling/reading/meaning/status. New entry opens editable form; Cancel creates nothing. Reading/meaning missing states are explicit. Learning/Acquired is a **manual**, reversible status.
-- **Annotation:** only use a verified per-language matcher. Historical Mandarin exact substring highlighting may be enabled after tests; **do not apply it blindly to Korean**. Manual linked entries and selection work independently of optional auto-matching. Word popup remains outside transcript DOM and never moves selection offsets.
-- **Favorite:** Reader header shares the Library item's persisted `isFavorite`; show busy/failure state and avoid an independent favorite store.
-- **Notes:** plain text, explicit edit/save/cancel; closing presentation must not silently discard dirty content. Vocabulary/Notes/theme overlays do not reset playback.
+- Render exact original text, whitespace and paragraphs. Use **verified persisted UTF-16 timed ranges** for the iris phrase highlight. No client resegmentation of historical assets. With corrupt alignment/audio, readable text and vocabulary selection still work; disable inaccurate timed actions.
+- Native audio: play/pause, ±5s, timeline, rate, elapsed/verified total, download, buffer/error. No autoplay when reopening. Resume keyed by **item ID + audio asset ID**; a new asset resets old resume.
+- Clicking a timed phrase can seek. If the user is dragging/selecting text, suppress accidental seek. Keep the transcript selectable; do not add custom composite keyboard navigation across every segment.
+- **Add to Vocabulary** uses native text selection and a visible action/panel or native dialog; Reader language governs lookup. Existing word gets linked without overwriting metadata; new word requires explicit save. Cancel creates nothing. Manual status Learning/Acquired is reversible.
+- Automatic annotations only when a **verified language-specific matching strategy** exists. Do not apply Chinese substring behavior to Korean by assumption. A word panel should not modify transcript DOM offsets or reset playback.
+- Favorite reflects the same persisted item flag as Library. Notes use plain text Save/Cancel and do not change audio. Theme/notes/panels must not remount the audio element.
 
 ## 7. Vocabulary and Topics
 
-- Scope list/search/stats and entry creation to the **active language**; Topics remain **global for the one user**. Two entries with the same spelling in different languages are distinct.
-- Vocabulary: Initial/loading/stale/error/true-empty/filter-empty, Learning vs Acquired, search in word/reading/meaning, topic filters, deterministic pagination (initial **10 rows/page**), details/notes/source references, add/edit/delete, bulk status/delete. Disable repeated writes and preserve confirmed status on failure.
-- Reader collection: normalize identity according to the selected language's documented key rule, enforce duplicate safety server-side, and reject source links across languages. User-visible duplicate state offers linking the existing entry, not creating a second record.
-- Manual source linking/unlinking is supported; automatic publication matching/sync is **only** offered for a language with a verified matcher. If unsupported (including Korean initially), do not display a fake success count or imply morphology-aware matching.
-- Topic management: default Topics cannot be deleted; custom Topics can be renamed, recolored and removed with a confirmation showing item/vocabulary associations. Deletion removes joins, not entities. Duplicate name conflicts retain user input and refresh catalog. Limit linked Topics to **10** per item/entry.
+Vocabulary list/search/stats are scoped to active language; **10 rows/page** initially. Search word/reading/meaning, filter by Learning/Acquired/Topics and offer simple create/edit/delete/bulk actions. Manual source links require the same language; duplicate words provide a link-existing option. Errors retain user input.
+
+Topics are **one user-global catalog**. Default Topics are protected; custom Topics can be renamed/recolored/deleted with a clear confirmation. Deletion removes associations, not the Library items or Vocabulary entries. Maximum **10 Topic associations** per item or entry. Use a simple checkbox list and edit form instead of custom autocomplete or complex menus.
 
 ## 8. Settings and local data
 
-- Preferences: active learning language, theme (light/dark/system), per-language preferred voice and synthesis rate, Reader playback speed, vocabulary popup visibility. Validate persisted client-local values; corrupt, blocked or obsolete storage values fall back safely. No login/profile/billing flow.
-- Display storage/configuration status and **documented** backup/restore guidance for the **local PostgreSQL volume and asset directory**. A **tested manual backup/restore** is an MVP requirement; **one-click backup UI is not**. Do not advertise a button for unimplemented backup logic.
-- Offline means locally saved text/audio can be used when the app/database run; **new Azure synthesis requires network** and explicit user action. Missing provider credentials must not block reading saved material.
+Appearance (light/dark/system), active language, per-language Azure voice/rate defaults, Reader playback speed and word-popup visibility are small validated browser preferences. Show whether local backend/DB/media and Azure generation are available. State clearly that **manual paired PostgreSQL+media backup/restore** is required; do not show a nonfunctional one-click Backup action. Previously saved reading and audio work without internet when local services are running; Azure generation needs an external connection.
 
-## 9. Navigation guards, confirmation and accessibility
+## 9. Leaving, confirming, and preventing loss
 
-| Dirty context | Primary leave action | Alternatives |
-|---|---|---|
-| Unsaved new item (eligible draft) | **Save Draft & Leave** | Leave Without Saving; Stay |
-| Saved draft / published metadata / Notes | **Save Changes & Leave** (new draft may say Save Draft) | Leave Without Saving; Stay |
-| Working revision | **Save Revision & Leave** | Leave Without Saving; Stay |
+When an editor or Notes form is dirty, use `@solidjs/router` leave protection and a **simple Save & Leave / Discard & Leave / Stay** choice. A minimal native confirm is acceptable for the first version; a compact app-owned `<dialog>` is an optional visual upgrade. Navigate only after successful save or explicit discard. For tab close or reload, use the **native `beforeunload` warning**. Do not build custom focus restoration, Escape dispatcher or overlay stack machinery. Confirm destructive item deletion and working-revision discard.
 
-Intercept in-app navigation including Back; navigate **only after successful save**. Use native `beforeunload` for tab close/reload/external navigation; no custom browser-close dialog. Discard removes only unsaved local changes, not persisted records. Confirm deletion/discard revision/source unlink with accurate consequences. A dialog from the npm UI package must handle focus trap, Escape/close, accessible labels and return focus; the TaoTale caller decides whether the action is allowed while a mutation is pending.
+## 10. Acceptance examples and wording
 
-## 10. Canonical labels and acceptance examples
+Canonical labels: Library, Vocabulary, Settings, Create New Item, Save Draft, Generate Audio, Publish to Library, Edit Text & Voice, Save Revision, Publish Revision, Discard Revision, Favorite, Remove from Favorites, Favorites only, Beginner, Intermediate, Advanced, Unspecified, Open in Reader, Continue Editing, Back to Library, Download Audio, Add to Vocabulary, Already in Vocabulary, Learning, Acquired, Retry, Outdated audio, Audio unavailable, No items match your filters.
 
-**Examples:** Library, Vocabulary, Settings, Create New Item, Save Draft, Generate Audio, Publish to Library, Edit Text & Voice, Save Revision, Publish Revision, Discard Revision, Favorite, Remove from Favorites, Favorites only, Beginner, Intermediate, Advanced, Unspecified, Open in Reader, Continue Editing, Back to Library, Download Audio, Add to Vocabulary, Already in Vocabulary, Learning, Acquired, Retry, Outdated audio, Audio unavailable, No items match your filters.
+**Critical acceptance:** (1) Favorite survives restart without version/audio change; (2) Chinese/Korean contexts stay separate; (3) invalid timing preserves readable transcript; (4) leaving never falsely promises a save; (5) invalid 1,000,001-byte replacement cover preserves old cover; (6) failed revision leaves published recording safe; (7) theme/panels do not remount Reader audio; (8) Iris appearance is cohesive light/dark on desktop/tablet; (9) no external UI package or complicated custom component behavior; (10) no post-MVP views in the shipped shell.
 
-**Critical UI acceptance:** (1) favorite persisted across restart without content/audio version change; (2) two languages never mix list/voice/word contexts; (3) corrupt alignment preserves readable transcript; (4) dirty guard never promises an unconfirmed save; (5) invalid 1,000,001-byte cover never replaces valid cover; (6) failed revision retains previous recording; (7) Reader audio stays mounted during theme/overlay changes; (8) no AI, Dashboard, practice, islands, login, billing or phone-only flows in MVP.
-
-**Related documents:** [10 — API](10-taotale-api.md), [11 — Operations](11-taotale-operations-and-security.md), [12 — Quality](12-taotale-quality-and-acceptance.md).
+**Related:** [10 — API](10-taotale-api.md), [12 — Quality](12-taotale-quality-and-acceptance.md), [13 — Plan](13-taotale-rebuild-decisions.md), [15 — Tasks](15-taotale-implementation-tasks.md).

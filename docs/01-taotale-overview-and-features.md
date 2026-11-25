@@ -1,6 +1,6 @@
 # 01 — TaoTale: Product overview and features
 
-**Status:** Proposed local-first, single-user MVP specification (updated 23 November 2026). This is a **target product specification**, not a statement that every feature has been implemented.
+**Status:** Proposed local-first, single-user MVP specification (updated **25 November 2026**). This is a **target product specification**, not a statement that every feature has been implemented.
 
 **Starting point:** The Mandarin Reader overview and decision register (`02-decision-register.md`, D-01–61), plus the previous expansion proposal. This document supersedes the **product direction** in those files; technical choices and detailed requirements should be reconciled rather than assumed obsolete.
 
@@ -13,6 +13,8 @@
 **TaoTale** is a personal, locally hosted web application for studying languages through reading, listening, and reusable vocabulary. For the MVP, the user adds personally interesting texts, generates natural-sounding audio with Azure TTS, and reads with synchronized text highlighting. AI-assisted text creation is planned after MVP.
 
 **Core learning loop:** **Choose language → add text → create audio → read/listen → collect vocabulary → revisit.** Optional AI text generation and vocabulary practice follow after MVP.
+
+**MVP visual and UI direction (25 Nov):** Every component is implemented **inside TaoTale** with SolidJS, native HTML and app-local CSS Modules; **no external UI library** or specialized generic component JavaScript. The approved look is the **Iris palette**—violet, lavender, periwinkle and orchid with beautifully composed light/dark reading surfaces. See [03](03-taotale-client.md) and [08](08-taotale-design-system.md).
 
 **Product goal:** A dependable personal learning tool, **not** a complete language curriculum, proficiency evaluator, or public SaaS platform.
 
@@ -103,7 +105,7 @@ Use this **ordered, language-independent, user-assigned three-level set** on Lib
 | **Audio asset** | Immutable MP3, measured duration, exact synthesis fingerprint, language-specific segmentation algorithm ID/version and timed segments, stored on local disk. |
 | **Outdated audio** | Candidate audio that does not match its exact text/language/voice/rate/segmentation algorithm/version; not publishable. |
 | **Vocabulary entry** | User- and language-specific word/phrase with manual `Learning` / `Acquired` state and optional metadata/references. |
-| **Topic** | Reusable owner-global subject label with persisted accessible light/dark colors. |
+| **Topic** | Reusable owner-global subject label with persisted coordinated light/dark colors. |
 | **Language segmentation strategy** | Per-language, versioned rules mapping exact source-text spans to ordered segments; aligned timing is persisted with each recording. |
 
 ## 4. Main application views and feature requirements
@@ -125,7 +127,7 @@ Use this **ordered, language-independent, user-assigned three-level set** on Lib
 - **MVP:** one language-scoped mixed Library of **saved drafts and published items**. Unsaved previews and working revisions do not appear as separate items.
 - **MVP cards:** cover or placeholder, title, short description, manual difficulty, up to two topic chips (+N), updated/created time, draft/published indication and **favorite star**; show audio duration only for a valid published recording.
 - **MVP search/filter:** literal case-insensitive title substring; draft/published status, difficulty, topics, **Favorites only**, Apply filters together; topic selections are OR within their group. Default sort by newest, plus oldest, title A–Z/Z–A; pagination must be deterministic.
-- **MVP Favorites:** provide a visible, accessible star on cards and in Reader. Toggling is explicit, idempotent and persisted in the **local database**, so it survives restart. Both drafts and published items may be favorited. Toggle does **not** update source content or invalidate audio. The favorite flag remains on an item through metadata edits and published revisions; it disappears when that item is deleted.
+- **MVP Favorites:** provide a visible star button on cards and in Reader. Toggling is explicit, idempotent and persisted in the **local database**, so it survives restart. Both drafts and published items may be favorited. Toggle does **not** update source content or invalidate audio. The favorite flag remains on an item through metadata edits and published revisions; it disappears when that item is deleted.
 - **MVP:** favorite state, filters and pagination update immediately after a confirmed write. If the view is filtered to Favorites only, unfavoriting removes the card from those results; preserve sensible page position. Support keyboard controls and pointer input; do not make stars hover-only. Touch on tablets is supported, but phone-sized layouts are deferred. Favoriting an item **does not** change `updatedAt` or the default newest sort unless explicitly designed to do so.
 - **MVP actions:** published → Open Reader, Edit, Download Audio, Delete; draft → Continue Editing, Delete. Confirm destructive deletion and make clear that vocabulary entries themselves survive a source-item deletion.
 - **MVP:** skeleton/loading, Retry, actual-empty/filtered-empty, failed cover/audio and pagination-after-delete states.
@@ -171,7 +173,7 @@ Use this **ordered, language-independent, user-assigned three-level set** on Lib
 ### 4.5 Topics
 
 - **MVP:** Topics are **global to the single local user**, not language-specific. Initial examples: History, Science, Technology, Business, Culture, Daily Life, Travel, Health.
-- **MVP:** create/rename/recolor/delete custom topics; case-insensitive uniqueness; accessible light/dark colors; topic deletion removes joins only. Preserve the current default-topic protection behavior if still useful.
+- **MVP:** create/rename/recolor/delete custom topics; case-insensitive uniqueness; readable light/dark colors; topic deletion removes joins only. Preserve the current default-topic protection behavior if still useful.
 - **MVP:** topic associations work for Library items and vocabulary. Keep the existing maximum of 10 topic associations per entity initially.
 - **Later:** topic folders, hierarchy, language-specific visibility and topic analytics.
 
@@ -216,9 +218,9 @@ Use this **ordered, language-independent, user-assigned three-level set** on Lib
 
 ### 5.4 Device support and accessibility
 
-- **MVP:** support **desktop and tablet-sized browser layouts**. Test readable layout, keyboard-only use, visible focus, ~200% browser zoom and accessible contrast. Tablet interactions must not depend exclusively on mouse hover.
+- **MVP:** support **desktop and tablet-sized browser layouts**. Test readable typography, native link/button/form interaction, usable zoom and clear visual states. Tablet actions must not depend exclusively on mouse hover. No custom keyboard/focus system or formal accessibility certification is required.
 - **Post-MVP:** **phone/small-screen layouts**, phone-specific navigation, narrow touch transcript interactions and testing on actual phones. Avoid claiming phone support from incidental CSS responsiveness. Separately approve secured LAN access if the app needs to run on a second device.
-- Aim for WCAG 2.2 AA principles for supported layouts; verify synchronized highlighting across Mandarin, Hangul, punctuation and mixed scripts.
+- Use **simple app-owned native controls** with readable labels, clear status and consistent **Iris violet/lavender** styling. No standalone UI library or formal WCAG/custom component-focus implementation is required. Verify synchronized highlighting across Mandarin, Hangul, punctuation and mixed scripts.
 
 ### 5.5 Provider privacy and costs
 
@@ -370,10 +372,10 @@ The following are **implementation details to resolve**, not reversals of approv
 
 - Existing Mandarin Reader requirement and decision files remain the **implementation baseline** until each relevant behavior is migrated and tested.
 - [Language Islands — Fluent in 3 Months](https://www.fluentin3months.com/language-islands/) — background on preparing focused conversational material; reference only for a deferred post-MVP concept; it does not define MVP behavior.
-- [WCAG 2.2](https://www.w3.org/TR/WCAG22/) — accessibility principles.
+- [08 — Iris design](08-taotale-design-system.md) — application-owned colors, typography, page composition and minimal native components.
 - [BCP 47 / RFC 5646](https://www.rfc-editor.org/info/rfc5646/) — language identifiers.
 - [Azure Speech language support](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=text-to-speech) — verify actual Azure voice and timing support for each supported language.
 
 ---
 
-**Document maintenance rule:** record the local-only/single-user shift, TaoTale rename, **three-level** difficulty system, Favorites, **PostgreSQL in local Docker**, **Azure TTS and chosen AI provider behind adapters**, **versioned language-specific segmentation**, **1 MB cover limit**, and the explicit decisions to **defer Dashboard, Vocabulary Practice, AI Text/Audio Workspace, Language Islands Builder and phone support until after MVP** in `02-taotale-decision-register.md` as superseding prior commercial/SaaS assumptions. Subsequent detailed specs for Library, Reader, Vocabulary and later AI must be reconciled with this overview. **This file is the updated target overview; the application code and other documents have not been changed by this revision.**
+**Document maintenance rule:** record the local-only/single-user shift, TaoTale rename, **three-level** difficulty system, Favorites, **PostgreSQL in local Docker**, **Azure TTS and chosen AI provider behind adapters**, **versioned language-specific segmentation**, **1 MB cover limit**, and the explicit decisions to **defer Dashboard, Vocabulary Practice, AI Text/Audio Workspace, Language Islands Builder and phone support until after MVP** in `02-decision-register.md` as superseding prior commercial/SaaS assumptions. Subsequent detailed specs for Library, Reader, Vocabulary and later AI must be reconciled with this overview. **This file is the updated target overview; the application code and other documents have not been changed by this revision.**

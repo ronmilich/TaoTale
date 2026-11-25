@@ -1,17 +1,17 @@
 # TaoTale — implementation roadmap
 
-**Status:** Planned — no milestone started (created 23 November 2026). This describes target work. It is not evidence that anything is implemented (12 §1).
+**Status:** Planned — no milestone started (created 23 November 2026; revised 25 November 2026). This describes target work. It is not evidence that anything is implemented (12 §1).
 
-**Scope authority:** [01 — Overview](../01-taotale-overview-and-features.md) decides MVP vs post-MVP; [02 — Decision register](../02-taotale-decision-register.md) records decisions. Technical sources are [03](../03-taotale-client.md)–[06](../06-taotale-segmentation-and-audio.md) and [08](../08-taotale-design-system.md)–[12](../12-taotale-quality-and-acceptance.md). This roadmap breaks the stage plans in 01 §9 and 13 §3 into small, gated milestones.
+**Scope authority:** [01 — Overview](../01-taotale-overview-and-features.md) decides MVP vs post-MVP; [02 — Decision register](../02-taotale-decision-register.md) records decisions. Technical sources are [03](../03-taotale-client.md)–[06](../06-taotale-segmentation-and-audio.md) and [08](../08-taotale-design-system.md)–[12](../12-taotale-quality-and-acceptance.md). This roadmap breaks the stage plans in 01 §9 and 13 §3 into small, internally dependent milestones.
 
-**Depends on:** the [UI Library roadmap](https://github.com/ronmilich/eroxo-ui/blob/main/docs/ui-library-roadmap.md). **Every TaoTale milestone has a UI Library gate.** It cannot start until that library milestone is Done.
+**Execution authority:** This is the canonical detailed TaoTale roadmap. All UI work is implemented in the TaoTale client. No external project, component package release or public component API is a prerequisite. The latest owner decision and documents 02, 03 and 08 supersede the former library-first plan.
 
 ---
 
 ## 1. Scope summary
 
 - **MVP:**
-  - a local, single-user app: Go/Gin + PostgreSQL in Docker + local media files, and a SolidJS client built on the UI library;
+  - a local, single-user app: Go/Gin + PostgreSQL in Docker + local media files, and a SolidJS client with app-owned native controls, CSS Modules and Iris visual design;
   - Library: drafts and published items, Favorites, difficulty, topics, filters;
   - Create/Edit with explicit Azure TTS generation and verified publication; working revisions;
   - Reader with synchronized highlighting;
@@ -22,208 +22,128 @@
 - **Post-MVP (Phase 11):** Dashboard, Vocabulary Practice, AI Text/Audio workspace, Language Islands, phone support, Japanese, optional backlog.
 - **Never in the MVP:** login or accounts, billing, cloud hosting, LAN exposure, or routes for deferred features (01 §8).
 
-## 2. UI Library gating rules
+## 2. Execution and UI ownership rules
 
-1. **One gate per milestone.** Each TaoTale milestone names one UI Library milestone (UL-xx) as its gate. It cannot start until that UL milestone is **Done**.
-2. **Done means released.** For a UL code milestone, Done means its exit criteria are met **and** the version is published and verified by the library's consumer smoke test. TaoTale installs that exact version from the registry, or the packed prerelease from the library's release pipeline. Local linking (`npm link`, workspace paths) never satisfies a gate (08 §8.6). For UL decision milestones, Done means the decision record is approved.
-3. **Two gate types, both binding:**
-   - **Hard:** the milestone needs what the gate delivers — components, APIs, decisions or audit fixes.
-   - **Sequencing:** library-first ordering, so the library always stays ahead. This also applies to backend-only work.
+1. A milestone can start when its **TaoTale dependencies** are Done. No external release gates or artificial sequencing constraints.
+2. Build controls directly in `frontend/` using native HTML, small SolidJS components, CSS Modules and shared CSS variables. Build reusable controls only when a real screen needs them.
+3. Use the **Iris Reading Studio** design in 08: violet/lavender, periwinkle and orchid, light/dark paper surfaces, typography, whitespace and restrained CSS effects.
+4. No external UI component packages, Kobalte, Tailwind, public slot or theme API, custom focus/keyboard/overlay engine, or formal accessibility certification. Keep native browser behavior and ordinary labels, readable controls and clear states.
+5. JavaScript remains for actual product behavior: routing, state, forms, selection, audio, synchronization, persistence and API calls. Keep dialogs native or use simple inline panels; no generic overlay positioning or animation infrastructure.
+6. Record milestone status, completed exit criteria and actual evidence in this roadmap or linked implementation notes. No documentation-only pass credit.
 
-   Changing a sequencing gate requires a dated decision in 02. Hard gates follow from TT-028–031 and cannot be bypassed.
-4. **No bypass.** If TaoTale needs a generic capability the library lacks:
-   1. add it to a UL milestone that hasn't started, or create a new UL milestone;
-   2. release it;
-   3. then continue.
-
-   Never write generic controls in TaoTale, never import `@kobalte/core` or any other headless UI library, never add Tailwind, and never use private library selectors (TT-028–030, TT-032, 03 §6).
-5. **Domain components stay in TaoTale** — LibraryItemCard, Transcript, AudioPlayer, TopicManager, vocabulary dialogs. They are composed from public library exports (08 §4.1).
-6. **Library defects found in TaoTale** are fixed in the library and released as a patch. TaoTale upgrades its pinned version only after the upgrade checks in 03 §12: install, theme CSS, overlay focus and Reader stability.
-7. **The library never depends on TaoTale.** TaoTale feedback goes into the library backlog; it is never a library gate.
-8. **Gate log.** When a milestone starts, record the gating UL milestone and the exact library version in the milestone's PR or release notes.
-
-## 3. Integrated execution sequence (library-first)
+## 3. TaoTale execution sequence
 
 ```mermaid
 flowchart TB
-  subgraph LIB["UI Library — leads"]
-    U1["UL-01–03<br/>charter · name · licence"]
-    U2["UL-04–11<br/>spike · ADRs · repo · build · CI · release · docs"]
-    U3["UL-12–17<br/>tokens · in-house behavior layer"]
-    U4["UL-18–23<br/>theming · customization · foundation components 0.1–0.4"]
-    U5["UL-24–31<br/>overlay engine · overlays · integration release 0.12"]
-    U6["UL-32–35<br/>select · feedback · pagination · slider"]
-    U7["UL-36–40<br/>combobox · dropzone · table · toast · tabs"]
-    U8["UL-41–44<br/>docs · a11y audit · performance · 1.0 RC"]
-    U9["UL-45 →<br/>1.0 GA · launch · post-1.0"]
-    U1 --> U2 --> U3 --> U4 --> U5 --> U6 --> U7 --> U8 --> U9
-  end
-  subgraph APP["TaoTale — gated"]
-    T1["TAO-01–03<br/>legacy · specs · Azure spike"]
-    T2["TAO-04–08, 11<br/>repo · Docker · Go · SQL · OpenAPI · Unicode"]
-    T3["TAO-12–15<br/>segmentation · TTS adapter · alignment"]
-    T4["TAO-09, 16–20<br/>client scaffold · items · generation"]
-    T5["TAO-10<br/>app shell · Quiet Study"]
-    T6["TAO-21–27<br/>editor · list · publish · Reader"]
-    T7["TAO-28–41<br/>library · revisions · vocabulary"]
-    T8["TAO-42–51<br/>settings · backup · legacy · hardening · MVP"]
-    T9["TAO-52–61<br/>post-MVP"]
-    T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7 --> T8 --> T9
-  end
-  U1 -. gate .-> T1
-  U2 -. gate .-> T2
-  U3 -. gate .-> T3
-  U4 -. gate .-> T4
-  U5 -. gate .-> T5
-  U6 -. gate .-> T6
-  U7 -. gate .-> T7
-  U8 -. gate .-> T8
-  U9 -. gate .-> T9
+  P0["Phase 0: TAO-01–03 · Preparation and Azure feasibility"] --> P1["Phase 1: TAO-04–10 · Foundations and Iris shell"]
+  P1 --> P2["Phase 2: TAO-11–15 · Text and audio core"]
+  P2 --> P3["Phase 3: TAO-16–20 · Items and generation backend"]
+  P3 --> P4["Phase 4: TAO-21–27 · Create, publish and read"]
+  P4 --> P5["Phase 5: TAO-28–32 · Library completeness"]
+  P5 --> P6["Phase 6: TAO-33–35 · Published content revisions"]
+  P6 --> P7["Phase 7: TAO-36–41 · Vocabulary"]
+  P7 --> P8["Phase 8: TAO-42–44 · Settings, recovery and backup"]
+  P8 --> P9["Phase 9: TAO-45–46 · Legacy migration"]
+  P9 --> P10["Phase 10: TAO-47–51 · Hardening and MVP release"]
+  P10 --> P11["Phase 11: TAO-52–61 · Post-MVP, approval required"]
 ```
 
-The diagram groups milestones into blocks. The table below shows the exact order and the gate each TaoTale block waits for:
-
-| Step | Project | Milestones | Gate / notes |
-|---|---|---|---|
-| 1 | UI Library | UL-01 → UL-03 | Charter, name, licence. |
-| 2 | TaoTale | TAO-01 → TAO-03 | Gate UL-03. Legacy inventory, spec reconciliation, and the Azure spike — the earliest de-risking. |
-| 3 | UI Library | UL-04 → UL-07 | Spike, ADRs, conventions, repository. |
-| 4 | TaoTale | TAO-04 → TAO-06 | Gate UL-07. Repository, Docker PostgreSQL, Go skeleton. |
-| 5 | UI Library | UL-08 → UL-11 | Packaging, CI, release pipeline, docs site. |
-| 6 | TaoTale | TAO-07, TAO-08, TAO-11 | Gate UL-11. Migrations/sqlc, OpenAPI, Unicode offsets and fingerprints. |
-| 7 | UI Library | UL-12 → UL-15 | Tokens, default themes, core and accessibility utilities. |
-| 8 | TaoTale | TAO-12 → TAO-15 | Gate UL-15. Segmentation (zh, ko), TTS adapter, alignment validation. |
-| 9 | UI Library | UL-16 → UL-20 | Interaction and collection primitives, theming API, customization contract, Button → **`0.1.0`**. |
-| 10 | TaoTale | TAO-09, TAO-16, TAO-17 | Gate UL-20. Client scaffold on the published package; items and topics API. |
-| 11 | UI Library | UL-21 → UL-23 | Fields, choice controls, display primitives. |
-| 12 | TaoTale | TAO-18 → TAO-20 | Gate UL-23. Generation admission, worker, streaming and previews. |
-| 13 | UI Library | UL-24 → UL-31 | In-house overlay engine (layering, focus, positioning), overlays and the integration-readiness release **`0.12.0`**. |
-| 14 | TaoTale | TAO-10 | Gate UL-31. App shell and Quiet Study theme. |
-| 15 | UI Library | UL-32 → UL-33 | Select; Alert, Progress, EmptyState. |
-| 16 | TaoTale | TAO-21 | Gate UL-33. Editor drafts. |
-| 17 | UI Library | UL-34 | Pagination. |
-| 18 | TaoTale | TAO-22 | Gate UL-34. Library list. |
-| 19 | UI Library | UL-35 | Slider. |
-| 20 | TaoTale | TAO-23 → TAO-27 | Gate UL-35. Audio generation UI, publication, Reader. |
-| 21 | UI Library | UL-36 | Combobox. |
-| 22 | TaoTale | TAO-28, TAO-29 | Gate UL-36. Topics UI; Library filters and Favorites. |
-| 23 | UI Library | UL-37 | FileDropzone. |
-| 24 | TaoTale | TAO-30 → TAO-35 | Gate UL-37. Covers, deletion, metadata edit, working revisions. |
-| 25 | UI Library | UL-38 → UL-39 | Table; Toast. |
-| 26 | TaoTale | TAO-36 → TAO-41 | Gate UL-39. Vocabulary. |
-| 27 | UI Library | UL-40 → UL-41 | Tabs; documentation completion. |
-| 28 | TaoTale | TAO-42 → TAO-46 | Gate UL-41. Settings, resilience, backup, legacy import. |
-| 29 | UI Library | UL-42 | Accessibility audit and conformance report. |
-| 30 | TaoTale | TAO-47 | Gate UL-42. Accessibility and device QA. |
-| 31 | UI Library | UL-43 | Performance budgets and compatibility. |
-| 32 | TaoTale | TAO-48 → TAO-50 | Gate UL-43. Performance, faults/security, real Azure smoke. |
-| 33 | UI Library | UL-44 | API freeze, **`1.0.0-rc`**. |
-| 34 | TaoTale | TAO-51 | Gate UL-44. **MVP release**, built on the RC. |
-| 35 | UI Library | UL-45 | **`1.0.0` GA** and commercial launch. |
-| 36+ | Both | UL-46 → UL-53, TAO-52 → TAO-61 | Post-1.0 and post-MVP; each TaoTale item starts after its gate. |
-
-Within a block, milestones also follow their own *Depends on* lists. With more than one developer, the two projects can overlap only as far as the gates allow: a TaoTale milestone never starts before its gate is Done.
+The diagram shows a recommended phase order, not extra blocking dependencies. Follow the actual **Depends on** entries in §4 and §7. Start TAO-03 early; after TAO-09, build the Iris shell and a representative Library card (mock fixture) in TAO-10 without waiting for the audio backend. Backend work and client work can proceed independently wherever their real dependencies allow. No new external project is needed.
 
 ## 4. Milestone summary
 
-| ID | Milestone | Phase | UL gate | Gate type | Depends on | Status |
-|---|---|---|---|---|---|---|
-| TAO-01 | Legacy inventory and migration strategy | 0 | UL-03 | Sequencing | — | Planned |
-| TAO-02 | Specification reconciliation | 0 | UL-03 | Hard | — | Planned |
-| TAO-03 | Azure Go SDK feasibility spike | 0 | UL-03 | Sequencing | — | Planned |
-| TAO-04 | Repository and tooling foundation | 1 | UL-07 | Sequencing (hard input: UL-05) | TAO-02 | Planned |
-| TAO-05 | Local Docker PostgreSQL and media root | 1 | UL-07 | Sequencing | TAO-04 | Planned |
-| TAO-06 | Go/Gin backend skeleton | 1 | UL-07 | Sequencing | TAO-04, TAO-05 | Planned |
-| TAO-07 | SQL migrations, sqlc and seeds | 1 | UL-11 | Sequencing | TAO-06 | Planned |
-| TAO-08 | OpenAPI contract pipeline | 1 | UL-11 | Sequencing | TAO-07 | Planned |
-| TAO-09 | SolidJS client scaffold on the published library | 1 | UL-20 | Hard | TAO-04, TAO-08 | Planned |
-| TAO-10 | App shell, routing and Quiet Study theme | 1 | UL-31 | Hard | TAO-09 | Planned |
-| TAO-11 | Unicode offsets and fingerprints | 2 | UL-11 | Sequencing | TAO-01, TAO-06 | Planned |
-| TAO-12 | Segmentation registry and Mandarin strategies | 2 | UL-15 | Sequencing | TAO-11 | Planned |
-| TAO-13 | Korean segmentation strategy | 2 | UL-15 | Sequencing | TAO-12 | Planned |
-| TAO-14 | TTS provider adapter, voice catalog and mock provider | 2 | UL-15 | Sequencing | TAO-03, TAO-08 | Planned |
-| TAO-15 | MP3 measurement and alignment validation | 2 | UL-15 | Sequencing | TAO-12, TAO-13, TAO-14 | Planned |
-| TAO-16 | Library item and draft API | 3 | UL-20 | Sequencing | TAO-07, TAO-08 | Planned |
-| TAO-17 | Topics API | 3 | UL-20 | Sequencing | TAO-07, TAO-08 | Planned |
-| TAO-18 | Generation admission and idempotency | 3 | UL-23 | Sequencing | TAO-15, TAO-16 | Planned |
-| TAO-19 | Generation worker, READY pipeline and job recovery | 3 | UL-23 | Sequencing | TAO-18 | Planned |
-| TAO-20 | Audio streaming, downloads and temporary previews | 3 | UL-23 | Sequencing | TAO-19 | Planned |
-| TAO-21 | Editor: new item and drafts | 4 | UL-33 | Hard | TAO-10, TAO-16 | Planned |
-| TAO-22 | Library list (basic) | 4 | UL-34 | Hard | TAO-10, TAO-16 | Planned |
-| TAO-23 | Editor: audio generation and preview | 4 | UL-35 | Hard | TAO-14, TAO-20, TAO-21 | Planned |
-| TAO-24 | Publication | 4 | UL-35 | Sequencing | TAO-23 | Planned |
-| TAO-25 | Reader page and transcript rendering | 4 | UL-35 | Sequencing | TAO-24 | Planned |
-| TAO-26 | Audio player and synchronized highlighting | 4 | UL-35 | Hard | TAO-25 | Planned |
-| TAO-27 | Reader actions: Favorite, Notes, Download | 4 | UL-35 | Sequencing | TAO-26 | Planned |
-| TAO-28 | Topics UI | 5 | UL-36 | Hard | TAO-17, TAO-21 | Planned |
-| TAO-29 | Library search, filters, sort and Favorites | 5 | UL-36 | Hard | TAO-22, TAO-27, TAO-28 | Planned |
-| TAO-30 | Cover upload pipeline | 5 | UL-37 | Sequencing | TAO-16 | Planned |
-| TAO-31 | Cover UI | 5 | UL-37 | Hard | TAO-21, TAO-22, TAO-30 | Planned |
-| TAO-32 | Deletion and downloads in the Library | 5 | UL-37 | Sequencing | TAO-20, TAO-22 | Planned |
-| TAO-33 | Published metadata edit | 6 | UL-37 | Sequencing | TAO-24, TAO-28, TAO-31 | Planned |
-| TAO-34 | Working revisions: backend | 6 | UL-37 | Sequencing | TAO-19, TAO-24 | Planned |
-| TAO-35 | Working revisions: client | 6 | UL-37 | Sequencing | TAO-23, TAO-33, TAO-34 | Planned |
-| TAO-36 | Vocabulary data model and core API | 7 | UL-39 | Sequencing | TAO-16, TAO-17 | Planned |
-| TAO-37 | Vocabulary list, statistics and bulk API | 7 | UL-39 | Sequencing | TAO-36 | Planned |
-| TAO-38 | Reader vocabulary collection | 7 | UL-39 | Sequencing | TAO-26, TAO-36 | Planned |
-| TAO-39 | Vocabulary view | 7 | UL-39 | Hard (with UL-38) | TAO-28, TAO-37 | Planned |
-| TAO-40 | Reader vocabulary panel | 7 | UL-39 | Sequencing | TAO-38 | Planned |
-| TAO-41 | Verified Chinese automatic matching *(conditional)* | 7 | UL-39 | Sequencing | TAO-12, TAO-40 | Planned |
-| TAO-42 | Settings and local data | 8 | UL-41 | Sequencing | TAO-10, TAO-14, TAO-26, TAO-40 | Planned |
-| TAO-43 | Cleanup, recovery and integrity checks | 8 | UL-41 | Sequencing | TAO-19, TAO-20, TAO-30, TAO-32 | Planned |
-| TAO-44 | Paired backup and restore | 8 | UL-41 | Sequencing | TAO-43 | Planned |
-| TAO-45 | Legacy import tooling | 9 | UL-41 | Sequencing | TAO-01, TAO-11, TAO-12, TAO-34, TAO-36 | Planned |
-| TAO-46 | Legacy verification and rehearsal | 9 | UL-41 | Sequencing | TAO-26, TAO-45 | Planned |
-| TAO-47 | Accessibility and supported-device QA | 10 | UL-42 | Hard | TAO-21 – TAO-42 | Planned |
-| TAO-48 | Performance baselines and budgets | 10 | UL-43 | Hard | TAO-46, TAO-47 | Planned |
-| TAO-49 | Fault-injection, security and privacy verification | 10 | UL-43 | Sequencing | TAO-44, TAO-46 | Planned |
-| TAO-50 | Real Azure bilingual release smoke | 10 | UL-43 | Sequencing | TAO-49 | Planned |
-| TAO-51 | MVP acceptance, release report and cutover | 10 | UL-44 | Hard | TAO-47 – TAO-50 | Planned |
-| TAO-52 | Post-MVP scope approval and ordering | 11 | UL-45 | Sequencing | TAO-51 | Planned |
-| TAO-53 | Dashboard | 11 | UL-45 | Sequencing | TAO-52 | Planned |
-| TAO-54 | Vocabulary Practice | 11 | UL-48 | Hard | TAO-52 | Planned |
-| TAO-55 | AI provider re-validation spike | 11 | UL-45 | Sequencing | TAO-52 | Planned |
-| TAO-56 | AI text-generation backend | 11 | UL-45 | Sequencing | TAO-55 | Planned |
-| TAO-57 | AI workspace UI (`/generate`) | 11 | UL-45 | Hard | TAO-56 | Planned |
-| TAO-58 | Language Islands Builder | 11 | UL-48 | Hard | TAO-52 | Planned |
-| TAO-59 | Phone and small-screen support | 11 | UL-47 (includes UL-46) | Hard | TAO-52 | Planned |
-| TAO-60 | Japanese (`ja-JP`) support | 11 | UL-45 | Sequencing | TAO-52 | Planned |
-| TAO-61 | Optional enhancement backlog | 11 | per item (set when scheduled) | — | TAO-52 | Planned |
+| ID | Milestone | Phase | Depends on | Status |
+|---|---|---|---|---|
+| TAO-01 | Legacy inventory and migration strategy | 0 | — | Planned |
+| TAO-02 | Specification reconciliation | 0 | — | Planned |
+| TAO-03 | Azure Go SDK feasibility spike | 0 | — | Planned |
+| TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Planned |
+| TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Planned |
+| TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Planned |
+| TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Planned |
+| TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Planned |
+| TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Planned |
+| TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Planned |
+| TAO-11 | Unicode offsets and fingerprints | 2 | TAO-01, TAO-06 | Planned |
+| TAO-12 | Segmentation registry and Mandarin strategies | 2 | TAO-11 | Planned |
+| TAO-13 | Korean segmentation strategy | 2 | TAO-12 | Planned |
+| TAO-14 | TTS provider adapter, voice catalog and mock provider | 2 | TAO-03, TAO-08 | Planned |
+| TAO-15 | MP3 measurement and alignment validation | 2 | TAO-12, TAO-13, TAO-14 | Planned |
+| TAO-16 | Library item and draft API | 3 | TAO-07, TAO-08 | Planned |
+| TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Planned |
+| TAO-18 | Generation admission and idempotency | 3 | TAO-15, TAO-16 | Planned |
+| TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Planned |
+| TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Planned |
+| TAO-21 | Editor: new item and drafts | 4 | TAO-10, TAO-16 | Planned |
+| TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Planned |
+| TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Planned |
+| TAO-24 | Publication | 4 | TAO-23 | Planned |
+| TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Planned |
+| TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Planned |
+| TAO-27 | Reader actions: Favorite, Notes, Download | 4 | TAO-26 | Planned |
+| TAO-28 | Topics UI | 5 | TAO-17, TAO-21 | Planned |
+| TAO-29 | Library search, filters, sort and Favorites | 5 | TAO-22, TAO-27, TAO-28 | Planned |
+| TAO-30 | Cover upload pipeline | 5 | TAO-16 | Planned |
+| TAO-31 | Cover UI | 5 | TAO-21, TAO-22, TAO-30 | Planned |
+| TAO-32 | Deletion and downloads in the Library | 5 | TAO-20, TAO-22 | Planned |
+| TAO-33 | Published metadata edit | 6 | TAO-24, TAO-28, TAO-31 | Planned |
+| TAO-34 | Working revisions: backend | 6 | TAO-19, TAO-24 | Planned |
+| TAO-35 | Working revisions: client | 6 | TAO-23, TAO-33, TAO-34 | Planned |
+| TAO-36 | Vocabulary data model and core API | 7 | TAO-16, TAO-17 | Planned |
+| TAO-37 | Vocabulary list, statistics and bulk API | 7 | TAO-36 | Planned |
+| TAO-38 | Reader vocabulary collection | 7 | TAO-26, TAO-36 | Planned |
+| TAO-39 | Vocabulary view | 7 | TAO-28, TAO-37 | Planned |
+| TAO-40 | Reader vocabulary panel | 7 | TAO-38 | Planned |
+| TAO-41 | Verified Chinese automatic matching *(conditional)* | 7 | TAO-12, TAO-40 | Planned |
+| TAO-42 | Settings and local data | 8 | TAO-10, TAO-14, TAO-26, TAO-40 | Planned |
+| TAO-43 | Cleanup, recovery and integrity checks | 8 | TAO-19, TAO-20, TAO-30, TAO-32 | Planned |
+| TAO-44 | Paired backup and restore | 8 | TAO-43 | Planned |
+| TAO-45 | Legacy import tooling | 9 | TAO-01, TAO-11, TAO-12, TAO-34, TAO-36 | Planned |
+| TAO-46 | Legacy verification and rehearsal | 9 | TAO-26, TAO-45 | Planned |
+| TAO-47 | Visual polish and supported-device QA | 10 | TAO-21 – TAO-42 | Planned |
+| TAO-48 | Performance baselines and budgets | 10 | TAO-46, TAO-47 | Planned |
+| TAO-49 | Fault-injection, security and privacy verification | 10 | TAO-44, TAO-46 | Planned |
+| TAO-50 | Real Azure bilingual release smoke | 10 | TAO-49 | Planned |
+| TAO-51 | MVP acceptance, release report and cutover | 10 | TAO-47 – TAO-50 | Planned |
+| TAO-52 | Post-MVP scope approval and ordering | 11 | TAO-51 | Planned |
+| TAO-53 | Dashboard | 11 | TAO-52 | Planned |
+| TAO-54 | Vocabulary Practice | 11 | TAO-52 | Planned |
+| TAO-55 | AI provider re-validation spike | 11 | TAO-52 | Planned |
+| TAO-56 | AI text-generation backend | 11 | TAO-55 | Planned |
+| TAO-57 | AI workspace UI (`/generate`) | 11 | TAO-56 | Planned |
+| TAO-58 | Language Islands Builder | 11 | TAO-52 | Planned |
+| TAO-59 | Phone and small-screen support | 11 | TAO-52 | Planned |
+| TAO-60 | Japanese (`ja-JP`) support | 11 | TAO-52 | Planned |
+| TAO-61 | Optional enhancement backlog | 11 | TAO-52 | Planned |
 
-## 5. UI component needs by screen
+## 5. Simple app-local UI by screen
 
-This shows which UI Library components each part of TaoTale uses, and therefore where the hard gates come from.
+| Screen / capability | Native HTML and TaoTale components |
+|---|---|
+| Client scaffold and shell | CSS variables, CSS Modules, links, native buttons, language select, light/dark/system theme |
+| Editor: drafts | Labeled input, textarea, native select, inline validation, native dialog or inline dirty guard |
+| Library | Styled cards, badges, CSS skeleton, explicit actions, previous/next buttons, empty/error states |
+| Audio generation and preview | Native selects, status text, native audio and range input |
+| Reader | Native audio, buttons, range input, select for speed, inline Notes panel or native dialog, exact transcript |
+| Topics | Styled chips, checkbox list, inline create/manager, preset swatches |
+| Library filters and Favorites | Search input, selects, checkbox filters, visible favorite button |
+| Covers | Native file input, thumbnail, remove/retry, inline errors |
+| Reader vocabulary | Native text selection, explicit toolbar action, inline panel or native dialog, status badge |
+| Vocabulary view | Native table, checkboxes, pagination, search/selects, detail panel, inline feedback |
+| Settings | Native selects, radio/checkbox controls, status and manual backup guidance |
 
-| Screen / capability | UI Library components used | Hard gate |
-|---|---|---|
-| Client scaffold | Button, theming API, CSS delivery | UL-20 |
-| App shell | Button, IconButton, Tooltip, DropdownMenu (language switcher), theming + first-paint helper, VisuallyHidden (skip link) | UL-31 |
-| Editor: drafts | Field, TextField, Textarea with counter, Select (language, difficulty), AlertDialog (dirty guard), Alert | UL-33 |
-| Library list | Card, Badge, Skeleton, Pagination, EmptyState, DropdownMenu (card actions), Alert | UL-34 |
-| Editor audio and preview player | Select (voice, rate), Badge (status), Progress, Slider (timeline), IconButton, Tooltip | UL-35 |
-| Reader | Slider, IconButton, Tooltip, DropdownMenu (speed), Dialog (Notes), Alert (fallback) | UL-35 |
-| Topics | Combobox (multi-select + create), Chip with consumer colors, Dialog, RadioGroup (swatches), AlertDialog | UL-36 |
-| Library filters and Favorites | TextField (search), Select (sort, difficulty), ToggleGroup (status), Switch (Favorites only), Combobox (topics), IconButton + Tooltip (star) | UL-36 |
-| Covers | FileDropzone, Alert | UL-37 |
-| Reader vocabulary collection and panel | Popover with a virtual anchor (selection), Dialog (Add), ToggleGroup (display filter), Badge | UL-28 (in place by UL-39) |
-| Vocabulary view | Table with row selection, Checkbox, Pagination, TextField, Select, Combobox, Dialog, AlertDialog, Toast | UL-39 |
-| Settings | ToggleGroup (theme), Select (language, voice, rate, speed), Switch, Alert, Toast (copy confirmation) | UL-39 |
+Use the app's common Iris palette, spacing, typography, radii and surface rules from 08. Prefer CSS over specialized component JavaScript. Build only what the screen needs.
 
 ## 6. Definition of Done (every milestone)
 
-1. **Gate respected:** the UL gate was Done before work started; the exact library version is pinned and logged (rule 8).
-2. **Library boundary:** only public exports of the pinned UI library. No `@kobalte/core`, no Tailwind, no private selectors, no local generic controls — the dependency guard from TAO-04 is green.
+1. **Internal dependencies:** required TaoTale milestones are Done; conditional work is explicitly resolved, including TAO-41 when not enabled.
+2. **Simple UI:** app-owned SolidJS and native HTML/CSS only; no external UI component package or custom generic behavior engine. New screens follow the Iris design in 08 and the interaction states in 09.
 3. **Contract first:** OpenAPI updated before handlers; generated TypeScript types and sqlc code fresh; SQL migrations forward-only and reviewed.
-4. **Tests at the right layer:**
-   - Go unit tests;
-   - integration tests on a disposable real PostgreSQL;
-   - Solid component tests;
-   - Playwright end-to-end tests for user-visible flows;
-   - mock TTS only. The only paid Azure calls are in TAO-03 and TAO-50, plus any owner-approved check in TAO-14.
-5. **Accessibility for new UI:** keyboard path, visible focus, labels and status semantics, cues beyond color, and an automated axe check in light and dark themes.
+4. **Tests at the right layer:** Go unit tests, real disposable PostgreSQL integration, Solid component tests and browser end-to-end tests for user-visible flows. Mock TTS in ordinary CI. Paid Azure calls only with explicit owner approval in TAO-03, TAO-50 or a necessary TAO-14 verification.
+5. **Visual and functional review:** readable forms, clear action/error states, light/dark Iris colors, no blocked or clipped UI on supported desktop/tablet layouts. Native browser interaction is sufficient; no separate formal accessibility audit.
 6. **Privacy and safety:** no private study text, secrets or absolute paths in logs, fixtures or commits; loopback-only defaults intact.
 7. **Scope guard:** nothing from Dashboard, Practice, AI workspace, Islands, phone layouts, auth or billing appears in MVP routes, bundles or schema.
-8. **Docs updated in the same change** (13 §6): affected specs, 02 entries for any open items closed, and this roadmap's status column.
+8. **Docs updated in the same change** (13 §6): affected specs, 02 entries for decisions and this roadmap's status column.
 9. **Evidence, not claims:** record actual results. Skipped or unexecuted tests are never reported as passing (12 §6).
 
 ---
@@ -234,11 +154,9 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 *Maps to 01 §9 Stage 0 and 13 §3 Stage 0, with the 13 Stage 2 Azure spike pulled forward.*
 
-> **Operational note:** if the legacy Mandarin Reader data is not already backed up, back it up now. That is a safety action, not roadmap work, and it waits for no gate.
+> **Operational note:** if the legacy Mandarin Reader data is not already backed up, back it up now. That is a safety action, not roadmap work, and does not wait for implementation milestones.
 
 #### TAO-01 — Legacy inventory and migration strategy
-
-**Gate:** UL-03 (sequencing)
 
 **Goal:** Know exactly what legacy data exists and how it will move into TaoTale without loss.
 
@@ -265,16 +183,14 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-02 — Specification reconciliation
 
-**Gate:** UL-03 (hard — records the library's name and licence)
-
 **Goal:** Bring the specification set in line with current decisions before any code starts.
 
-*Already done on 23 November 2026, ahead of this milestone: the 33 broken cross-links were fixed, the no-Kobalte decision was recorded as TT-032 across 02, 03, 07, 08, 13 and 14, and both roadmaps were registered in 14 §2.*
+*The original roadmap is superseded by this 25 November revision. Reconcile the actual repository documentation before marking this milestone Done.*
 
 **Scope**
-- Record the UI library's name, npm package, licence and repository decision in 02. This closes the naming/licensing part of 02 OPEN-10 and 13 OPEN-09.
-- Unify the two colliding `OPEN-xx` numbering schemes (02 §6 and 13 §4 use the same IDs for different items): keep a single register in 02 and make 13 reference it.
-- Remove the stale "Documentation follow-up" note at the end of 08 — 02 and 03 already describe the external package.
+- Confirm the app-owned UI decision, Iris palette and CSS approach in 02 (TT-028–031; OPEN-10/11 resolved). Remove obsolete external-release obligations from the actual repository.
+- Resolve duplicated `OPEN-xx` numbering between 02 and 13: use one canonical register in 02 and update references by decision subject; the roadmap identifies the originating document until reconciliation is done.
+- Verify 03, 08, 09, 12, 13 and 14 point to the current app-owned design and this canonical roadmap; retire the separate duplicate task tracker.
 
 **Exit criteria**
 - [ ] Decisions recorded in 02 with TT- IDs.
@@ -284,8 +200,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** —
 
 #### TAO-03 — Azure Go SDK feasibility spike
-
-**Gate:** UL-03 (sequencing)
 
 **Goal:** Before building the backend, prove that Go can produce MP3 audio **and** reliable word-boundary timing for both `zh-CN` and `ko-KR` (13 Stage 2, 13 OPEN-03, BE-OPEN-03).
 
@@ -313,17 +227,15 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-04 — Repository and tooling foundation
 
-**Gate:** UL-07 (sequencing). Hard input: UL-05's repository topology and pre-release consumption model.
-
 **Goal:** TaoTale's repository structure and guardrails.
 
 **Scope**
-- Layout per 11 §2, adjusted to UL-05: `frontend/`, `backend/`, `infra/`, `docs/`, `spikes/`, and a gitignored `local-data/`.
+- Layout per 11 §2: `frontend/`, `backend/`, `infra/`, `docs/`, `spikes/`, and a gitignored `local-data/`.
 - Pin the Go, Node and package-manager versions (02 OPEN-01).
 - `.gitignore` for env files, media and dumps; secret scanning; formatting and lint hooks.
 - CI skeleton with the stages from 12 §6 as placeholders.
-- **Dependency guard:** CI fails if `@kobalte/core` (or any other headless UI library) or `tailwindcss` appears in TaoTale's manifests, imports or resolved dependency tree. Checking the tree also confirms the UI library ships without Kobalte (TT-032). Add a rule that every new runtime dependency needs a written justification (03 §1.2).
-- Apply TT-034: pin exact published registry versions. UL-20 supplies the first TAO-09 consumer release. Internal canaries and tarballs serve library fixtures only.
+- **Dependency guard:** reject external styled/headless UI packages, Kobalte and Tailwind in TaoTale manifests/imports. Keep runtime dependencies small; justify additions per 03 §1.
+- Pin compatible application dependencies and commit lockfiles; no component-package release pipeline.
 
 **Exit criteria**
 - [ ] CI green on the skeleton.
@@ -332,8 +244,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-02
 
 #### TAO-05 — Local Docker PostgreSQL and media root
-
-**Gate:** UL-07 (sequencing)
 
 **Goal:** Persistent, loopback-only local infrastructure.
 
@@ -354,8 +264,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-04
 
 #### TAO-06 — Go/Gin backend skeleton
-
-**Gate:** UL-07 (sequencing)
 
 **Goal:** A runnable HTTP service that is safe by default.
 
@@ -379,8 +287,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-07 — SQL migrations, sqlc and seeds
 
-**Gate:** UL-11 (sequencing)
-
 **Goal:** A versioned schema workflow with idempotent seeding.
 
 **Scope**
@@ -398,8 +304,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-08 — OpenAPI contract pipeline
 
-**Gate:** UL-11 (sequencing)
-
 **Goal:** A contract-first API workflow (10 §7).
 
 **Scope**
@@ -414,15 +318,13 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 **Depends on:** TAO-07
 
-#### TAO-09 — SolidJS client scaffold on the published library
+#### TAO-09 — SolidJS client scaffold
 
-**Gate:** UL-20 (hard)
-
-**Goal:** The client builds on the real, published UI package (03 §13.1 steps 1–3).
+**Goal:** A runnable client with app-owned CSS and native controls (03 §1–3).
 
 **Scope**
 - Vite + SolidJS + strict TypeScript + `@solidjs/router`. Verify that lint and formatting handle Solid TSX. Set up component and end-to-end test tooling.
-- Install the pinned UI library release from the registry. Verify ESM, types, CSS delivery and a single Solid runtime in TaoTale's build.
+- Configure CSS Modules, one global token/base stylesheet and a simple folder for shared local components. Verify a native button renders with app-owned CSS; no external UI package.
 - A typed `fetch` wrapper (`/api/v1`, error envelope, request ID, `AbortController`) using the generated types.
 - A typed local-preferences utility with validation and safe fallbacks (`taotale.preferences.*`, 03 §9).
 - Serving:
@@ -430,31 +332,27 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - in production, Gin serves the built SPA from the same origin, with an SPA fallback that never swallows `/api` 404s.
 
 **Exit criteria**
-- [ ] A production-like build served by Gin renders a page using the library Button.
+- [ ] A production-like build served by Gin renders a page with a styled native button.
 - [ ] Refreshing a deep link works.
 - [ ] Dependency guard passes.
 
 **Depends on:** TAO-04, TAO-08
 
-#### TAO-10 — App shell, routing and Quiet Study theme
+#### TAO-10 — App shell, routing and Iris theme
 
-**Gate:** UL-31 (hard)
-
-**Goal:** The MVP's navigable, themed shell (08 §9.3 step 4).
+**Goal:** The MVP’s navigable, beautifully styled Iris shell (08 §2–4, §6.1–6.2).
 
 **Scope**
-- Lazy routes from 03 §4.1: `/` → `/library`, `/library`, `/create`, `/items/:id`, `/items/:id/edit`, `/vocabulary`, `/settings`, and not-found. No routes or code chunks for deferred features, and no sign-in page.
-- Header navigation, and an active-language switcher (DropdownMenu radio items) fed by `/languages` and saved locally.
-- Theme setting (light, dark or system), saved locally and applied before first paint with the library's first-paint helper.
-- Quiet Study theme (08 §6.1), defined through the library's public theme API:
-  - focus ring;
-  - fix the known failing color pair (secondary text on subtle surface);
-  - automated contrast check of every pair TaoTale uses.
-- A convention for app-specific CSS (no Tailwind, no second generic styling system), base typography and a skip link.
+- Lazy routes from 03 §5: `/` → `/library`, `/library`, `/create`, `/items/:id`, `/items/:id/edit`, `/vocabulary`, `/settings`, and not-found. No routes or code chunks for deferred features, and no sign-in page.
+- Header navigation, and an active-language switcher (native select) fed by `/languages` and saved locally.
+- Theme setting (light, dark or system), saved locally and applied before first paint using a small app-local theme initializer where practical.
+- Iris theme from 08 §2–4: implement the exact light/dark semantic tokens, base typography, spacing, radii and CSS surface styles.
+- Build only a small set of actual controls; add a representative Library card with synthetic content to establish visual direction before real data is available.
+- Use native inputs/selects/buttons and CSS hover/pressed/disabled states; no custom overlay, focus or keyboard engine.
 
 **Exit criteria**
 - [ ] Switching themes doesn't remount a stateful test component, and there is no theme flash on load.
-- [ ] Navigation works by keyboard; contrast checks pass.
+- [ ] Iris shell and sample card look cohesive in light/dark on desktop and tablet; native navigation and controls work.
 
 **Depends on:** TAO-09
 
@@ -463,8 +361,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 *Maps to 01 §9 Stage 2 and 13 §3 Stage 2.*
 
 #### TAO-11 — Unicode offsets and fingerprints
-
-**Gate:** UL-11 (sequencing)
 
 **Goal:** The exact-text building blocks everything audio-related relies on.
 
@@ -481,8 +377,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-12 — Segmentation registry and Mandarin strategies
 
-**Gate:** UL-15 (sequencing)
-
 **Goal:** Versioned Chinese segmentation that keeps old recordings valid.
 
 **Scope**
@@ -497,8 +391,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-11
 
 #### TAO-13 — Korean segmentation strategy
-
-**Gate:** UL-15 (sequencing)
 
 **Goal:** An independent Korean strategy — not a fork of the Chinese one (06 §3.2).
 
@@ -519,8 +411,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-14 — TTS provider adapter, voice catalog and mock provider
 
-**Gate:** UL-15 (sequencing)
-
 **Goal:** Azure kept behind a provider-neutral interface (TT-010).
 
 **Scope**
@@ -536,8 +426,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-03, TAO-08
 
 #### TAO-15 — MP3 measurement and alignment validation
-
-**Gate:** UL-15 (sequencing)
 
 **Goal:** Audio is marked READY only on verified evidence (06 §5–§6).
 
@@ -560,8 +448,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 *Maps to 01 §9 Stage 2 and 13 §3 Stage 3.*
 
 #### TAO-16 — Library item and draft API
-
-**Gate:** UL-20 (sequencing)
 
 **Goal:** Persist language-scoped items and drafts.
 
@@ -587,14 +473,12 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-17 — Topics API
 
-**Gate:** UL-20 (sequencing)
-
 **Goal:** One user-global topic catalog shared by both languages.
 
 **Scope**
 - `GET/POST /topics` and `PATCH/DELETE /topics/{id}`, with these rules:
   - names are unique case-insensitively and 1–40 code points long;
-  - preset colors are resolved by the server (08 §6.2); custom colors are checked for contrast;
+  - preset colors are resolved by the server (08 §2.3); retain stored color validation from 05;
   - default topics are protected; deletion removes joins only;
   - duplicate errors include the existing ID; usage counts are returned.
 - Settle `/topics` naming and whether any `/tags` alias is needed (13 OPEN-08).
@@ -605,8 +489,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-07, TAO-08
 
 #### TAO-18 — Generation admission and idempotency
-
-**Gate:** UL-23 (sequencing)
 
 **Goal:** Paid TTS requests are durable, never duplicated, and capped.
 
@@ -631,8 +513,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-19 — Generation worker, READY pipeline and job recovery
 
-**Gate:** UL-23 (sequencing)
-
 **Goal:** Turn admitted jobs into verified, immutable audio — or typed failures.
 
 **Scope**
@@ -653,8 +533,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-20 — Audio streaming, downloads and temporary previews
 
-**Gate:** UL-23 (sequencing)
-
 **Goal:** Safe playback and preview flows.
 
 **Scope**
@@ -673,8 +551,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-21 — Editor: new item and drafts
 
-**Gate:** UL-33 (hard)
-
 **Goal:** Explicit, safe draft editing (09 §5).
 
 **Scope**
@@ -687,10 +563,10 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - difficulty: Beginner, Intermediate, Advanced or Unspecified.
 - Saving:
   - explicit Save Draft, which replaces the URL with the `draftId`;
-  - inline validation that focuses the first invalid field;
+  - inline validation with visible field errors;
   - inputs kept on failure; a review step on version conflicts.
-- Dirty guard: in-app navigation goes through `useBeforeLeave` and an AlertDialog (Save Draft & Leave / Leave Without Saving / Stay). Closing or reloading the tab uses the browser's native `beforeunload` (09 §9).
-- Layout per 08 §7.2, for desktop and tablet.
+- Dirty guard: in-app navigation goes through `useBeforeLeave` and a simple native dialog or inline confirmation (Save Draft & Leave / Leave Without Saving / Stay). Closing or reloading the tab uses the browser's native `beforeunload` (09 §9).
+- Layout per 08 §6.3, for desktop and tablet.
 
 **Exit criteria**
 - [ ] End-to-end test: create → save → reload → continue.
@@ -700,8 +576,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-22 — Library list (basic)
 
-**Gate:** UL-34 (hard)
-
 **Goal:** The main entry point lists saved items.
 
 **Scope**
@@ -709,20 +583,18 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 - LibraryItemCard (a TaoTale component):
   - placeholder cover; title, or "Untitled draft";
   - description, difficulty, draft/published badge, dates;
-  - an actions menu with Continue Editing or Open in Reader.
+  - a visible Continue Editing or Open in Reader action.
 - Page number kept in the URL and clamped to the valid range.
 - States: skeleton, true empty (offering Create New Item), error with Retry, and stale data while refreshing (09 §2).
 
 **Exit criteria**
 - [ ] End-to-end test with seeded data.
 - [ ] One list request per page — no per-card requests.
-- [ ] Fully keyboard-operable.
+- [ ] Cards follow the Iris visual spec (08 §6.2); actions are visible and usable.
 
 **Depends on:** TAO-10, TAO-16
 
 #### TAO-23 — Editor: audio generation and preview
-
-**Gate:** UL-35 (hard)
 
 **Goal:** Explicit, cost-safe audio generation from the editor.
 
@@ -746,8 +618,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-24 — Publication
 
-**Gate:** UL-35 (sequencing)
-
 **Goal:** Publish only verified, matching audio.
 
 **Scope**
@@ -764,13 +634,11 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-25 — Reader page and transcript rendering
 
-**Gate:** UL-35 (sequencing)
-
 **Goal:** Exact, readable text, even when the audio isn't usable.
 
 **Scope**
 - Route states: a published item opens the Reader; a draft offers Continue Editing; an unknown ID shows not-found.
-- Layout: a ~960 px shell, a ~780 px transcript, a fixed player area with bottom space, and no global header on the exact Reader route.
+- Layout: an Iris ~960 px shell, a ~720–780 px transcript, a fixed player area with bottom space, and no global header on the exact Reader route.
 - Exact-source rendering from the source plus stored segments, validated against the JS string, with `pre-wrap` and blank lines kept. The client never re-segments the text.
 - Language-appropriate local fonts: a Noto Serif SC subset for `zh-CN`; a separately tested Korean font stack.
 - Fallback: if the alignment is corrupt or the media is missing, show readable text, disable seeking, and show an error with Retry.
@@ -783,8 +651,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-26 — Audio player and synchronized highlighting
 
-**Gate:** UL-35 (hard)
-
 **Goal:** Playback that stays in sync with the text without slowing the UI down (03 §8, 06 §7).
 
 **Scope**
@@ -794,7 +660,7 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - the active-segment signal changes only when the segment changes;
   - a `requestAnimationFrame` loop runs only while playing;
   - the progress readout is isolated from the rest of the UI.
-- Clicking or keyboard-activating a timed segment seeks to it and keeps the play state. Selecting or dragging text never triggers a seek. Ending playback clears the highlight; the next Play starts from 0.
+- Clicking a timed segment seeks to it and keeps the play state. Selecting or dragging text never triggers a seek. Ending playback clears the highlight; the next Play starts from 0.
 - Resume position saved per `(itemId, audioAssetId)` every ~5 s and on pause. No autoplay when restoring.
 
 **Exit criteria**
@@ -806,8 +672,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-27 — Reader actions: Favorite, Notes and Download
 
-**Gate:** UL-35 (sequencing)
-
 **Goal:** Metadata actions in the Reader that never interrupt playback.
 
 **Scope**
@@ -817,7 +681,7 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - never overwritten by later content updates (DB-6).
 - Reader header:
   - Favorite / Remove from Favorites, with pending, confirmed and failure states;
-  - a Notes dialog with explicit edit/save/cancel and dirty protection;
+  - a Notes panel or native dialog with explicit edit/save/cancel and dirty protection;
   - Download Audio and Back to Library.
 - Favorite, Notes, theme and dialog changes never remount the player or the transcript.
 
@@ -833,15 +697,13 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-28 — Topics UI
 
-**Gate:** UL-36 (hard)
-
 **Goal:** Manage topics and assign them to items.
 
 **Scope**
-- Topic chips that use the stored light/dark colors (the library Chip with consumer colors).
-- TopicAutocomplete in the editor: a multi-select Combobox with inline create, max 10.
-- TopicManager dialog:
-  - create, rename, and recolor via named swatches (RadioGroup);
+- Local CSS topic chips that use the stored light/dark colors.
+- A simple checkbox list or native multiselect in the editor, with inline create, max 10.
+- TopicManager inline panel or native dialog:
+  - create, rename, and recolor via named swatches (native radio inputs);
   - delete custom topics, showing how many items and words use them;
   - default topics are protected;
   - a duplicate-name conflict keeps what the user typed.
@@ -854,8 +716,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-29 — Library search, filters, sort and Favorites
 
-**Gate:** UL-36 (hard)
-
 **Goal:** The full Library browsing experience (01 §4.1).
 
 **Scope**
@@ -863,14 +723,14 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - filters: literal escaped title search (≤120 code points), status, difficulty including Unspecified, topics (OR), `favoritesOnly`;
   - sorts: newest, oldest, title A–Z and Z–A, with ID tie-breaks;
   - joins are batched, and indexes are justified by `EXPLAIN (ANALYZE, BUFFERS)`.
-- Client URL state (03 §4.2):
+- Client URL state (03 §5):
   - parameters canonicalized;
   - search debounced 300 ms with history replace;
   - deliberate filter changes push a history entry;
   - the page resets or clamps.
 - Filter bar: search, sort, difficulty, status, Favorites only and topics. An empty-filter state offers Clear filters.
 - Card favorite star:
-  - an icon button with a tooltip that sets the value and shows pending/failure;
+  - a visible native star button that sets the value and shows pending/failure;
   - it never opens the item;
   - unfavoriting under Favorites-only removes the card and keeps a sensible page.
 
@@ -881,8 +741,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-22, TAO-27, TAO-28
 
 #### TAO-30 — Cover upload pipeline
-
-**Gate:** UL-37 (sequencing)
 
 **Goal:** Safe, bounded cover images (TT-016).
 
@@ -903,12 +761,10 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-31 — Cover UI
 
-**Gate:** UL-37 (hard)
-
 **Goal:** Cover selection in the editor and covers on Library cards.
 
 **Scope**
-- An editor cover dropzone (the library FileDropzone):
+- A native file input with an Iris-styled cover preview:
   - client-side size, type and dimension checks that mirror the server's;
   - a thumbnail and remove/retry actions;
   - errors keep the old cover.
@@ -922,13 +778,11 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-32 — Deletion and downloads in the Library
 
-**Gate:** UL-37 (sequencing)
-
 **Goal:** Destructive and download actions done safely (09 §4).
 
 **Scope**
 - Delete:
-  - an AlertDialog stating the consequences: the recording is removed, vocabulary entries survive;
+  - a native confirmation or simple dialog stating the consequences: the recording is removed, vocabulary entries survive;
   - a transactional delete;
   - after commit, release the item's own media without touching shared or still-referenced files.
 - Download Audio for published items, with error states for missing media; correct pagination after a delete.
@@ -945,8 +799,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-33 — Published metadata edit
 
-**Gate:** UL-37 (sequencing)
-
 **Goal:** Change metadata without touching the recording (TT-023).
 
 **Scope**
@@ -959,8 +811,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-24, TAO-28, TAO-31
 
 #### TAO-34 — Working revisions: backend
-
-**Gate:** UL-37 (sequencing)
 
 **Goal:** Edit text, voice or rate of published content without risking the published version.
 
@@ -980,8 +830,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-35 — Working revisions: client
 
-**Gate:** UL-37 (sequencing)
-
 **Goal:** The revision workflow in the editor (09 §5).
 
 **Scope**
@@ -998,8 +846,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 *Maps to 01 §9 Stage 2–3 and 13 §3 Stage 4.*
 
 #### TAO-36 — Vocabulary data model and core API
-
-**Gate:** UL-39 (sequencing)
 
 **Goal:** Language-scoped vocabulary that can't mix languages (TT-007, TT-017).
 
@@ -1018,8 +864,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-16, TAO-17
 
 #### TAO-37 — Vocabulary list, statistics and bulk API
-
-**Gate:** UL-39 (sequencing)
 
 **Goal:** Server-side browsing and bulk management.
 
@@ -1040,14 +884,12 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-38 — Reader vocabulary collection
 
-**Gate:** UL-39 (sequencing)
-
 **Goal:** Collect words from the Reader explicitly (09 §6).
 
 **Scope**
 - Selection measured from DOM ranges in UTF-16, across timed segments and gaps. Selection rules are per language: the legacy Mandarin restrictions aren't applied to Korean without tests (D-07).
-- Add to Vocabulary from a selection (a Popover anchored to it), and by keyboard from a focused segment (D-27).
-- Lookup → link an existing word ("Already in Vocabulary", without overwriting its metadata), or open the Add dialog. Cancel creates nothing; the word and its reference are created atomically.
+- Add to Vocabulary via a visible Reader toolbar action for the current native text selection; no anchored popover engine or custom segment keyboard behavior.
+- Lookup → link an existing word ("Already in Vocabulary", without overwriting its metadata), or open a simple inline form or native Add dialog. Cancel creates nothing; the word and its reference are created atomically.
 
 **Exit criteria**
 - [ ] The collection part of acceptance journey 8 passes for both `zh-CN` and `ko-KR`.
@@ -1056,18 +898,16 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-39 — Vocabulary view
 
-**Gate:** UL-39 (hard, together with UL-38)
-
-**Goal:** The `/vocabulary` management screen (08 §7.4).
+**Goal:** The `/vocabulary` management screen (08 §6.5).
 
 **Scope**
-- Summary stats; a server-paginated table (the library Table); search, status and topic filters; sorting; filters kept in the URL.
+- Summary stats; a server-paginated native HTML table styled with CSS Modules; search, status and topic filters; sorting; filters kept in the URL.
 - Detail region:
   - edit word, reading, reading system, meaning, note and topics;
   - manual status;
   - references with drill-down to items;
   - delete.
-- Bulk selection (a checkbox column with select-all) for status changes and deletion. A toast summarizes the result, in addition to the updated table.
+- Bulk selection (a checkbox column with select-all) for status changes and deletion. Inline status text summarizes the result, in addition to the updated table.
 
 **Exit criteria**
 - [ ] End-to-end tests, including bulk operations, and a failed update that keeps the last confirmed status.
@@ -1075,8 +915,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-28, TAO-37
 
 #### TAO-40 — Reader vocabulary panel
-
-**Gate:** UL-39 (sequencing)
 
 **Goal:** See and manage the words linked to the open item.
 
@@ -1091,15 +929,13 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-41 — Verified Chinese automatic matching (conditional)
 
-**Gate:** UL-39 (sequencing)
-
 **Goal:** Turn on automatic highlighting **only** where tests prove it is trustworthy (02 OPEN-05, 13 OPEN-06).
 
 **Scope**
 - Exact-match annotation for `zh-CN` (longest match, then earliest, then stable ID), behind a per-language capability flag.
 - If enabled:
   - in-text underlines — Learning dotted, Acquired solid — with a legend;
-  - word popovers rendered outside the transcript DOM;
+  - word details in a simple panel outside the transcript DOM;
   - publication-time reconciliation that keeps manual and automatic provenance separate;
   - `POST /items/{id}/vocabulary/sync`.
 - For Korean (and for Chinese if not enabled): a typed "unsupported" response. No fake highlights or counts.
@@ -1117,14 +953,12 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-42 — Settings and local data
 
-**Gate:** UL-41 (sequencing). Uses UL-22, UL-32 and UL-39.
-
 **Goal:** Local preferences and honest local-data information (01 §4.6, 09 §8).
 
 **Scope**
 - Preferences: theme, active language, per-language default voice and rate, default Reader speed and vocabulary popup visibility. All client-local, validated, with safe fallbacks.
 - A system status endpoint with no secrets: Azure configured/available, database/schema status, media root health, app and segmentation versions.
-- Local Data section: honest manual backup/restore guidance with copyable commands (a toast confirms the copy). No inert Backup button.
+- Local Data section: honest manual backup/restore guidance with copyable commands (inline text confirms the copy). No inert Backup button.
 - Decide:
   - how much of the media path to show — 01 §4.6 asks to show it, while 10 and 11 forbid leaking absolute paths in errors and logs;
   - whether an in-app data reset exists. If yes, it needs confirmation and a prompt to back up first.
@@ -1136,8 +970,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-10, TAO-14, TAO-26, TAO-40
 
 #### TAO-43 — Cleanup, recovery and integrity checks
-
-**Gate:** UL-41 (sequencing)
 
 **Goal:** The local data stays consistent over time (DB-9, 11 §5).
 
@@ -1158,8 +990,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-19, TAO-20, TAO-30, TAO-32
 
 #### TAO-44 — Paired backup and restore
-
-**Gate:** UL-41 (sequencing)
 
 **Goal:** Backups that are proven to restore (TT-005, 11 §7).
 
@@ -1184,8 +1014,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-45 — Legacy import tooling
 
-**Gate:** UL-41 (sequencing)
-
 **Goal:** Bring Mandarin Reader data into TaoTale without loss (TT-022).
 
 **Scope**
@@ -1206,13 +1034,11 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-46 — Legacy verification and rehearsal
 
-**Gate:** UL-41 (sequencing)
-
 **Goal:** Evidence that the imported data behaves exactly as before.
 
 **Scope**
 - Compare counts, checksums, active assets, references and Reader offsets. Legacy published items must play with unchanged highlighting, and legacy covers must stay readable.
-- Optional compatibility (03 §4.2, §9):
+- Optional compatibility (03 §5, §9):
   - a one-time migration of legacy `mr.*` browser keys, if served from the same origin;
   - a redirect for legacy `/library?tab=vocabulary` URLs.
 
@@ -1226,32 +1052,24 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 *Maps to 01 §9 Stage 4 and 13 §3 Stages 4–5.*
 
-#### TAO-47 — Accessibility and supported-device QA
-
-**Gate:** UL-42 (hard — the library's audit fixes are in place)
+#### TAO-47 — Visual polish and supported-device QA
 
 **Goal:** Meet NFR-11 and NFR-12 on every supported device.
 
 **Scope**
-- Accessibility:
-  - keyboard-only journeys and visible focus;
-  - focus never hidden behind the fixed player (WCAG 2.2 SC 2.4.11);
-  - labels and status semantics;
-  - contrast for Quiet Study and the topic palettes;
-  - targets ≥44 px where specified; reduced motion.
-- Devices: desktop at 1280/1440, representative tablet viewports, 200% zoom, touch; Chromium, Firefox and WebKit. Write down the supported matrix first (13 OPEN-10).
+- Review Library, Editor, Reader, Vocabulary and Settings against 08: Iris palette, typography, spacing, cards, visual hierarchy, consistent controls, loading/empty/error states, coordinated light/dark themes.
+- Review desktop at 1280/1440 px and a representative tablet (768–1024 px); confirm no blocking overflow, hidden actions, clipped text or player overlap. Use Chromium first; record supported browser/viewport baseline (13 OPEN-09). Phone QA is deferred.
+- Check ordinary native interactions, text selection and stable playback during theme and panel changes. No formal accessibility certification or component behavior audit.
 
 **Exit criteria**
 - [ ] NFR-11 and NFR-12 met.
-- [ ] No critical defects from automated or manual checks.
+- [ ] Screenshot review and functional checks pass; no blocking visual or interaction defects.
 
 **Depends on:** TAO-21 to TAO-42
 
 #### TAO-48 — Performance baselines and budgets
 
-**Gate:** UL-43 (hard — the library's budgets are in place)
-
-**Goal:** Measured performance with enforced budgets (03 §10.2, 12 §6).
+**Goal:** Measured performance with enforced budgets (03 §10, 12 §6).
 
 **Scope**
 - An F7 dataset generator: 1,000 published items and 100 drafts, 10,000 words and 100 topics across both languages.
@@ -1259,7 +1077,7 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - API p95 and first useful render;
   - Reader sync accuracy and input delay;
   - memory stability;
-  - JS/CSS size, including the UI library.
+  - app JS/CSS size.
 - Set numeric budgets and add CI regression checks.
 
 **Exit criteria**
@@ -1269,8 +1087,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-46, TAO-47
 
 #### TAO-49 — Fault-injection, security and privacy verification
-
-**Gate:** UL-43 (sequencing)
 
 **Goal:** Evidence for the resilience and local-security claims (11 §6, §8).
 
@@ -1285,7 +1101,7 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
   - Host/Origin checks, DNS rebinding and cross-site writes;
   - path traversal, symlink escape and hostile uploads;
   - log redaction and no secrets in bundles or logs;
-  - dependency, licence and secret scans, including a provenance check of the UI library.
+  - dependency, licence and secret scans for application dependencies.
 
 **Exit criteria**
 - [ ] Evidence recorded for NFR-06, NFR-09 and NFR-13.
@@ -1293,8 +1109,6 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 **Depends on:** TAO-44, TAO-46
 
 #### TAO-50 — Real Azure bilingual release smoke
-
-**Gate:** UL-43 (sequencing)
 
 **Goal:** Prove the real provider works end to end in both languages (06 §9).
 
@@ -1310,15 +1124,12 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 #### TAO-51 — MVP acceptance, release report and cutover
 
-**Gate:** UL-44 (hard — TaoTale ships on the frozen 1.0 API)
-
 **Goal:** Accept, document and switch over to the MVP.
 
 **Scope**
-- Upgrade to the library's 1.0 release candidate. Run the 12 journeys from 01 §10 and 12 §5, the NFR gates, and the scope gate (no deferred routes, login or billing).
-- Release report (12 §6): commit, migration revision, OpenAPI hash, UI library version, real test counts, coverage, audits, performance, restore checksums, known limitations.
+- Run the 12 journeys from 01 §10 and 12 §5, the NFR gates, and the scope gate (no deferred routes, login or billing).
+- Release report (12 §6): commit, migration revision, OpenAPI hash, Solid/client versions, real test counts, coverage, audits, performance, restore checksums, known limitations.
 - Cut over from the legacy app using the verified import, keeping backups for rollback.
-- Move to library `1.0.0` GA once it is published (a patch-level change).
 
 **Exit criteria**
 - [ ] Owner acceptance recorded in 02.
@@ -1331,20 +1142,21 @@ This shows which UI Library components each part of TaoTale uses, and therefore 
 
 Each item needs a scope decision in 01 and 02 first (TAO-52). Each is broken into small milestones with full Goal/Scope/Exit sections when it is scheduled. None of them may be prebuilt during the MVP.
 
-| ID | Milestone | Gate | Notes |
+| ID | Milestone | Depends on | Notes |
 |---|---|---|---|
-| TAO-52 | Post-MVP scope approval and ordering | UL-45 (sequencing) | Closes 02 OPEN-09; picks the order; updates 01 and 02. |
-| TAO-53 | Dashboard | UL-45 (sequencing) | 01 §8.1: active language, Continue Reading, recent items, Favorites, per-language counts. |
-| TAO-54 | Vocabulary Practice | UL-48 (hard: Collapsible) | 01 §8.2: manual recall and reveal, explicit status changes; no SRS or scoring. |
-| TAO-55 | AI provider re-validation spike | UL-45 (sequencing) | 07 §6: re-check the provider, authorization and credential storage on the target OS. Billable only with approval. |
-| TAO-56 | AI text-generation backend | UL-45 (sequencing) | 07 §4–§6: an isolated adapter, idempotent claims, output validation, no automatic writes. |
-| TAO-57 | AI workspace UI (`/generate`) | UL-45 (hard) | 07 §3, §8: lazy route, reviewable candidates, data-sharing disclosure, hand-off to the existing draft/TTS/publish flow. |
-| TAO-58 | Language Islands Builder | UL-48 (hard) | 01 §8.4: reuse items, jobs and the Reader; hide/reveal prompts for rehearsal. |
-| TAO-59 | Phone and small-screen support | UL-47 (hard; includes UL-46) | Phone layouts and navigation, touch-friendly transcript interactions, testing on real devices. |
-| TAO-60 | Japanese (`ja-JP`) support | UL-45 (sequencing) | Its own segmentation strategy, voices and fonts; Chinese rules are never reused. |
-| TAO-61 | Optional enhancement backlog | per item | FEAT-01 to FEAT-07 (13 §5), one-click and encrypted backup, local usage tracking, LAN access (needs its own security decision). |
+| TAO-52 | Post-MVP scope approval and ordering | TAO-51 | Closes 02 OPEN-09; picks the order; updates 01 and 02. |
+| TAO-53 | Dashboard | TAO-52 | 01 §8.1: active language, Continue Reading, recent items, Favorites, per-language counts. |
+| TAO-54 | Vocabulary Practice | TAO-52 | 01 §8.2: manual recall and reveal, explicit status changes; no SRS or scoring. |
+| TAO-55 | AI provider re-validation spike | TAO-52 | 07 §6: re-check the provider, authorization and credential storage on the target OS. Billable only with approval. |
+| TAO-56 | AI text-generation backend | TAO-55 | 07 §4–§6: an isolated adapter, idempotent claims, output validation, no automatic writes. |
+| TAO-57 | AI workspace UI (`/generate`) | TAO-56 | 07 §3, §8: lazy route, reviewable candidates, data-sharing disclosure, hand-off to the existing draft/TTS/publish flow. |
+| TAO-58 | Language Islands Builder | TAO-52 | 01 §8.4: reuse items, jobs and the Reader; hide/reveal prompts for rehearsal. |
+| TAO-59 | Phone and small-screen support | TAO-52 | Phone layouts and navigation, touch-friendly transcript interactions, testing on real devices. |
+| TAO-60 | Japanese (`ja-JP`) support | TAO-52 | Its own segmentation strategy, voices and fonts; Chinese rules are never reused. |
+| TAO-61 | Optional enhancement backlog | TAO-52 | FEAT-01 to FEAT-07 (13 §5), one-click and encrypted backup, local usage tracking, LAN access (needs its own security decision). |
 
 ---
+
 
 ## 8. Open decisions and where they close
 
@@ -1361,10 +1173,10 @@ Each item needs a scope decision in 01 and 02 first (TAO-52). Each is broken int
 | Legacy difficulty values and oversized covers | 02 OPEN-07, 13 OPEN-07 | TAO-01 (report), TAO-45 (decision) |
 | TTS limits, voices, provider configuration | 02 OPEN-08 | TAO-14, TAO-18 |
 | Post-MVP order | 02 OPEN-09 | TAO-52 |
-| UI package name, licence, repository | 02 OPEN-10, 13 OPEN-09 | UL-02, UL-03, UL-05 → recorded in TAO-02 |
-| UI CSS delivery, token prefix, slots, variants | 02 OPEN-11 | UL-05, UL-06 → applied in TAO-09 and TAO-10 |
+| App-local UI ownership (resolved) | 02 TT-028–029, OPEN-10 | TAO-02 confirms repository docs |
+| Iris CSS/tokens (resolved) | 02 TT-030–031, OPEN-11; 08 | TAO-09, TAO-10 |
 | `/topics` vs `/tags` | 13 OPEN-08 | TAO-17 |
-| Tablet/browser matrix, performance thresholds | 13 OPEN-10 | TAO-47, TAO-48 |
+| Tablet/browser matrix, performance thresholds | 13 OPEN-09; 12 §2 | TAO-47, TAO-48 |
 | How much media path to show; in-app data reset | 01 §4.6 vs 10/11 | TAO-42 |
 
 ## 9. MVP acceptance traceability
@@ -1383,17 +1195,17 @@ The 01 §10 journeys, the milestones that build them, and where each is verified
 | 8 | Vocabulary collected and managed per language | TAO-36 to TAO-40 | TAO-51 |
 | 9 | Provider failure keeps reading working, with no duplicate billing | TAO-14, TAO-18, TAO-19 | TAO-49 |
 | 10 | Persistence, fault recovery and restore | TAO-43, TAO-44 | TAO-49 |
-| 11 | Supported-device and accessibility QA | all UI milestones | TAO-47 |
+| 11 | Iris visual quality and supported-device QA | all UI milestones | TAO-47 |
 | 12 | Scope gate: no deferred features exposed | TAO-10 | TAO-51 |
 
 ## 10. Risks
 
 | Risk | Mitigation |
 |---|---|
-| Library-first gating slows visible app progress — more so now that the library builds its own behavior layer (TT-032), which adds milestones before the first overlays | Backend work runs in sequencing-gated blocks; library components are ordered by TaoTale's needs; if the library slips, the owner may record a decision to relax a *sequencing* gate (never a hard gate). |
+| Frontend work becomes overengineered | Build only screen-driven local components; CSS and native controls first. Review a polished sample in TAO-10. |
 | Chinese or Korean alignment isn't feasible from Go | TAO-03 runs first; a failure is handled as an explicit blocker; timing is never fabricated. |
-| UI library API churn during 0.x | Exact version pins, the upgrade checklist (03 §12), and the MVP ships on the 1.0 RC. |
-| Generic controls creep into TaoTale while waiting for the library | CI dependency guard (TAO-04), the no-bypass rule, and review checklists. |
+| Visual inconsistency between screens | Reuse Iris tokens and small app-local CSS patterns; review all five MVP screens in TAO-47. |
+| Product UI behavior interferes with audio or selection | Keep Reader logic separate from presentation; test playback and text selection across panels and theme changes. |
 | Legacy data loss | Verified backup (TAO-01), rehearsals on copies only, an idempotent importer and a rollback path. |
 | Duplicate paid Azure calls | Idempotency (TAO-18), the mock provider in CI, and explicit billable milestones only. |
 | Post-MVP scope creep | Phase 11 needs a scope decision first; the scope gate in TAO-51. |

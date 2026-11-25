@@ -2,7 +2,7 @@
 
 **Status:** Target MVP architecture — approved stack; implementation details and exact versions require verification.
 
-**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) governs product scope; [`02-taotale-decision-register.md`](02-taotale-decision-register.md) records decisions; [`03-taotale-client.md`](03-taotale-client.md) describes the SolidJS client; [`05-taotale-database.md`](05-taotale-database.md) defines the logical persistence model. This document supersedes the **NestJS/Node/Prisma architecture** of Mandarin Reader. The historical behavior is a reference, not permission to reintroduce obsolete features.
+**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) governs product scope; [`02-decision-register.md`](02-taotale-decision-register.md) records decisions; [`03-taotale-client.md`](03-taotale-client.md) describes the SolidJS client; [`05-taotale-database.md`](05-taotale-database.md) defines the logical persistence model. This document supersedes the **NestJS/Node/Prisma architecture** of Mandarin Reader. The historical behavior is a reference, not permission to reintroduce obsolete features.
 
 ## 1. Selected stack and deployment
 
@@ -35,7 +35,7 @@
 | `tts` | Provider-neutral `TTSProvider`, Azure implementation, compatible voice catalogs, rate validation. |
 | `segmentation` | Pure, **language-specific** segmentation, source offsets, algorithm/version registry and timing validation. |
 | `vocabulary` | Language-scoped words, optional readings, manual status, source links, statistics and conditional, language-tested matching. |
-| `topics` | Owner-global topic catalog, accessible colors and cross-language joins. |
+| `topics` | Owner-global topic catalog, stored light/dark Topic colors and cross-language joins. |
 | `media` | Local cover/audio storage, safe streams and range requests, leases/cleanup. |
 | `system/settings` | Installation configuration, provider readiness and backup metadata; small UI preferences (including per-language voice/rate defaults) remain client-local for MVP per 03. |
 | `system` | Config, single-user seed/lookup, migrations, health, backup/restore operations and structured logging. |
@@ -218,4 +218,4 @@ type Segment struct {
 | BE-OPEN-06 | Whether optional Chinese automatic vocab matching passes MVP tests; Korean fallback remains manual. |
 | BE-OPEN-07 | Local backup/restore packaging and whether a one-click UI follows the first stable release. |
 
-**Maintenance:** When updating `02-taotale-decision-register.md`, record **Go + Gin + pgx/v5 + sqlc** as the selected backend stack and mark Node/NestJS/Prisma as superseded. Update OpenAPI and `05-taotale-database.md` together whenever DB/API invariants change. No AI implementation is implied by preserving its adapter design.
+**Maintenance:** When updating `02-decision-register.md`, record **Go + Gin + pgx/v5 + sqlc** as the selected backend stack and mark Node/NestJS/Prisma as superseded. Update OpenAPI and `05-taotale-database.md` together whenever DB/API invariants change. No AI implementation is implied by preserving its adapter design.

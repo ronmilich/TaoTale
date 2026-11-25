@@ -90,7 +90,7 @@ All paths below omit the `/api/v1` prefix. HTTP methods and response DTOs must b
 - `GET /vocabulary` and stats require an explicit language filter; search in display word, reading and meaning, optional status/topic filters, stable sorts, **10 rows/page** default. Avoid per-row API fan-out. Do not silently merge Chinese and Korean word statistics.
 - Item response exposes `languageCode`, `isFavorite`, `difficulty`, stable `version`, draft/published state, audio status and immutable asset ID; generated segment ranges are UTF-16 half-open offsets and milliseconds. Source text is preserved byte-for-byte where applicable, not normalized for display or hashing.
 - `AudioGeneration`: persistent `PENDING`, `PROCESSING`, `READY`, `FAILED`. `OUTDATED` and `NOT_GENERATED` are **computed UI/target states**. `FAILED` plus `GENERATION_INTERRUPTED` models interrupted runs. `READY` returned to a playable UI requires a current **matching validated asset**, not merely a historical status row.
-- Topic DTOs include stable default/system identity and four accessible persisted colors; foreign/unowned references are rejected without leaking unrelated data. Vocabulary includes optional language-generic `reading`/`readingSystem` rather than mandatory `pinyin`.
+- Topic DTOs include stable default/system identity and four persisted light/dark Topic color values; foreign/unowned references are rejected without leaking unrelated data. Vocabulary includes optional language-generic `reading`/`readingSystem` rather than mandatory `pinyin`.
 - Pure metadata writes, including Favorite changes, do not require regeneration; old media URLs are pinned to expected `audioAssetId` to prevent mixed byte-range playback after revision.
 
 ## 5. Mutations, idempotency and errors

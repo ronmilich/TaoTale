@@ -1,284 +1,256 @@
-# 08 — TaoTale design system and SolidJS UI library
+# 08 — TaoTale Iris visual design system
 
-**Status:** Product and architecture specification for the standalone UI library and its TaoTale integration. TT-033 records the package name, licence and CSS prefixes. Exact public prop names and the first published version remain to be verified.
+**Status:** Application-owned MVP visual specification, revised **25 November 2026**. **Authority:** [01 — Product](01-taotale-overview-and-features.md), [03 — Client](03-taotale-client.md), [09 — UI states](09-taotale-ui-states.md).
 
-**Authority:** `01-taotale-overview-and-features.md` determines TaoTale's MVP scope; `03-taotale-client.md` determines the SolidJS application architecture; this document defines (1) the reusable UI-library contract and (2) the TaoTale-specific theme, visual rules, and composition. The old Mandarin Reader design and D-24/39–46/48–52/61 are historical references, not permission to reintroduce deferred features.
+## 1. Vision: Iris Reading Studio
 
-## 1. Core decision and product boundaries
+**TaoTale should look premium and inviting without a complex UI implementation.** The visual identity takes inspiration from an iris flower: deep violet, luminous lavender, soft periwinkle, a touch of orchid pink and quiet near-white paper. The reader is the hero. The surrounding app resembles a thoughtfully designed personal library rather than a generic admin dashboard.
 
-TaoTale will **consume an independently developed, published npm UI-component library**. That library is itself a reusable product for other developers building **SolidJS applications only**. It is **opinionated**: components have polished defaults, coherent styling, predictable interaction states, and accessibility behavior out of the box. It is also **customizable**: developers can change themes, tokens, variants, component styles, and composition without forking the library.
+**Experience keywords:** literary, calm, refined, modern, warm, slightly playful, spacious. Use one or two visual flourishes per screen, not a gradient on every card. Keep detailed content readable and practical.
 
-- **Framework:** SolidJS and TypeScript. No React, Vue, Angular, Web Components compatibility layer, framework-neutral virtual DOM, or dual framework builds.
-- **Distribution:** a separately versioned package published to the public npm registry. The MIT package is `eroxo-ui` and its current repository is `ronmilich/eroxo-ui` (TT-033). The library must be usable outside TaoTale, independently of TaoTale's app, backend, and domain data.
-- **Styling:** authored/compiled CSS with a public customization contract. **No Tailwind CSS** or consumer Tailwind configuration required. Do not choose a runtime CSS-in-JS engine by default. Internal CSS organization (plain CSS versus CSS Modules, etc.) is an implementation choice as long as published CSS and override mechanisms are reliable.
-- **Behavior:** the library implements reusable client-side UI behavior such as keyboard interaction, focus management, overlay positioning/presence, tooltip timing, menus, accessible dialogs, transitions, and reduced-motion handling. Prefer native browser capabilities and SolidJS primitives. **These behaviors are implemented in-house** (§2.3): the library does **not** use Kobalte or any other headless UI library (TT-032).
-- **Responsibility:** the library owns reusable UI mechanics and presentation APIs; **TaoTale owns product workflows**, language-aware reading, text selection, audio playback and synchronization, vocabulary matching, persistence, API requests, routes, and local preferences.
-- **Performance:** minimize runtime dependencies and avoid work on unrelated reactive updates. Dependency count is a constraint, not a reason to compromise accessible interaction behavior.
+**Ownership and exclusions:** **All styling and generic components are written directly inside TaoTale's SolidJS frontend.** There is **no external UI library**, UI npm package, CSS theme SDK, custom accessibility framework, Kobalte/Radix primitives, Tailwind, CSS-in-JS, floating UI engine, animation package or reusable public component contract. The goal is a few well-styled app components plus excellent page composition.
 
-### 1.1 Responsibility matrix
+Use **plain CSS + CSS Modules + CSS custom properties**. JavaScript is for actual app behavior: routes, form state, API calls, audio, selection and Reader synchronization. **No specialized JavaScript to recreate buttons, selects, menus, tooltips, focus traps or animations.** Native browser controls and normal semantic HTML are sufficient.
 
-| Concern | SolidJS UI library | TaoTale application |
-|---|---|---|
-| Buttons, input controls, labels, cards, badges, feedback | Implementation, variants, states, styles | Choose and compose |
-| Dialog, menu, popover, tooltip, select/combobox | Reusable focus/ARIA/keyboard/overlay behavior and styles | Supply content, conditions, domain actions |
-| Transitions, presence, reduced-motion support | Reusable, configurable behavior | Choose when/how components open and close |
-| Theme tokens, theming API, component override hooks | Stable public contract and sensible generic defaults | Supply Quiet Study theme and persisted preference |
-| Library cards, Reader transcript, synchronized player, vocabulary UI | **Not domain components** | Build by composing library controls and app-specific components |
-| Routes, API calls, mutations, error recovery, persistence | No dependencies or assumptions | Complete ownership |
-| Design-system documentation | Public component/API/theming docs | App-specific layouts, theme palette, UX acceptance |
-| Accessibility | Accessible defaults and documented responsibilities | Accessible page composition and end-to-end verification |
+## 2. Iris palette
 
-The UI package **must not import** TaoTale modules, schemas, endpoints, fonts, topic models, or reading vocabulary concepts. TaoTale may depend on the UI package; never the reverse.
+### 2.1 Brand and neutral colors
 
-## 2. Library implementation and packaging contract
+**Light theme** is the primary design target. Dark is a coordinated alternative, not a color inversion.
 
-### 2.1 SolidJS-first architecture
+| Token | Light | Dark | Purpose |
+|---|---|---|---|
+| `--color-bg` | `#F8F7FC` | `#151322` | App canvas |
+| `--color-surface` | `#FFFFFF` | `#211E33` | Cards, forms, Reader paper |
+| `--color-surface-soft` | `#F1EEFA` | `#2B2642` | Soft panels, filters, inputs |
+| `--color-surface-raised` | `#FFFCFF` | `#322B4A` | Selected/raised sections |
+| `--color-text` | `#29243D` | `#F3F0FA` | Primary headings and body |
+| `--color-text-muted` | `#69647D` | `#B9B2CC` | Labels, secondary metadata |
+| `--color-border` | `#E3DFF0` | `#413B58` | Dividers and outlines |
+| `--color-primary` | `#6C4BCB` | `#BCA7FF` | Main call to action / links |
+| `--color-primary-hover` | `#5A3DB1` | `#D1C2FF` | Hover state |
+| `--color-primary-pressed` | `#49318D` | `#A18CEB` | Pressed state |
+| `--color-on-primary` | `#FFFFFF` | `#211633` | Button content |
+| `--color-primary-soft` | `#EDE7FC` | `#383052` | Selected filters / gentle emphasis |
+| `--color-periwinkle` | `#8186DC` | `#A9B0FF` | Secondary brand accent |
+| `--color-orchid` | `#BA79B7` | `#DFA1DA` | Warm floral accent |
+| `--color-orchid-soft` | `#F8EAF6` | `#4A304C` | Decorative cards/chips |
+| `--color-highlight` | `#E9E3FF` | `#554675` | Reader active phrase wash |
+| `--color-highlight-text` | `#312451` | `#FFF9FF` | Highlighted text |
+| `--color-danger` | `#B34B64` | `#F0A1B4` | Destructive/error emphasis |
+| `--color-success` | `#28775E` | `#93D5B7` | Confirmed / Acquired |
+| `--color-warning` | `#936123` | `#F0C98A` | Nonterminal warnings |
 
-- Implement components as native SolidJS components using fine-grained reactive primitives (`createSignal`, `createMemo`, `createEffect` only for actual side effects, context for shared configuration); avoid React-style repeated component rerenders, mirrored state, or a second reactive runtime.
-- Prefer semantic HTML (`button`, `a`, `input`, `label`, `fieldset`, native forms) for controls that do not need a headless primitive.
-- Where behavior is nontrivial, compose the library's own internal primitives (§2.3). They are internal by default; exposing any of them publicly is a deliberate public-API decision, not a side effect.
-- Do not require developers to install a headless library, learn library-internal composition for basic components, or maintain ARIA/focus/tooltip timing themselves. Preserve useful advanced composition slots rather than hiding essential capabilities.
-- The package exposes predictable controlled and uncontrolled forms where meaningful (`value`/`defaultValue`/change callback; `open`/`defaultOpen`/open-change callback). Never silently mix both modes.
-- Components support `class`, `style`, appropriate native HTML attributes/events and documented slots/parts. Forward refs where supported and merge consumers' handlers without suppressing necessary internal behavior.
-- Ensure disabled, pending, readonly, required, invalid, loading, hover, focus-visible, checked, selected, and expanded states have documented semantics. Do not style state using color alone.
-- Favor composition and small focused primitives over an enormous all-purpose configuration object. New abstractions require at least one real reuse case.
+**Palette rules:** Primary violet is reserved for selection, current navigation and primary buttons. Orchid and periwinkle provide small supporting accents; avoid using all three in the same control. Make space for ivory/white paper so the palette does not become visually noisy. Avoid pure black, pure white as the page backdrop, saturated neon purple, large high-contrast gradients and multiple heavy box shadows.
 
-### 2.2 Public package distribution
+### 2.2 Brand flourishes
 
-- Publish **ES modules, TypeScript declarations, and distributable CSS**. Use explicit `package.json` `exports`, `files`, and CSS entry points. Avoid shipping raw TSX requiring special consumer transpilation unless deliberately documented and tested.
-- Declare `solid-js` as a **peer dependency**, preventing an accidentally bundled second Solid runtime. Keep non-peer dependencies as few as practical — no headless UI or positioning library (TT-032). Verify compatible Solid versions before release; do not copy legacy React-era versions.
-- Permit per-component imports (subpath exports or otherwise verified tree-shakeable exports). Avoid one barrel that eagerly pulls all dialogs, icons, motion behavior, and CSS into a simple button usage.
-- If CSS is imported from component entry points, publish correct `sideEffects` metadata so bundlers do not discard it; alternatively provide a clearly documented required stylesheet import. **The styling delivery mechanism must be proven in a real consuming app.**
-- Library code must be safe to import without a browser global at module initialization. Browser-only DOM work belongs in client effects/handlers; treat SSR/hydration compatibility as a documented design concern even though TaoTale MVP is a local SPA.
-- Use semantic versioning. Public props, CSS variables, documented slots/state attributes, and exported styles are compatibility-sensitive APIs. Breaking changes require a major version or a documented migration policy.
-- Before publishing, validate the generated tarball (`npm pack`) with a separate minimal SolidJS consumer, including types, CSS, import paths, actual behavior, and no duplicate Solid runtime.
-- The package's public README/reference should cover installation, component examples, light/dark themes, custom theme overrides, component-level style overrides, accessibility assumptions, and migration notes.
+- One gentle **iris gradient** may appear on the Library hero panel or a cover placeholder: `linear-gradient(125deg, #6C4BCB 0%, #8D83DC 60%, #C69BCF 100%)`. Keep text clearly readable on any gradient.
+- Favor illustration by **abstract petal geometry**: overlapping translucent oval shapes, small halo rings and very subtle paper texture. CSS pseudo-elements or one static SVG are sufficient. Do not ship a canvas engine, animation library or complex SVG JS.
+- Reading material should feel like paper. Use quiet borders, generous breathing room, subtle tint, rounded corners and beautiful type hierarchy rather than extensive glassmorphism.
+- Cover placeholders can use one of four muted preselected variants (violet, periwinkle, orchid, neutral) selected deterministically. Uploaded images retain their original color.
 
-**No package name, licensing model, CSS build tool, icon library, or motion library is approved by this document.** Select them deliberately after a small working library prototype.
+### 2.3 Topic chips and vocabulary
 
-### 2.3 In-house behavior primitives
-
-The library builds its own accessible behavior layer instead of wrapping a headless library (TT-032, owner decision of 23 November 2026). The layer is internal by default and covers:
-
-- **Interaction:** input-modality tracking for focus-visible, pointer/touch/mouse normalisation (no hover triggered by touch), keyboard handling with RTL-aware arrow keys, and IME-composition guards so keyboard handling and filtering never interrupt Chinese, Japanese or Korean input.
-- **Focus:** tabbable-element queries, focus scopes that contain focus in modals, an initial-focus policy, and focus restoration after close.
-- **Layering and dismissal:** top layer or portals, one stack for all overlays, Escape and outside-interaction dismissal that respects nested layers, an inert background and scroll locking.
-- **Positioning:** anchored placement with offset, flip, shift, size and arrow; virtual anchors (e.g. a text range); updates on scroll and resize.
-- **Presence:** keeping content mounted for exit animations, with cleanup of interrupted transitions and reduced-motion handling.
-- **Collections:** roving tabindex, `aria-activedescendant` virtual focus, typeahead and selection management for radio groups, toggle groups, tabs, menus, listboxes and comboboxes.
-
-Rules:
-
-- The **WAI-ARIA Authoring Practices** patterns and the HTML specification are the behavioral specification. Each widget's keyboard table becomes an executable test.
-- **Native first:** use platform features such as `<dialog>`, the Popover API, the `inert` attribute and CSS anchor positioning where the supported-browser matrix allows and their behavior meets these requirements; use JavaScript implementations otherwise.
-- **Verification:** every primitive is tested in Chromium, Firefox and WebKit, with a manual screen-reader check before the components built on it ship.
-- **Clean room:** implement from specifications and our own tests. Do not copy third-party code unless its licence allows it and the attribution is recorded.
-
-## 3. Public styling and customization architecture
-
-The library is **styled by default**, but styling must never be welded to the TaoTale brand. A developer must be able to make a distinct-looking application without editing source files or relying on private class names.
-
-### 3.1 Customization layers (in priority order)
-
-1. **Design tokens:** documented semantic CSS custom properties for surfaces, text, actions, borders, focus, feedback, spacing, radii, typography, and motion. Brand shades should not be hardcoded inside reusable components.
-2. **Theme scopes:** apply light/dark/custom themes at an app root or a subtree; nested theme scopes must be possible without globally rewriting `:root`. Use semantic tokens rather than conditionals scattered through JSX. Expose a controlled theme mechanism; persistence belongs to the consumer.
-3. **Component variants and sizes:** supported props for common style changes such as `variant`, `size`, `tone` or equivalent; avoid unconstrained permutations and document defaults.
-4. **Slots/parts and state hooks:** stable documented selectors or a slots/classes prop for relevant internal parts (trigger, content, label, icon, overlay, etc.). Expose only supported customization surfaces; do not require users to target volatile DOM implementation details.
-5. **Direct style overrides:** allow a consumer's class, inline style and CSS overrides to work with documented cascade/layer precedence. Avoid `!important` as a normal styling mechanism.
-
-**Public prefixes (TT-033).** Eroxo UI uses `--erx-` for CSS custom properties and `data-erx-` for data attributes. TT-035 adopts the [UL-06 styling contract](https://github.com/ronmilich/eroxo-ui/blob/main/docs/design-system/eroxo-iris-component-anatomy-api-spec.md). Target documented part classes such as `.erx-button__label`, use `data-erx-*` for state, and set `--erx-density-*` on a density scope. An omitted control size inherits that scope.
-
-### 3.2 Themes, animations, and configuration
-
-- Ship attractive, accessible **generic defaults** in the UI package. Ship TaoTale's Quiet Study values as a **consumer-owned theme**, not as defaults hardwired into the library. Optional reusable theme presets may be introduced later.
-- A theme change should update CSS variables/attributes without remounting component trees or destroying dialog/input/player state.
-- Use CSS transitions/animations for ordinary visual effects. Provide reusable entry/exit **presence handling** for overlays that must stay mounted until an exit animation completes; define focus restoration and cleanup when a transition finishes or is canceled.
-- Support configurable placement, collision handling, delays, dismiss behavior and overlay layering where appropriate. Positioning and presence come from the in-house primitives (§2.3); do not add a positioning or animation dependency.
-- Honor `prefers-reduced-motion` and offer an explicit disable/reduced-motion override for consumers. Animation must not block interaction or be required to understand state.
-- Provide consistent overlay z-index and portal behavior across tooltip, popover, select, dialog, and toast. A portaled component must still receive the intended theme variables; document how a nested theme scope works with portals.
-- Use logical CSS properties and avoid assuming left-to-right text; preserve native focus indicators, zoom and font scaling.
-
-## 4. Library accessibility and interaction requirements
-
-**Target:** WCAG 2.2 AA for supported components and documented compositions, with conformance evaluated per component and use case. Following the WAI-ARIA Authoring Practices is a foundation, **not an automatic accessibility guarantee**: every in-house primitive, component and consumer composition needs its own keyboard, screen-reader and browser verification.
-
-- Keyboard activation, arrow-key navigation for composite widgets, Tab behavior, Escape dismiss, and focus return follow the appropriate native/WAI-ARIA patterns.
-- Dialogs provide modal semantics, focus containment, initial focus policy, inert background behavior, Escape/close behavior, and reliable focus restoration; nested overlays must not steal focus unexpectedly.
-- Tooltips open on hover **and keyboard focus**; support configurable delay, safe dismissal, Escape, accessible descriptions, one-active-tooltip behavior, and no focusable interactive content disguised as a tooltip. Use popovers/dialogs for interactive content.
-- Menus, listboxes, selects, comboboxes and tabs implement the correct roles, labels, selection states and typeahead/key handling where applicable. Do not claim a universal keyboard pattern for unlike widgets.
-- Every icon-only interactive control requires an accessible name. Labels, error messages, helper descriptions, loading status and live announcements must be properly associated.
-- Ensure visible `:focus-visible`, pointer/touch affordances, contrast, readable disabled states, and correct behavior at 200% zoom. Do not depend on color, hover, or animation to communicate essential information.
-- Defaults must not erase application labels, `aria-*` props or keyboard handlers. Developers are responsible for meaningful labels, content, page hierarchy, form validation messages and correct feature integration.
-- Motion and transitions should never trap focus or create invisible-but-focusable elements; teardown after exit must restore focus predictably.
-
-### 4.1 Component roadmap for the library
-
-This roadmap is **library development scope**, not a promise that every control is required for TaoTale's first MVP build. Build components incrementally based on verified app needs and reusable value.
-
-| Priority | Component types | Behavior guidance |
-|---|---|---|
-| Foundation | Button, IconButton, TextField, Textarea, Checkbox, Radio, Switch, Label, Badge, Card, Separator, Spinner/Skeleton | Native HTML/Solid-first, clear state and labeling contracts |
-| Core overlays | Dialog/AlertDialog, Tooltip, Popover, DropdownMenu | Built on the in-house overlay primitives (§2.3); focus, dismissal, placement, presence/exit |
-| Selection and navigation | Select, Combobox/Autocomplete, Tabs, Pagination | Correct roles, keyboard selection, focus and controlled state |
-| Feedback | Alert, Toast, Progress | Announcements, queue/dismiss handling, accessible feedback |
-| Later as needed | Slider, calendar/date picker, data table primitives, drag-and-drop, complex navigation, rich motion | Add only for demonstrated consumer needs; evaluate native options and bundle cost |
-
-**TaoTale-specific components remain in TaoTale:** LibraryItemCard, Favorites toggle backed by an API, TopicManager, VocabularyEntryDetail, Transcript, AnnotatedText, AudioPlayer, GenerateAudio workflow, publication/revision forms, and language-specific controls. They may compose UI-library components and styling tokens, but their domain logic must not ship in the generic npm package.
-
-## 5. Library performance, QA, and release gates
-
-- Measure shipped JavaScript and CSS size by import path; compare a consumer importing **only Button** versus an app importing Dialog/Select/Tooltip. Set numeric budgets after baseline measurements, rather than inventing unverified targets.
-- Avoid global event listeners when no relevant overlay is mounted; clean up listeners, observers, timers and portals on disposal. Don't create effects that track irrelevant signals or rerender large component trees for a single state change.
-- Favor CSS-based state and animations over frame-by-frame JavaScript work. Ensure animations, tooltip positioning, and focus changes do not interfere with a consuming app's audio playback or text selection.
-- Test each public component in light/dark and custom themes, keyboard-only navigation, screen-reader-relevant ARIA state, mouse and touch, reduced motion, 200% zoom, and disabled/loading/error states.
-- Use component tests plus browser integration tests (e.g. Vitest and Playwright) with automated accessibility checks and manual keyboard/focus review. Test both the internal primitives directly and the **published package in a consuming app**.
-- Test theming and CSS overrides as contractual features: nested themes, portal inheritance, overridden variants, custom token values, and fallback when a token is missing.
-- Release only after `npm pack` consumer smoke tests, TypeScript declaration checks, accessibility regression checks, and versioned changes/changelog. Avoid publishing TaoTale-only assets, user data or secrets.
-
-## 6. TaoTale-specific visual identity: Quiet Study
-
-This section is **application theme/design**, not the UI-library's universal default appearance. The library provides the styling and theming API; TaoTale applies these values through that API.
-
-Design direction: calm, minimalist, reading-first; warm ivory/sage in light mode and charcoal/mint in dark mode. Avoid heavy elevation, strong gradients, saturated accents, or pure white/black page backgrounds. Reader text is the primary focus; metadata is quieter. Support light, dark and system preference. TaoTale stores the preference locally and applies the resolved theme before first paint where feasible; switching must not remount the Reader/player.
-
-### 6.1 TaoTale semantic color tokens
-
-| Semantic token | Light | Dark |
-|---|---|---|
-| Background | `#F5F3EE` | `#151C1B` |
-| Paper | `#FFFEFB` | `#202A27` |
-| Subtle surface | `#ECEFEA` | `#2A3530` |
-| Primary | `#356F63` | `#91C9B2` |
-| Primary text contrast | `#FFFFFF` | `#142922` |
-| Secondary | `#556F87` | `#A7B6DA` |
-| Text primary | `#26332F` | `#E7EFE7` |
-| Text secondary | `#60716A` | `#ACBAB0` |
-| Divider | `#DADFD7` | `#3A4841` |
-| Reader active highlight | `#E8E5B3` | `#48472F` |
-| Reader highlight text | `#26332F` | `#FBF0C8` |
-| Warm accent | `#B77C4D` | `#D8AC83` |
-| Vocabulary Learning chip bg/text | `#FBE9D5` / `#9B430F` | `#2C4D73` / `#E6F0FF` |
-| Vocabulary Acquired chip bg/text | `#D7EBE4` / `#20594F` | `#285A4B` / `#D9F2E9` |
-| Reader Learning foreground | `#8B4513` | `#E6B27D` |
-| Reader Acquired foreground | `#356F63` | `#91C9B2` |
-
-**Usage gates:** ordinary text contrast at least 4.5:1; large text at least 3:1; meaningful non-text control borders/icons at least 3:1. The historical light secondary color on subtle surface did not reach 4.5:1, so use primary text or adjust tokens for that combination. The warm accent is decorative/large text unless an exact combination passes normal-text contrast. Use a lighter accessible derivative for dark-theme primary hover, not a default darkening that reduces contrast. Focus ring: clear, e.g. 2px with 2px offset, tested against adjacent surfaces. Color must not be the only status cue. Check actual nested vocabulary markup against active Reader highlights.
-
-### 6.2 TaoTale topic palettes
-
-Topics are user-global reusable labels, not library color names. The **TaoTale backend** stores and validates exact light/dark text/background combinations; the generic UI package only renders the supplied colors and handles accessible presentation. Do not make the package depend on topic IDs or server presets.
+Topics remain user-global database records. Preserve the existing four persisted color values (light/dark text and background) and server-side validation from [05](05-taotale-database.md); CSS only displays those values. Offer a few attractive presets, such as:
 
 | Preset | Light background / text | Dark background / text |
 |---|---|---|
-| Sage | `#E1EFE6` / `#285447` | `#2B473D` / `#B7E3CE` |
-| Mint | `#D9F1EA` / `#215C50` | `#214740` / `#B1ECDD` |
-| Sky | `#E1EEF9` / `#28597C` | `#294455` / `#C1E2F7` |
-| Blue | `#E5EEFA` / `#274F84` | `#2A3F59` / `#BFD9FA` |
-| Amber | `#F9EED8` / `#80551F` | `#51422B` / `#F2D49B` |
-| Peach | `#FCE8DC` / `#814629` | `#51382F` / `#FFD0AE` |
-| Lavender | `#EAE7FA` / `#564889` | `#3D3654` / `#D9C9F8` |
-| Rose | `#F9E5E6` / `#8B3D4B` | `#54343C` / `#F5BBC6` |
-| Slate | `#E9EEEA` / `#465A51` | `#32443B` / `#D5E2DC` |
+| Iris | `#ECE7FA` / `#554095` | `#3E345C` / `#E4D8FF` |
+| Periwinkle | `#E7EAFE` / `#444D9E` | `#31385C` / `#DCE0FF` |
+| Orchid | `#F6E6F3` / `#813E7B` | `#513450` / `#F4C8EC` |
+| Sage | `#E1F0E9` / `#286449` | `#294C3F` / `#B9E9D2` |
+| Amber | `#FFF0DA` / `#835921` | `#54422B` / `#F8DEB1` |
+| Slate | `#EDECF3` / `#59566B` | `#3A3749` / `#DEDAED` |
 
-Seeded defaults and naming/contrast constraints remain TaoTale responsibilities. Creation initially defaults to Sage; historical migration used Slate. The library must not infer colors from a topic's name.
+Vocabulary status is communicated with **text plus styling**. Learning uses a dotted iris underline and soft lavender status; Acquired uses a solid sage/green underline and green-tinted status. On active timed spans, keep those underlines readable over the phrase highlight. Do not invent vocabulary matching; display only verified/manual associations.
 
-### 6.3 Typography, spacing, and motion
+## 3. Typography and spacing
 
-- UI: Inter/system-ui/sans-serif, page heading ~28px/1.3, section ~20px/1.4, body 15–16px/1.6, metadata 13px/1.5, buttons 14px/1.4.
-- Transcript: **language-appropriate local fonts**. For Simplified Chinese, retain Noto Serif SC 400 with sensible CJK fallbacks; test a Korean font stack separately. Do not assume one Mandarin font is correct for Korean or future Japanese. Original text must remain selectable and its exact characters/spacing unchanged.
-- Reader text ~22px/1.8 on supported desktop/tablet layouts, width around 780px, normal tracking. Font changes must not affect stored UTF-16 offsets or synchronization data.
-- Spacing scale: 4/8/12/16/24/32/48 px; base rhythm 8px. Radius ~12px default, card 16px, input/button 10px, chips pill. Low-elevation surfaces, subtle borders and limited shadows.
-- Form labels remain visible; use helper/count/error rows. Controls need appropriately large targets (aim ≥44px for common touch targets) and robust focus outlines; support tablets.
-- Motion should be subtle and respect reduced-motion preference. The package owns reusable entry/exit behavior; TaoTale chooses when transitions add value.
+| Element | Recommended treatment |
+|---|---|
+| Interface font | `Inter`, `ui-sans-serif`, `system-ui`, `Segoe UI`, sans-serif; system fonts are perfectly acceptable if no font is bundled |
+| Display / Library title | 32–38px, weight 700, line-height 1.14, subtle negative tracking |
+| Page title | 26–30px, 650–700, 1.2 |
+| Section title | 18–21px, 600–650, 1.35 |
+| Normal body | 15–16px, 400, 1.55–1.65 |
+| Card title | 17–19px, 600–650, 1.4; clamp only metadata previews, never Reader source |
+| Metadata | 12–13px, medium weight; contrast through text color, not tiny opacity |
+| Reader source | 21–24px, line-height 1.85–2.0; large enough for Han and Hangul |
 
-## 7. TaoTale MVP page composition
+**Reading fonts:** use an appropriate Simplified Chinese serif stack (e.g. Noto Serif SC when locally available, then Songti SC / SimSun / serif) and a separately tested Korean font stack (e.g. Noto Serif KR where available, then Batang / serif). Avoid requiring remote font CDNs or shipping heavy CJK bundles merely to meet a style goal. Exact original characters, whitespace, selection and UTF-16 offsets remain unchanged.
 
-**MVP views:** Library, Create/Edit, Reader, Vocabulary and Settings. A Dashboard, Vocabulary Practice, AI Text/Audio Generation Workspace, Language Islands Builder and phone-sized application layouts are **post-MVP**. **Manual Azure Generate Audio within Create/Edit remains in MVP.** Do not add out-of-scope actions to navigation or acceptance criteria because a historical mockup includes them.
+**Rhythm:** spacing steps **4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 / 64 px**. Use 24px card gaps at comfortable desktop sizes; 16px on tablets. Forms have 8px label-to-control gap and 20–24px between field groups. Avoid long dense forms without section breaks.
 
-### 7.1 Library
+**Shape:** buttons/inputs `10–12px` radius; cards `18px`; hero panels `24px`; chips `999px`; Reader paper `20px`. Borders generally `1px solid var(--color-border)`. A small consistent shadow is enough: `0 8px 30px rgba(53, 35, 91, .06)` in light mode and restrained dark-mode shadows.
 
-- Centered maximum ~1480px; desktop/tablet gutters and responsive grid that remains usable at supported viewport/zoom combinations; 24px grid gaps. Four columns may fit at wide desktop sizes, with fewer on narrower supported tablet widths.
-- Mixed saved drafts and published items, scoped to the selected learning language. Card ratio ~1.9:1 cover/placeholder; actual cover upload cap **1 MB (1,000,000 bytes)**, enforced by the application/server, not a generic Card component.
-- Card title, description, optional manually assigned **Beginner / Intermediate / Advanced** difficulty (or unspecified), up to two topic chips +N, date, Draft state and published playable duration only when available.
-- Persistent **Favorite/Unfavorite** control visible and keyboard accessible on draft and published cards. The icon-only library Button/Tooltip supplies correct interaction/accessibility mechanics; TaoTale supplies the API write, status and cache behavior.
-- Search, language choice, topic/difficulty/status/Favorites filters, sort, pagination, Create and item action menus. Omit the old AI generation workspace entry point.
-- Distinguish initial loading, stale-on-refresh, empty collection, no filter matches, invalid cover, failed audio, and destructive-operation confirmation.
+## 4. CSS implementation contract
 
-### 7.2 Create/Edit and publishing
+Import exactly one global token stylesheet before feature styles. Component appearance comes from CSS Modules, not dynamic runtime style objects. Example starter tokens:
 
-- Wide layout max ~1440px: Content + Audio on left, Cover + Details on right; adapt column layout for tablets and zoom, with clear reading order.
-- Reusable editor modes: unsaved new, draft, published metadata and working revision. Preserve explicit Save Draft, Generate Audio, Publish, Save Revision and dirty-navigation decisions.
-- Plain source textarea large enough for reading/editing, at least six rows; language-specific font readability, exact source preservation, and counters/validation errors. Do not add a generic rich-text editor.
-- Audio status panel, voice/rate selector, generation feedback, READY preview, optional segment review and disabled actions with persistent reason. Library handles the generation workflow; the UI package provides generic buttons, feedback, dialogs, etc.
-- Cover dropzone shows selected thumbnail, file limits and error states. App validates ≤1 MB, allowed formats and dimensions; the UI package may provide a generic dropzone later but must not encode TaoTale cover rules.
-- TopicManager/TopicAutocomplete are TaoTale feature components using generic accessible dialog/combobox/checkbox/chip primitives.
+```css
+/* shared/styles/tokens.css — representative implementation */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #F8F7FC;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #F1EEFA;
+  --color-surface-raised: #FFFCFF;
+  --color-text: #29243D;
+  --color-text-muted: #69647D;
+  --color-border: #E3DFF0;
+  --color-primary: #6C4BCB;
+  --color-primary-hover: #5A3DB1;
+  --color-primary-pressed: #49318D;
+  --color-on-primary: #FFFFFF;
+  --color-primary-soft: #EDE7FC;
+  --color-periwinkle: #8186DC;
+  --color-orchid: #BA79B7;
+  --color-orchid-soft: #F8EAF6;
+  --color-highlight: #E9E3FF;
+  --color-highlight-text: #312451;
+  --color-danger: #B34B64;
+  --color-success: #28775E;
+  --color-warning: #936123;
+  --radius-control: 11px;
+  --radius-card: 18px;
+  --shadow-card: 0 8px 30px rgba(53, 35, 91, .06);
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #151322;
+  --color-surface: #211E33;
+  --color-surface-soft: #2B2642;
+  --color-surface-raised: #322B4A;
+  --color-text: #F3F0FA;
+  --color-text-muted: #B9B2CC;
+  --color-border: #413B58;
+  --color-primary: #BCA7FF;
+  --color-primary-hover: #D1C2FF;
+  --color-primary-pressed: #A18CEB;
+  --color-on-primary: #211633;
+  --color-primary-soft: #383052;
+  --color-periwinkle: #A9B0FF;
+  --color-orchid: #DFA1DA;
+  --color-orchid-soft: #4A304C;
+  --color-highlight: #554675;
+  --color-highlight-text: #FFF9FF;
+  --color-danger: #F0A1B4;
+  --color-success: #93D5B7;
+  --color-warning: #F0C98A;
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, .12);
+}
+```
 
-### 7.3 Reader
+```css
+/* Example app-local Button.module.css */
+.button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease,
+              transform 150ms ease, border-color 150ms ease;
+}
+.button:active:not(:disabled) { transform: translateY(1px); }
+.button:disabled { opacity: .55; cursor: not-allowed; }
+.primary { background: var(--color-primary); color: var(--color-on-primary); }
+.primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.secondary { background: var(--color-surface); color: var(--color-text);
+             border-color: var(--color-border); }
+.secondary:hover:not(:disabled) { background: var(--color-surface-soft); }
+.ghost { background: transparent; color: var(--color-primary); }
+.ghost:hover:not(:disabled) { background: var(--color-primary-soft); }
+.button:focus-visible { outline: 2px solid var(--color-periwinkle); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .button { transition: none; } }
+```
 
-- Centered shell ~960px, transcript ~780px, fixed player aligned to shell; reserve sufficient bottom space so the last paragraph is never hidden by the player. Hide the global app header on the exact Reader route where specified.
-- Original source rendered with natural inline flow and preserved whitespace/blank lines. Timed runs can highlight while playing; vocabulary annotation underlines coexist with active playback background. Invalid alignment retains readable text.
-- Use a native HTML audio element and app-specific high-frequency synchronization outside the general-purpose library. Components such as Buttons, Tooltip, Slider, Dialog and Popover may be reused; **the UI package does not implement speech/text alignment or transcript DOM offsets**.
-- Accessible Favorite toggle in the Reader header, Notes dialog, vocabulary actions, lookup popovers, settings and optional browse dialogs; overlay portals must not corrupt text selection or cause audio resets.
-- Learning: dotted underline; Acquired: solid underline; independent semantic color and legend, with adequate contrast on active highlight. Popovers show actual saved meaning and language-aware reading, with missing metadata made explicit.
-- Active seek targets are keyboard reachable; selection/drag must suppress accidental seek and popup. Overlay close restores focus. Reader shortcuts and audio states are app-level responsibilities.
+Use only as much CSS as the product needs. Basic focus outlines and reduced-motion media queries are **CSS**, not a specialized JavaScript accessibility/motion system. Theme changes swap `data-theme`, preserving the existing DOM and audio.
 
-### 7.4 Vocabulary, Topics and Settings
+## 5. Small in-app component catalog
 
-- Vocabulary: summary stats, server-paginated list (initial 10 rows/page), search/status/topic filters, editable details, source references and bulk operations. Structured list/table with clear keyboard focus, labeled status chips and topic count pills. Optional layout for detail region at supported desktop/tablet widths.
-- Topics: accessible autocomplete and manager, named light/dark swatches, default-topic protection, maximum 10 linked topics, confirmation on custom deletion. Never make topic CRUD a UI-library dependency.
-- Settings: app theme (light/dark/system), selected language, per-language TTS defaults, playback speed, vocabulary popup controls, and local backup/status guidance. No authentication or billing screen.
+Build these **only when a screen needs them**:
 
-## 8. Library-to-application integration requirements
+| Element | Implementation | Visual goal |
+|---|---|---|
+| `Button` | Native `button` with app-local variants | Confident violet primary, light secondary, calm ghost |
+| `TextField` / `TextArea` | Native `input`/`textarea` + label/help/error markup | Clear white/soft input surfaces, iris focus treatment |
+| `SelectField` | Native `select` | Consistent height/radius with input; no custom dropdown engine |
+| `Card` | Styled container | Paper surface, subtle border/shadow, 18px radius |
+| `Badge` / `TopicChip` | Styled text/span | Small rounded colored metadata |
+| `FavoriteButton` | Domain-specific native button | Always-visible recognizable star and pending/error state |
+| `Modal` (optional) | Tiny wrapper around native `<dialog>` | Simple confirmations/forms; no custom focus/portal logic |
+| `LoadingSkeleton` | CSS placeholder shape | Quiet loading, no pulsing library needed |
+| `EmptyState` | Plain content + illustration or static SVG | Helpful message and one clear action |
+| `AudioPlayer` | Native `<audio>` + TaoTale buttons/range | Fixed, elegant reading controls; actual timing belongs to Reader logic |
 
-1. **The npm package is a dependency** of TaoTale, pinned according to the application's normal dependency policy; do not copy/fork UI package source into each feature directory.
-2. TaoTale defines its own Quiet Study theme using the library's public CSS tokens/theme API. Keep any TaoTale-only design tokens/styles in the application, not the generic package.
-3. Shared generic UI controls are imported from the package. `src/components/ui` in TaoTale, if retained, should contain **thin app-specific compositions or aliases**, not duplicate implementations of Button, Dialog, Menu, Tooltip, etc.
-4. TaoTale feature code may import public library exports only; do not couple to library internals or undocumented package paths. For missing capabilities, prefer improving the reusable package if broadly applicable; otherwise keep the feature implementation local.
-5. Theme switching, dialog open/close, tooltips, and animations must not reinitialize the Reader audio element, invalidate transcript segment offsets, or cause unrelated Library/Vocabulary refetches.
-6. During development, test the library both in its own isolated component/examples environment **and** as an installed dependency in TaoTale. No unpublished package API is assumed stable merely because local linking works.
-7. Public library accessibility and theme APIs should be documented and covered by compatibility tests before app features depend on them heavily.
+Do not prebuild a full component inventory (combobox, nested menu, calendar, drag/drop, toast scheduler, accessibility primitives, theme SDK). A `TopicManager` and Reader transcript are **feature components** and remain within TaoTale.
 
-## 9. Acceptance criteria and rollout
+## 6. Page compositions
 
-### 9.1 UI library readiness for first TaoTale integration
+### 6.1 Shell and navigation
 
-- A separately buildable npm package installs into a clean SolidJS consumer; ESM, types and CSS resolve correctly and there is one Solid runtime.
-- Core Button, input, Tooltip, Dialog and Menu/Popover components have accessible keyboard/focus behavior, appropriate states and working public styling hooks. Expand the component set only as TaoTale needs it.
-- A consumer can change light/dark theme colors **and** restyle at least one multi-part component without changing package source or using private selectors.
-- Transitions and reduced motion work without stray focus, dangling overlays or layout flicker. No global runtime Tailwind requirement.
-- The release process can test the packed artifact, compare bundle sizes, and publish with clear versioning.
+A slim top navigation bar with TaoTale wordmark or simple iris icon, **Library**, **Vocabulary**, **Settings** and a restrained language switcher. Active navigation has a soft violet tint and a clear indicator. Use `position: sticky` only if it helps; avoid multi-level app chrome. Content width generally **1280–1440px**, side gutters 24–40px desktop and 16–24px tablet. Background is `--color-bg`.
 
-### 9.2 TaoTale MVP acceptance
+### 6.2 Library — signature screen
 
-- All MVP screens consume the package where generic controls apply. App-specific Reader/audio/vocabulary behavior remains correct and performant.
-- Quiet Study tokens and topic palettes are applied accessibly, persisted theme preference behaves correctly, and toolbar/dialog controls work with keyboard and pointer at supported desktop/tablet sizes and zoom.
-- Library Favorites, manual three-level difficulty, ≤1 MB covers, audio generation, publication, Reader and Vocabulary are present. AI Workspace, Language Islands Builder, Dashboard, Vocabulary Practice, and phone support remain deferred.
-- Switching themes or showing library overlays does not restart audio, corrupt text selection, or remount large unrelated subtrees.
+- A welcoming heading such as **Your reading library** and a small, gentle violet/orchid decorative flourish. One **New article** primary action visibly stands out.
+- Above content: language selector, title search and a concise row of native filter controls (difficulty, Topics, status, Favorites) plus Sort. Avoid elaborate popovers and nested menus.
+- Responsive card grid: approximately **4 columns** on wide desktop, **3 or 2** as space narrows, with CSS `grid-template-columns: repeat(auto-fit, minmax(245px, 1fr))`; no phone-specific layout obligation.
+- Card: 1.75–1.9:1 illustrated/image cover, title, two-line description, difficulty/topics, date and published duration. Favorite star is **always visible**, not revealed only on hover. Hover adds a subtle elevation, not a dramatic jump.
+- Drafts receive a quiet outlined **Draft** badge and Continue Editing action; published items receive Open Reader. Show meaningful true-empty and filter-empty states with attractive small illustrations or static SVG.
 
-### 9.3 Suggested implementation sequence
+### 6.3 Create/Edit — focused writing studio
 
-1. Initialize the independent SolidJS npm library: package build/exports/types/CSS and a tiny consumer playground.
-2. Establish generic CSS tokens, theming/override hooks and one styled native component (`Button`). Validate external customization and bundling.
-3. Implement the in-house interaction, focus, layering, positioning and presence primitives (§2.3), then Tooltip, Dialog, Popover/Menu with controlled state, focus, presence and reduced-motion tests.
-4. Publish an initial version (or install a packaged prerelease) and integrate it into TaoTale's app shell.
-5. Add Select/Combobox, forms, feedback and other primitives **as actual TaoTale screens need them**; avoid building a large speculative catalog before the application works.
-6. Apply Quiet Study colors/layouts in TaoTale and run end-to-end accessibility/performance checks.
+- Two-column wide desktop composition: **left** source textarea and Audio panel; **right** Cover, Topics, difficulty, description/notes. At tablet sizes stack into one comfortable column.
+- Source editor is the strongest element: roomy paper panel, 16–18px editing text, generous padding, clear border, optional quiet character count. Preserve exact source text.
+- Audio generation card groups language-compatible voice, rate, **Generate Audio**, state/progress, measured duration and Preview. Use plain explanatory text for Outdated/Failed/Pending; no complex wizard or progress animation.
+- Keep a small clear action area for **Save Draft** and **Publish**. Publish is enabled only for a validated matching READY candidate. Working revision actions should not risk the existing published recording.
+- Cover selection uses native file input and a styled preview. Keep the existing cover after invalid replacement. Topics use simple multiselect checkboxes or a straightforward manager panel; no autocomplete engine is required.
 
-## 10. Decisions to finalize before the first public npm release
+### 6.4 Reader — quiet reading room
 
-- Future repository ownership and publication workflow. TT-033 records the current repository, package name and MIT licence.
-- Verify the TT-035 part selectors and variant contract, and the explicit CSS imports, against the first adopted registry release.
-- Internal styling/build implementation and whether a small example/docs site is bundled with the project.
-- Architecture of the in-house primitive layer (internal module, or a later public headless package), the native-first choices for overlays, animation/presence implementation, and which components are part of the v1 stability commitment.
-- Scope of component-level theming helpers and whether an `unstyled` mode is supported. **Not required** merely because the library supports overrides.
+- Hide distracting global navigation if needed. Reader shell ~960px; prose column approximately **720–780px**, centered in a surface with generous margins. Paper should dominate.
+- Title at 30–34px; metadata quieter. Transcript 21–24px with generous line-height, original paragraphs and selectable text. Color highlights should feel like soft translucent ink, not a flashing karaoke banner.
+- Native audio control area or a slim custom presentation around `HTMLAudioElement`, docked/visible without covering final prose. Play/pause, seek, ±5s, rate, time and download. Keep audio mounted when changing theme or opening panels.
+- Selection-based **Add to Vocabulary** can use a persistent action near transcript controls or one simple contextual inline panel; avoid precision popup positioning infrastructure. Notes and Favorite are simple actions.
+- When audio or alignment is invalid, preserve beautiful text-only reading. Never render invented timing.
 
-These choices are left open intentionally; no TaoTale MVP requirement depends on inventing their final names now.
+### 6.5 Vocabulary and Settings
 
-## 11. Reference and provenance
+- Vocabulary: a comfortable summary row of Learning / Acquired / Total; compact search and filters, clean rows with word, reading, meaning, status and topics. Table/card treatment depends on width; avoid an enterprise-heavy data grid.
+- Word edit is a clear regular form or a native dialog; source-item references remain visible. Status changes are explicit and reversible.
+- Settings: grouped paper panels for Language, Appearance, Audio and Local Data. Use native light/dark/system select or three plainly styled radio options. The backup section **documents** the manual database+media procedure; no nonfunctional Backup button.
 
-- Historical design source: `08-design-system(1).md` (Quiet Study tokens, topic palettes and screen layout guidance); framework-specific MUI/React-era details are not normative.
-- [WAI-ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/) — behavioral specification for the in-house primitives (§2.3).
-- SolidJS: [styling components](https://docs.solidjs.com/guides/styling-your-components), [context](https://docs.solidjs.com/concepts/context).
-- npm: [package metadata and peer dependencies](https://docs.npmjs.com/files/package.json/).
+## 7. Layout, states and simple quality bar
 
-**Documentation follow-up:** `03-taotale-client.md` and `02-taotale-decision-register.md` should explicitly replace the historical “in-app custom UI primitives” wording with “consume the standalone SolidJS UI package” at their next reconciliation. They are **not modified by this document**.
+- **Light and dark** both feel intentional; theme switching does not remount audio or clear forms.
+- At desktop (~1280/1440px) and tablet (~768–1024px), there is no disruptive horizontal scrolling, clipped labels or hidden primary action. Phone-specific design and testing remain post-MVP.
+- Search/filters, cards, buttons, forms, status and pagination are consistent across pages. Use icons sparingly and clearly; a labeled action is better than an ambiguous icon-only menu.
+- Include loading, empty, filtered-empty, pending, success and error states in the same design language. Explain errors near affected actions, not as transient colored decorations alone.
+- Use readable contrast and normal native focus states as **basic usability**, without formal WCAG certification, special ARIA framework or custom keyboard event choreography.
+- Microinteractions stay in CSS (150–200ms hover/background changes), and must never be required for functionality.
+- Protect the most important features: Reader alignment, source preservation, versioned publishing, user data and audio resume. Visual polish must not introduce correctness risk.
+
+## 8. Implementation order and approval checklist
+
+1. Define `tokens.css` and global typography/light-dark theme on the app root.
+2. Implement the shell and **one polished Library card** with real responsive CSS.
+3. Build the few local native control wrappers used by that page: Button, TextField, Select, Badge, Card.
+4. Establish Editor layouts and generate/status panels, then Reader typography/highlight/player.
+5. Style Vocabulary and Settings, including empty/error/pending states.
+6. Manually review screenshots of all MVP screens in light and dark at desktop and tablet widths; fix hierarchy, spacing and consistency. Test that Reader playback survives theme and panel changes.
+
+**Definition of done:** TaoTale looks cohesive, aesthetically attractive and comfortable to read, while the frontend has **zero external UI library integration** and no elaborate custom component mechanics. The implementation task list is [15 — Tasks](15-taotale-implementation-tasks.md).
+
+## 9. Source and scope notes
+
+This replaces the earlier **Quiet Study sage theme** and all independent npm component-library requirements. Historical Mandarin Reader visual references may inform layout, but their framework, accessibility infrastructure and UI-library assumptions are **not normative**. The application remains SolidJS, and the product/data/audio specification in [01](01-taotale-overview-and-features.md) and [06](06-taotale-segmentation-and-audio.md) is unchanged by the palette decision.

@@ -1,104 +1,88 @@
 # 12 — TaoTale quality, testing and MVP acceptance
 
-**Status:** Proposed measurable release gates and test strategy for a **new Go/SolidJS implementation** (23 November 2026). **No TaoTale implementation tests or benchmarks were run to produce this document.** Historical Mandarin Reader results are reference evidence only and **cannot** be credited as TaoTale pass results.
+**Status:** Target release gates, revised **25 November 2026**. No new Go/Solid TaoTale tests or benchmarks are claimed to have run. Historic Mandarin Reader test counts are not TaoTale results. **Authority:** [01 — Product](01-taotale-overview-and-features.md), [03 — Client](03-taotale-client.md), [04 — Backend](04-taotale-backend.md), [05 — DB](05-taotale-database.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — Iris](08-taotale-design-system.md), [09 — UI states](09-taotale-ui-states.md).
 
-**Authority:** [01 — MVP scope](01-taotale-overview-and-features.md), [03 — Solid client](03-taotale-client.md), [04 — Go backend](04-taotale-backend.md), [05 — Database](05-taotale-database.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — UI library](08-taotale-design-system.md), [09 — States](09-taotale-ui-states.md), [10 — API](10-taotale-api.md), [11 — Operations](11-taotale-operations-and-security.md).
+## 1. Release scope
 
-## 1. Scope of release certification
+MVP: local persistent Docker PostgreSQL and files, a seeded owner without login, **`zh-CN` and `ko-KR`**, Library/Favorites, Create/Edit/Drafts/Revisions, manual Azure TTS with verified published audio, Reader synchronized highlighting + text-only fallback, manual Vocabulary/Topics, Settings and paired backup/restore guidance. Desktop and tablet browser layouts, plain native controls and Iris light/dark designs are in scope.
 
-The **MVP must demonstrably support**: local Docker PostgreSQL and persistent assets; one seeded owner without authentication; **`zh-CN` and `ko-KR`**; Library of drafts/published items, language filtering and **Favorites**; Create/Edit, Azure TTS jobs/previews/validated publication and revisions; Reader with synchronized highlighting and fallback; manually managed language-scoped Vocabulary and shared Topics; Settings and backup/restore guidance. Desktop and **tablet-sized** browser support, keyboard/focus and zoom are in scope.
+Not required: Dashboard, Vocabulary Practice, AI workspace, Islands, Japanese, phone layouts, login/subscription/billing, separate UI library or component SDK, formal accessibility certification and advanced keyboard/overlay behavior. **Manual Generate Audio is still required.**
 
-**Explicitly not required:** Dashboard, Vocabulary Practice, AI Text/Audio Generation Workspace, Language Islands Builder, Japanese, mobile phone layouts, login/logout, subscriptions or billing. **Manual Generate Audio inside the editor is required** and must not be mistaken for the deferred AI workspace.
+## 2. Release gates
 
-## 2. Nonfunctional acceptance gates (adapted NFR-01–16)
+Numeric values below are provisional inherited starting budgets, not measurements. Confirm reference machine and browsers before calling a release pass.
 
-The numeric values inherited from Mandarin Reader below are **provisional starting budgets**, not newly measured Go/Solid performance or guaranteed Azure latency. Final target hardware/browser and any changed thresholds must be recorded **before** the release test, not adjusted retroactively to claim a pass.
-
-| ID | TaoTale release requirement / proposed threshold |
+| ID | Requirement / starting target |
 |---|---|
-| NFR-01 | Metadata API (`GET /items`, item detail, vocabulary list/stats) **p95 ≤400 ms** on reference local dataset excluding audio and external provider time; no errors. Record Go/sqlc query timings. |
-| NFR-02 | Production-like local first useful Library/Vocabulary **≤2.5 s**, Reader original text **≤2.0 s** excluding MP3 download. No blank UI while a lazy chunk loads. |
-| NFR-03 | Timed Reader highlight agrees with native audio clock at **0.75×/1×/1.25×/1.5×**; event/seek response target **≤150 ms** (allow native seeked convergence). No incorrect text/audio asset pairing. Test Chinese and Korean separately. |
-| NFR-04 | **Solid fine-grained updates**: playback clock must not recreate the Reader/transcript or rerender unaffected Library/Vocabulary UI on each tick; no sustained visible input delay **>100 ms** with representative long source/annotations. |
-| NFR-05 | **100%** published active audio assets are decodable and exact-source-aligned; corrupt, mismatched or incompletely timed candidates cannot become READY/published. Legacy verified recordings remain playable without resegmentation. |
-| NFR-06 | Backend interruption reconciles outstanding jobs without resubmitting possibly billed Azure calls; original published pair preserved. Historical restart-readiness reference **≤30 s**, measured on target machine. |
-| NFR-07 | Explicit dirty save/discard/stay guards work for all editor modes and Notes; browser close/reload uses native warning only. No autosave or false Saved feedback. |
-| NFR-08 | A **fresh-volume paired restore** recovers PostgreSQL records and referenced local MP3/covers, Notes, Favorites, Topics, language-specific vocabulary and original timing with zero missing active assets. |
-| NFR-09 | No private content/secrets in source, bundles, logs or sanitized errors; API + DB bound locally; reject unsafe cross-origin/Host/filename/path cases. Never claim public-network security from local-only tests. |
-| NFR-10 | All limits/Unicode edge cases enforced server-side and client-side: **cover ≤1,000,000 encoded bytes**, title/source/word boundaries, actual file signature/dimensions, unsafe path/SSML, invalid locale/voice/difficulty and overlong JSON. No truncation. |
-| NFR-11 | Keyboard primary journeys, visible focus, semantic controls/status, focus return/trap, appropriate 4.5:1 normal text contrast and ≥44px targets where applicable. No critical automated/manual accessibility defects in supported layouts. |
-| NFR-12 | Desktop **1280/1440px** and representative **tablet-sized** viewport/zoom up to **200%**: no blocking overflow, text selection/focus works, player never covers the final paragraph; **phone QA excluded**. |
-| NFR-13 | Same generation idempotency key/intent never invokes Azure twice; failed media/DB transactions, timeouts, restarts and revision attempts leave active asset unchanged. UI reports unknown outcomes accurately. |
-| NFR-14 | All required checks green; **≥80% line / ≥75% branch** coverage of testable business-domain code as a starting goal, plus complete critical-invariant scenarios. No skipped test counted as pass. Static/dep security checks for Go, Solid app and independent UI package. |
-| NFR-15 | Brand-new and populated PostgreSQL volumes migrate/seed deterministically using versioned SQL; repeat seed preserves IDs and user edits. Mismatch blocks readiness; no Prisma runtime. |
-| NFR-16 | At most one active generation/target, bounded concurrency (starting cap 2), visible 429/cost-limit states, cleanup of temporary previews/uploads without deleting active or revision-base assets. No fixed provider-generation completion SLA. |
+| NFR-01 | Metadata API `GET /items`, item details and vocabulary list/stats **p95 ≤400ms** locally excluding external audio/provider |
+| NFR-02 | First usable Library/Vocabulary **≤2.5s**; Reader original text **≤2.0s** excluding MP3 download; useful loading state |
+| NFR-03 | Reader highlight agrees with native audio clock at **0.75×/1×/1.25×/1.5×**; seek/display reaction target **≤150ms**; both languages tested |
+| NFR-04 | Frequent audio time changes do **not recreate** the transcript or unrelated app views; typing remains responsive on long text |
+| NFR-05 | All published active assets are playable and exactly matched/aligned; malformed candidates never become READY/published; legacy recordings remain valid |
+| NFR-06 | Restart/interruption recovers job records without repeating uncertain charged Azure requests; preserve active published pair |
+| NFR-07 | Explicit save/discard/stay behavior, native tab-close warning, no autosave or false Saved notice |
+| NFR-08 | Fresh-volume paired PostgreSQL/media restore recovers every active asset, notes, Favorites, topics, language-specific words and timing |
+| NFR-09 | No secrets/private text in logs, frontend bundle or errors; local HTTP/DB bind to loopback; block cross-origin/Host/path abuse |
+| NFR-10 | Cover **≤1,000,000 bytes** and valid signature/dimensions, Unicode/source and voice/locale limits validated; no silent truncation |
+| NFR-11 | **Basic usability and visual quality:** regular labeled native controls, visible selection/pressed/error states, readable contrast, no clipped text or hidden actions. **No formal WCAG/ARIA audit, focus-trap/roving-tabindex suite or complex component keyboard mechanics** |
+| NFR-12 | Iris light/dark layouts checked at **1280/1440px desktop** and a representative **tablet (~768–1024px)**; no layout-blocking overflow, transcript/player collision or lost edits. Phone QA deferred |
+| NFR-13 | Same paid generation key/intent never knowingly calls Azure twice; failed transaction/revision keeps prior asset |
+| NFR-14 | Domain unit/integration tests green; starting goal **≥80% line / ≥75% branch** of testable core domain code. No UI-library-package release or package-consumer test. Static checks for Go and frontend |
+| NFR-15 | Empty/populated local PostgreSQL migrations/seed deterministic; preserve seeded IDs and user data; no Prisma runtime |
+| NFR-16 | One active generation per target, bounded worker concurrency (initial cap 2), honest 429/cost/error states and safe cleanup |
 
-## 3. Reference data and golden fixtures
+## 3. Core fixtures
 
-Create deterministic fixtures with pinned IDs and expected outputs. **Keep the legacy F1–F7 corpus for parity**, but extend it for multilingual behavior:
-
-| Fixture | Required coverage |
+| Fixture | Coverage |
 |---|---|
-| **F1-CN** | Legacy Chinese exact text and approved v1 offsets; new registered `zh-CN` strategy separately versioned. Includes Chinese commas/full stops/Han-hyphen/quotes. |
-| **F1-KO** | Korean Hangul, spaces, particles/endings, terminal punctuation, quotation marks, paragraph breaks, mixed Latin/digits and abbreviations; validate the **actual adopted Korean segmentation policy**, not Chinese fallback. |
-| **F2** | CR/LF/CRLF, blank lines, leading/trailing whitespace, repeated delimiters, SSML XML-sensitive characters, emoji and mixed scripts, original source preserved exactly. |
-| **F3** | UTF-16 offsets for supplementary Han and emoji, surrogate pairs, combining marks, grapheme boundaries, Go UTF-8 byte ↔ UTF-16 conversion and JSON escaping/fingerprint parity. |
-| **F4** | Provider events with missing/out-of-order/overlapping/spurious spans, negative/noninteger timestamps, legitimate gaps, timing outside measured duration and unacceptable drift. |
-| **F5** | Valid known-duration MP3, truncated/corrupt/unreadable/stale asset, mismatched fingerprint and generated file absent on disk; active published fallback. |
-| **F6** | JPEG/PNG/WebP exact **1,000,000-byte accepted by size** and **1,000,001-byte rejected**, fake signature, decompression/dimensions, filename traversal and existing large legacy cover read. |
-| **F7** | Initial scale target: **1,000 published items + 100 drafts, 10,000 vocabulary entries and 100 Topics**, split between `zh-CN`/`ko-KR`, with Favorites, references and stable timestamps. Validate filters, counts and no N+1 queries. |
-| **F8** | Two-language isolation: same word string in Chinese/Korean, matching cross-language ref rejected, language-aware voice filtering, disabled language, legacy data `zh-CN` backfill, old `native` difficulty migration review. |
-| **F9** | UI-package integration: published CSS/types/exports, compatible single Solid runtime, theme overrides, dialog focus/tooltip keyboard/transition reduced motion and no direct Kobalte/Tailwind import in TaoTale. |
+| F1-CN | Legacy Chinese v1 timing/segmentation plus newly versioned Chinese policy |
+| F1-KO | Korean Hangul, punctuation, spacing, particles, mixed Latin/digits, paragraphs and adopted versioned policy |
+| F2 | CR, LF, CRLF, blank lines, whitespace, punctuation, SSML XML-sensitive text, emoji; preserve exact original |
+| F3 | Go UTF-8 ↔ JS UTF-16 index map, supplementary characters, combining marks and fingerprints |
+| F4 | Azure event invalid order/overlap/gaps, invalid timestamps and mismatch with measured duration |
+| F5 | Valid MP3, missing/truncated audio, stale fingerprint, invalid/missing released asset |
+| F6 | Exact encoded cover threshold **1,000,000 accepted by size / 1,000,001 rejected**, actual MIME/dimensions, old oversize cover |
+| F7 | Representative **1,000 published + 100 drafts, 10,000 words, 100 Topics** split between languages |
+| F8 | Same spelling in two languages, invalid cross-language links, correct voice options, legacy backfill and `native` difficulty review |
+| F9 | **App-local Iris UI:** light/dark CSS tokens, basic Button/Field/Card styles, visually consistent pages, desktop/tablet screenshots, native controls, theme switch with audio preserved; **no UI-package integration** |
 
-**Mock provider** returns deterministic valid MP3 bytes and controlled aligned events; no paid Azure calls in routine CI. A separately approved **real Azure** smoke must verify actual Chinese and Korean voice events/timing, duration/MP3 decoding, SDK native dependencies and human-audible quality on the target OS. If either language cannot produce reliable timing, it is a release blocker for synchronized playable publication, not a reason to fabricate timestamps.
+**Automated provider tests:** mock returns deterministic audio/timing/errors without paid Azure calls. Separate explicit real Azure smoke must validate Chinese and Korean SDK timing, MP3 duration and audible output. Never invent timing when actual provider integration fails.
 
-## 4. Automated test layers
+## 4. Test layers
 
-### 4.1 Go unit and service tests
+### 4.1 Go unit/service
 
-- Pure Mandarin/Korean segmentation strategies, legacy version playback, canonical fingerprint vectors (including original JS-format compatibility), SSML offset translation, UTF-16 mapping, timing validation/rounding/coalescing and measured MP3 evidence.
-- Item lifecycle/state/version behavior, dirty synthesis inputs, Favorites independent update, topic default protection/contrast, per-language vocabulary identity and manual provenance, permitted optional auto-match rules and unsupported-language fallback.
-- Generation admission/idempotency, one active target job, worker cancellation/crash recovery, bounded cleanup, sanitization, file leases and failed promotion with no published-asset damage.
+Test Chinese/Korean segmentation, source-index conversion, legacy fingerprints, boundary/event mapping, timing and duration validation; versions and publication; duplicate generation/idempotency; Topics/Favorites/vocabulary invariants; media cleanup/recovery and sanitized failures.
 
-### 4.2 Real PostgreSQL and Gin integration
+### 4.2 PostgreSQL / Gin integration
 
-- Launch **disposable local PostgreSQL** through Docker, apply actual SQL migrations and generate `sqlc` methods from checked-in queries. Test populated migration and seed twice, FK/unique/constraint behavior, advisory/row locking and rollback.
-- Test Library paging/filters/Favorites stable sort; item draft/direct publish/revision lifecycle; byte-range/asset pinning; upload exact size/signature; same-language source links and cross-language rejection; bulk vocabulary operations; Topic CRUD.
-- Test same-key request replay, unknown-outcome recovery, restart mid-generation, missing media, stale versions, concurrent Favorites and metadata writes, and preservation of original recording on failed publication. Inspect **actual SQL errors/mapped API responses**, not ORM mocks.
-- Test OpenAPI request/response/error/header conformance against **canonical TaoTale YAML** once authored; the old Mandarin Reader YAML alone does not certify new endpoints.
+Use disposable Docker PostgreSQL with actual migrations and generated sqlc queries. Test owner/locale constraints, paginated filters and stable order, item lifecycle/revisions, media Range, upload validation, vocabulary references, Topic CRUD, concurrent favorites and stale versions, migration/recovery and typed HTTP errors. Validate responses against the final TaoTale OpenAPI contract, not the historical Mandarin Reader YAML.
 
-### 4.3 SolidJS app and external UI package
+### 4.3 Solid frontend and visual tests
 
-- Solid component tests for language-scoped route/URL canonicalization, resources/stale data/errors, forms/dirty guards, Favorites set-value and filtered result removal, correct speaker/voice options, invalid input and status cache updates.
-- Reader tests: active segment changes only when index changes, asset-pinned resume, non-collapsed selection suppresses seek, UTF-16 mixed-node offsets, annotations independent of invalid audio, no transcript or audio remount on playback/theme/dialog changes.
-- Separate **npm UI package** tests: accessibility/ARIA/focus, Escape/outside close, keyboard Menu/Dialog/Tooltip, transition cleanup and reduced motion, override/theme behavior, built package ESM/types/CSS and peer dependency isolation. **TaoTale must not import `@kobalte/core` or Tailwind directly.**
-- Browser E2E for app + actual Go/PostgreSQL/media path, not only mocked HTTP. Primary smoke Chromium, wider supported engines and tablet-oriented interactions/zoom before release. Use Playwright/axe or equally verified tools without introducing unnecessary runtime dependencies.
+- Unit/component: page filters/URLs, form dirty/validation logic, Favorite set value, voice list, Reader segment lookup, annotation-source preservation, audio resume, panel/theme changes and error states.
+- End-to-end: Go + PostgreSQL + filesystem; Library → Draft → Generate → Publish → Reader → Vocabulary, plus revision safety and backup/restart flows.
+- Visual: compare representative screenshots of **all five MVP views** in light and dark at desktop/tablet widths; inspect typography, Iris color consistency, card spacing, text clipping, selected states, forms and empty/error states.
+- Basic interaction: check click/touch and normal keyboard use of **native buttons/links/forms**, but **do not introduce specialized component-behavior JS or a full accessibility-testing project**. If a polished modal is needed, prefer native `<dialog>`.
+- No separate npm UI-component package, ESM/CSS publication, peer-version isolation, Tooltip/Menu/Popover focus suite, overlay portal testing or external theme override compatibility tests.
 
-## 5. Critical end-to-end acceptance journeys
+## 5. Critical end-to-end user journeys
 
-1. Fresh local startup: Docker DB volume + Go Gin backend + Solid frontend, seeded owner/languages/topics, Library visible **without login**; restart retains all data.
-2. Chinese and Korean manual text → Save Draft → provider-backed generation → measured MP3 + exact alignment → Publish → Reader highlights, seek, download.
-3. New unsaved preview claims valid draft (or expires); no hidden draft from Generate Audio; duplicate submission with same key does not repeat Azure call.
-4. New draft/source edit, published metadata edit, working revision success/failure/discard; original published recording always safe when candidate fails.
-5. Favorite draft/published item, filter Favorites only, restart/reopen, unstar removes result while preserving version/audio/newest order.
-6. Difficulty only Beginner/Intermediate/Advanced/Unspecified; filter and edit do not regenerate audio; old `native` data migration is reviewed, never silently remapped.
-7. Upload valid ≤1 MB cover; reject 1 MB+1 byte/false MIME/invalid dimensions, preserve previous image and older oversized legacy covers.
-8. Reader selection creates/links vocabulary in **same language**; Learning/Acquired manual toggle, source refs, Topic assignment, delete item preserving word, cross-language link rejected.
-9. Invalid MP3/alignment shows original text with disabled false seeking; independent vocabulary selection remains functional. Offline Azure failure does not prevent previously saved audio playback.
-10. Test every dirty navigation choice including Back/tab unload, while generation pending and during failed save. Confirm dialogs, focus recovery and no false success.
-11. Pair DB dump and media archive, restore into a **fresh** volume; compare fingerprints, audio bytes, Topics, Favorites, vocabulary statuses and both language segments.
-12. Published UI library installed as a dependency; change Quiet Study theme and component overrides without library source edits; Reader maintains playback; keyboard/tablet/zoom acceptance passes.
+1. Fresh local start with Docker PostgreSQL, Go and Solid; stable owner; Library available **without login**; restart preserves data.
+2. Chinese and Korean text → saved draft → real valid TTS → Publish → synced Reader → audio download.
+3. Temporary preview may be claimed or expire; no hidden draft save; same generation key never repeats billable work.
+4. Draft/source edit, published metadata edit and working revision; failed/discarded candidate keeps original Reader safe.
+5. Favorite draft/published, filter, restart and remove from Favorites without modifying content version, newest order or audio.
+6. Difficulty only Beginner/Intermediate/Advanced/Unspecified, independent of audio; legacy `native` is reviewed.
+7. Cover validation at 1MB and 1MB+1, preserving existing/legacy cover on invalid replacement.
+8. Reader selection creates/links same-language vocabulary; reversible Learning/Acquired; correct Topic and references; deletion preserves words.
+9. Bad audio/timing leaves original text readable; vocabulary still possible, no misleading timed seeking.
+10. Dirty navigation and failures preserve input; no false confirmation; destructive actions require confirmation.
+11. Paired database/media dump restored into fresh local environment; compare MP3 hashes, timing, Favorites and both languages.
+12. **App-owned Iris UI** looks coherent in light/dark on desktop/tablet, forms use simple native controls, no external UI package is installed, and theme/dialog/panel changes do not restart Reader playback.
 
-## 6. Measurement and release evidence
+## 6. Evidence, reporting and remaining gates
 
-Reference environment: **at least 4 logical CPUs and 8 GiB RAM** as an initial benchmark machine, production-mode local builds, PostgreSQL on Docker with durable volume, pinned Go/Gin/pgx/sqlc, Solid/UI-package/browser versions, exact git commits and fixture generation seed. Record hardware/OS, warm/cold cache, p50/p95, failures, request traces, JS/CSS sizes, input delay, Go RSS/CPU, database queries and media checks. Run tests without competing heavy workloads; do not mingle external Azure latency with metadata API timings.
+Capture OS, hardware, app commit, Go/SQL/TypeScript versions, schema revision, browser versions, test counts, real-provider Chinese/Korean evidence, performance samples, screenshot review, local security check and paired restore results. No historical test gets credit as a current pass. Routine CI: Go format/vet/tests, sqlc/migration checks, OpenAPI/types, Solid typecheck/build/component tests, browser core smoke and dependency/secret checks. **Remove UI-package build/publish/consumer/ARIA audit steps from CI.**
 
-**Suggested CI stages:** Go formatting/vet/static lint → Go unit/race/coverage → sqlc generation drift and SQL migrations/integration → OpenAPI lint/contract and TypeScript generation freshness → Solid typecheck/build/component tests → UI-package build/accessibility/consumer smoke → browser E2E smoke → dependency/license/secret checks. Release-only: desktop/tablet browsers, real provider smoke, restart/fault, paired restore and benchmark report. Exact commands depend on the chosen repository/tool versions.
-
-**Release report:** commit, migration revision, OpenAPI spec hash, npm UI-package version, actual test pass/fail/skip counts, coverage, lint/audit findings, timing and screenshots/traces, multi-language real-TTS evidence, backup/restore checksums and known limitations. **No unexecuted test or historical report should be recorded as passing.**
-
-## 7. Preserved historical evidence and open gates
-
-The old Mandarin Reader ledger (November 2026) reported scoped tests and one verified Azure example; these are useful regression references, **not proof of a Go/SolidJS/Korean port**. The old dependency/security advisories and framework versions also require fresh assessment for today's dependencies, not automatic inheritance.
-
-**Open before freezing release criteria:** precise accepted Korean segmenter and word matcher; Azure Go SDK platform and boundary fidelity; MP3 decoder/probe; final source length and chunking policy; exact supported tablet/zoom/browser matrix; initial numeric performance budgets confirmed on target PC; binary backup implementation/validation; compiled npm UI package and published version contract.
+Still to verify: Azure Go SDK behavior on target platform, Korean boundaries and optional word matching, MP3 probe, precise source length/chunking, migration of `native`, target browser/viewport baselines, and Windows-friendly backup commands. See [13 — Plan](13-taotale-rebuild-decisions.md) and [15 — Tasks](15-taotale-implementation-tasks.md).

@@ -1,120 +1,115 @@
 # 13 — TaoTale rebuild plan, adopted decisions and remaining choices
 
-**Status:** Implementation roadmap and **decision-boundary document**, revised 23 November 2026. This **replaces** the old comparative NestJS/Go/Rust and React/Solid review: the major choices have been made. Remaining questions are implementation details or future feature decisions, **not** an invitation to silently re-open the agreed technology or MVP scope.
+**Status:** Current MVP implementation roadmap, revised **25 November 2026**. **Primary authority:** [01 — Product](01-taotale-overview-and-features.md), [02 — Decision register](02-taotale-decision-register.md), [03 — Client](03-taotale-client.md), [04 — Go](04-taotale-backend.md), [05 — DB](05-taotale-database.md), [06 — Audio](06-taotale-segmentation-and-audio.md), [08 — Iris](08-taotale-design-system.md), [15 — Task checklist](15-taotale-implementation-tasks.md).
 
-**Normative authorities:** [01 — Product](01-taotale-overview-and-features.md), [02 — Decision register](02-taotale-decision-register.md), [03 — Client](03-taotale-client.md), [04 — Backend](04-taotale-backend.md), [05 — Database](05-taotale-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md), [08 — Design system](08-taotale-design-system.md).
+## 1. Locked direction
 
-## 1. Locked project direction
-
-| Decision | Adopted TaoTale approach | Superseded historical assumption |
+| Area | Approved decision | Explicitly not required |
 |---|---|---|
-| Product and audience | **Personal, locally hosted, one persistent User** | Public/commercial multiuser SaaS, onboarding, account flows, subscriptions and billing. |
-| Learning languages | **Simplified Mandarin `zh-CN` + Korean `ko-KR`** initially, English app interface | Mandarin-only schema and assumptions; unapproved automatic support for Japanese/other languages. |
-| Client | **SolidJS + TypeScript + Vite + `@solidjs/router`** | React/MUI/Zustand/React Hook Form/TanStack Query/React Router defaults. |
-| UI library | TaoTale **consumes independently versioned npm-published SolidJS-only component package** | Building all generic components inside TaoTale; framework-agnostic component API. |
-| UI behavior/styling | npm package owns generic accessibility/overlays/transitions/theming hooks, implemented in-house (TT-032); TaoTale owns Quiet Study and domain UI | Direct app use of **Kobalte** or **Tailwind**, and Kobalte inside the package. |
-| Backend | **Go modular monolith + Gin** with adapters and persistent in-process jobs | NestJS/Node as selected runtime, Go/Rust open evaluation. |
-| Database | **PostgreSQL locally in Docker**, `pgx/v5` + **sqlc** + reviewed SQL migrations | Prisma ORM/migrations and managed SaaS databases. |
-| Media | Local files + metadata/segments in PostgreSQL; paired recoverable backups | Hosted object storage and assuming DB-only backups suffice. |
-| Speech | **Azure TTS behind a provider adapter**; validate provider word boundaries and MP3 timing for each supported language | Assuming Node Azure timings/UTF-16 behavior transparently transfer to Go. |
-| Segmentation | **Language-specific, ID+version-pinned Chinese and Korean strategies** | Applying one Chinese punctuation algorithm to all languages. |
-| Vocabulary / Topics | Vocabulary **user+language**; Topics **user-global** | One user-wide spelling namespace or Chinese-specific `pinyin` as universal metadata. |
-| Favorites | `library_items.is_favorite` on draft/published item | No Favorites, or separate collection table without a demonstrated need. |
-| Difficulty | Optional **Beginner / Intermediate / Advanced** | Native or a mandatory HSK/TOPIK proficiency mapping. |
-| Covers | New/replacement encoded image **≤1,000,000 bytes** | Old 5 MiB limit; silently deleting oversized legacy covers. |
-| Supported displays | **Desktop and tablet-sized** web layouts, keyboard/zoom | Phone-specific layouts and cross-device deployment assumed in MVP. |
-| MVP modules | Library, Create/Edit, Reader, Vocabulary, Topics, Settings, Favorites, **manual Azure audio synthesis** | Dashboard, Vocabulary Practice, AI Text/Audio Workspace or Language Islands as MVP. |
+| Product | Personal, local, single persisted user | Commercial SaaS/auth/billing |
+| Languages | `zh-CN` and `ko-KR` initially; UI English | Japanese until capability is verified |
+| Frontend | **SolidJS + TypeScript + Vite + Solid Router** | React/MUI/React Hook Form/Zustand |
+| UI ownership | **All components and styles inside TaoTale frontend**, with small app-local `components/ui` and CSS Modules | Standalone UI npm library, Eroxo integration, package publishing, external component SDK |
+| UI mechanics | **Native HTML controls** with little custom behavior; CSS hover/transitions | Kobalte/Radix/complex menu/tooltip/combobox/focus/ARIA/overlay engines |
+| Visual direction | **Iris** brand: violet, lavender, periwinkle, orchid, quiet paper surfaces, polished light/dark screens | Old sage/mint Quiet Study palette, generic library theming engine |
+| Backend | Go modular monolith, Gin, explicit services/adapters | NestJS/Node backend |
+| Data | Local Docker PostgreSQL, `pgx/v5`, `sqlc`, SQL migrations | Prisma/ORM, cloud database |
+| Media | Local durable MP3/covers + immutable asset metadata; paired backup | Cloud object storage or DB-only backup |
+| Speech | Azure TTS Go adapter, measured MP3, validated timed boundaries | Invented duration, automatic retry of charged requests |
+| Segmentation | Tested and versioned Mandarin/Korean policies, legacy audio compatibility | Chinese regex silently applied to Korean |
+| Content | Drafts, saved revisions, Reader, Favorites, manual Vocabulary/Topics | Dashboard, Practice, AI workspace, Islands in MVP |
+| Quality | Domain correctness and simple app visual/usability review on desktop/tablet | Formal accessibility certification or separate UI-library CI |
 
-**Performance objective:** Lean Go backend, explicit SQL and Solid fine-grained updates are adopted as architectural choices, **not a claim of measured superiority**. Measure real latency, CPU, RSS, bundle size and browser responsiveness. Azure provider latency and disk I/O can dominate total time.
+The chosen technologies are target decisions, **not evidence that the rebuild is complete**. Performance is measured, not assumed from Go/Solid selection.
 
-## 2. Non-negotiable data and interaction invariants
+## 2. Non-negotiable correctness boundaries
 
-1. **One stable internal User** resolved by the Go service. Do not accept arbitrary `userId` from the client; no authentication screens in MVP, and no unauthenticated LAN/public exposure.
-2. Original source **must not be trimmed/normalized** for storage, hashing, timing or display. All source offsets in persisted segments/API/Reader are documented **UTF-16 half-open** ranges; Go byte/rune offsets require explicit conversion.
-3. Each saved Library item has one language. Publication requires **exactly matching READY, decoded and validated** immutable audio with language/provider/voice/rate/strategy ID+version/fingerprint identity. Preserve old published alignment under its original version.
-4. A draft can be incomplete, previews are temporary, and a working revision never mutates the active pair until publish. Failures, crashes or stale writes do not corrupt the previous published Reader.
-5. Metadata fields (Favorite, title, difficulty, Topics, description, Notes, cover) do not invalidate audio. Favorite is an **idempotent set-value** write that does not change `updatedAt`/content version or default newest order.
-6. Vocabulary uniqueness is **(user, language, normalized key)**; same-language references only. Manual collection/status remains baseline for both languages. Chinese automatic matching is optional pending verification; **Korean morphological matching is not implied**.
-7. Topics are owner-global, default Topics protected. Covers have a **1,000,000-byte inclusive** new/replacement limit; existing larger legacy images must survive migration.
-8. Client imports the **public npm UI package**, not Kobalte or Tailwind and not unpublished internals. Generic component accessibility and transitions belong to that package; Reader synchronization stays app-specific.
-9. Paid Azure requests are **explicit**, durable and idempotent; no automatic repeat on timeout or restart. A local-only app can still send text to Azure when the user selects Generate Audio.
-10. Docker database and on-disk media must be backed up as a **consistent pair** and restore-tested on a fresh instance.
+1. One stable seeded owner; no arbitrary client owner IDs or public/LAN exposure in MVP.
+2. Preserve exact authored source, all whitespace and original UTF-16 half-open timed offsets. Go byte offsets are not browser offsets.
+3. Publication requires matching **READY validated MP3 + actual measured duration + language/voice/rate/segmentation/fingerprint identity**.
+4. Drafts may be incomplete; temporary previews are not drafts; failed revisions cannot replace published audio.
+5. Metadata changes do not invalidate audio; Favorite is a focused set-value write and does not advance content version/newest timestamp.
+6. Vocabulary uniqueness is per owner/language/normalized word key; same-language source links only. Manual collection works regardless of automatic match support.
+7. Global Topics and max 10 associations; new cover maximum exactly **1,000,000 bytes**; preserve legacy oversized assets.
+8. **UI is app-owned and simple.** CSS variables/modules and native browser elements are the default. Do not build an independently published library or custom interactive widget infrastructure.
+9. Azure jobs are explicit, durable/idempotent; never automatically repeat an uncertain paid call.
+10. Database and local media are a **single backup/restore unit**.
 
-## 3. Implementation sequence — vertical slices with evidence
+## 3. Work sequence — vertical slices
 
 ### Stage 0 — Inventory and protect source data
 
-- Identify original Mandarin Reader schema/migrations/asset directories and existing UI behavior. Backup the actual nonempty PostgreSQL database and all MP3/cover media before modifying the original. Inventory UUIDs, source texts, legacy `native` values, oversize covers, existing pinyin, timing versions, replay rows and manual/auto vocabulary references.
-- Decide whether this is an **import** to a fresh TaoTale schema or an in-place SQL upgrade; prefer a **disposable copy** for rehearsal. Preserve all old audio bytes and source offsets, even when the new algorithm differs.
-- Freeze old golden vectors/fixtures and baseline measured performance to compare with the Go/Solid rewrite. No old test result is credited as a new implementation pass.
+- Inspect Mandarin Reader schema/migrations, source text, MP3/cover paths, segmentation versions, vocabulary, Topic identity, old `native` difficulties and oversized cover files.
+- Back up nonempty source data before modification. Choose import to fresh TaoTale DB or an in-place upgrade based on a rehearsal; keep historical byte/offset evidence and UUIDs.
+- Capture golden Chinese regression vectors and representative performance baseline. No historical test run counts as a new pass.
 
-### Stage 1 — Runnable foundations and UI-package boundary
+**Exit:** a written migration inventory and recoverable baseline.
 
-- Create Go/Gin module, structured configuration/error handling, SQL migration runner, Docker PostgreSQL volume, `pgxpool`, sqlc input/config/codegen; seed stable User and `zh-CN`/`ko-KR` languages/Topics.
-- Create SolidJS/Vite/Router shell with `/library` landing, typed `fetch`, URL-backed filters, small local preferences and no account/AI/phone routes. Build the standalone UI npm package **separately** and install a real version/build in TaoTale.
-- Verify published-package ESM/types/CSS, single Solid runtime, theme customization, Dialog/Tooltip/Menu keyboard/focus/transition behavior and **no direct app Kobalte/Tailwind imports**. Bootstrap only the component set required for the first real TaoTale view; do not wait for a huge speculative catalog.
+### Stage 1 — Runnable backend/client foundation + Iris UI
 
-### Stage 2 — Highest-risk cross-language audio feasibility gate
+- Set up Go/Gin module, local Docker PostgreSQL volume/health, migration runner, pgxpool, sqlc and stable owner/language/Topic seed.
+- Create SolidJS/Vite/Router shell and typed `/api/v1` client with `/library` home, route directory and small local preferences.
+- Build **`tokens.css`, `global.css`, app-owned Button/Field/Card/Badge and the actual Library page in CSS Modules**. Use the Iris palette immediately so visual design evolves with real screens, not as a late skin.
+- Native forms/selects/buttons; simple confirmation (`window.confirm` or native `<dialog>` only as needed). **No npm UI-package work, Kobalte, Tailwind, external theming API, component packaging or custom focus/overlay mechanics.**
 
-- Prototype **real Azure Go Speech SDK** synthesis on the target OS for Mandarin and Korean. Capture provider boundary events, SSML escape mappings, MP3 bytes, decoded measured duration, cancellation, platform native dependencies and concurrent calls.
-- Implement **two distinct versioned segmentation strategies** and UTF-8/UTF-16 conversion with golden vectors. Validate exact text/timing and reject failed alignment. **Do not proceed by fabricating timestamps for Korean** if provider behavior fails the gate.
-- Preserve a compatibility reader for legacy Chinese segmentation/fingerprint format and demonstrate old published asset playback unchanged.
+**Exit:** local app boots, backend health is visible, empty Library shell looks polished in light/dark at desktop/tablet widths, no external UI library dependency.
 
-### Stage 3 — Manual content and Reader end-to-end
+### Stage 2 — Highest-risk audio feasibility gate
 
-- Implement item Draft, image upload cap/signatures, Topics, voice catalog, preview/saved generation jobs, idempotency, persistent worker, immutable media and SQL transactions. Deliver **Create → Generate → Publish → Reader → Download** with real persistence, not UI-only mocks.
-- Add version conflicts, working revisions and metadata edits; guarantee old published pair remains playable after failed/aborted candidates. Add safe byte-range media streaming, source-accurate Reader timed segments and fallback text.
-- Add Library filters/sorting/pagination, **Favorites** and correct handling of newest order/filtered result removal. Deliver browser reload/restart, dirty guard and upload failure states before breadth.
+- Test **real Azure Go SDK** Chinese and Korean voices on target runtime. Capture boundary events, XML/SSML mapping, output bytes, decoded measured duration, cancellation and native library dependencies.
+- Implement two independent versioned segmentation strategies and verified UTF-8/UTF-16 conversion with golden fixtures. Map timing without approximation. Maintain legacy Chinese strategy/fingerprint verification.
 
-### Stage 4 — Vocabulary, Settings, safety and performance
+**Exit:** real test samples in both languages produce verifiable aligned assets or documented blockers; never advance by faking timestamps.
 
-- Deliver per-language manual vocabulary, normalized uniqueness, references, reversible Learning/Acquired status, per-language list/stats, shared Topic catalog, Reader selection and popups. Add **only verified** per-language auto-matching; do not block Korean publication on unavailable auto-sync.
-- Implement Settings with client-local language/voice/rate/theme/playback/popup prefs and **truthful** local-data/backup guidance. Implement bounded cleanup, health checks, read-only integrity and safe startup/job recovery.
-- Benchmark Go metadata API, SQL queries, Solid UI and Reader updates with representative dataset; run accessibility, desktop/tablet, fault injection and paired PostgreSQL+media restore. No paid calls in ordinary CI.
+### Stage 3 — Create → Generate → Publish → Reader
 
-### Stage 5 — MVP acceptance and cutover
+- Implement item drafts, cover upload, Topic selection, voices and generation jobs; persist immutable intent/idempotency/MP3 and verified audio metadata. Complete the real backend/client publishing transaction.
+- Style the Editor as a two-column writing studio with native inputs and clear Audio status; Reader as an uncluttered reading room with beautiful typography, iris phrase highlighting and native audio controls.
+- Add edit metadata/working revision and version conflicts, reliable dirty navigation, safe media ranges and Reader text-only fallback. Keep old active asset on revision failure.
+- Finish Library cards, Favorite filter/set behavior, sorting, search, stable paging and clear empty/error states.
 
-- Lock/update **OpenAPI 3.1** target contract, generate typed client, verify Gin conformance and supported error/media semantics; keep source code, SQL, contract and docs synchronized.
-- Test an isolated import/upgrade from populated original records: compare UUIDs, words, Topics, timestamps, Favorite default, language backfill, old audio bytes/segments and unsupported `native` handling. Backups remain available for rollback.
-- Record the release report with real test counts, browser matrix, npm UI-package version, perf metrics, real Azure Chinese+Korean validation, security checks and restored fresh instance. Do not cut over the only working copy on unverified assumptions.
+**Exit:** both language flows work end to end and the published Reader survives restarts, metadata updates and theme switches without audio remount.
 
-## 4. Open implementation decisions (not permission to change product scope)
+### Stage 4 — Vocabulary, Settings, visual consistency and safety
 
-| ID | Decision needed | Recommended next step |
+- Build language-scoped manual vocabulary, references/status/search, global Topics and source selection. Use **regular forms/checkbox lists/inline panels**, not custom combobox/popover framework. Enable auto-matching only for a tested language strategy.
+- Implement Settings for theme/language/voice/rate/playback preferences, provider state and truthful **manual** backup/restore instructions.
+- Apply consistent Iris cards, type, spacing, empty/pending/error states and responsive desktop/tablet layout to Vocabulary/Settings. Review full light/dark screenshots; keep interactions simple.
+- Verify cleanup, local security, job recovery, DB/media paired restore, and Go/SQL/Solid performance. No Azure calls in routine CI.
+
+**Exit:** all five MVP screens are cohesive and usable and important local failure/recovery cases are tested.
+
+### Stage 5 — Contract, migration, final acceptance
+
+- Lock **OpenAPI 3.1**, generate client types and verify Gin requests/errors/media responses. Validate migration on a disposable data copy, comparing IDs, word statuses, source/timing, legacy covers and original audio hashes.
+- Run core end-to-end acceptance, real Azure Chinese/Korean smoke, desktop/tablet Iris light/dark visual check, loopback/security and paired restore verification.
+- Record actual tests, performance evidence, screenshots, versions, migration revision and known limitations; cut over only after a recoverable rehearsal.
+
+**Exit:** target tests pass, verified backups exist and no separate UI-library tasks block release.
+
+## 4. Remaining decisions
+
+| ID | Remaining choice | Recommended handling |
 |---|---|---|
-| OPEN-01 | Host-run Go vs Compose-run Go; PostgreSQL mapping/volume and target OS service lifecycle | Choose shortest reliable local setup; enforce loopback and persistence in either model. |
-| OPEN-02 | Go/Gin/pgx/sqlc/SQL-migration versions and OpenAPI Go codegen/validation tooling | Pin versions only after a working minimal Gin+PostgreSQL vertical slice. |
-| OPEN-03 | Azure Go SDK runtime dependencies and real Chinese/Korean word-boundary quality | Make a two-language experimental synthesis + measured MP3 + alignment fixture **before** full backend port. |
-| OPEN-04 | New Mandarin/Korean segmentation boundaries/version and exact source limit/chunking | Approve golden outputs; never silently modify legacy published alignments. |
-| OPEN-05 | Go MP3 decoder/probe and cross-platform audio duration evidence | Select based on output verification and packaging, not library count alone. |
-| OPEN-06 | Automatic exact vocabulary matching enabled for Chinese? What safe behavior, if any, for Korean? | Begin with manual linking; enable only tested strategy, expose unsupported sync honestly. |
-| OPEN-07 | Migration treatment for legacy difficulty `native` and old >1 MB covers | Report rows; preserve data; explicitly map or set null after review. Never delete old images automatically. |
-| OPEN-08 | New API canonical `/topics` path vs old `/tags`, aliases and DTO compatibility | Lock in TaoTale OpenAPI before generating clients; maintain migration mapping. |
-| OPEN-09 | Exact UI npm package name, licensing, CSS override API, compatible Solid peer version | Decide in **independent UI-library project**; verify installed package behavior in TaoTale. |
-| OPEN-10 | Reference tablet viewport/browser matrix, target performance thresholds, OS restore commands | Specify reproducible release environment before acceptance testing. |
+| OPEN-01 | Run Go on host vs within Compose | Pick easiest reliable local setup; preserve loopback and durable asset root |
+| OPEN-02 | Go/Gin/pgx/sqlc/migration tool versions, OpenAPI codegen | Pin after minimal working vertical slice |
+| OPEN-03 | Actual Azure Go SDK boundary/event reliability for both languages | Experiment before full audio port |
+| OPEN-04 | Exact language segmenter versions and maximum text/chunk policy | Golden-test and publish versions only after verified provider mapping |
+| OPEN-05 | MP3 decoder/probe on target OS | Choose verified duration/decoding evidence |
+| OPEN-06 | Chinese optional automatic match and Korean supported behavior | Start manual; activate only demonstrated strategy |
+| OPEN-07 | Legacy `native` values and >1MB covers | Report, preserve, and resolve without silent loss |
+| OPEN-08 | `/topics` vs historical `/tags` aliases | Decide when locking TaoTale OpenAPI |
+| OPEN-09 | Supported desktop/tablet browser/zoom baseline and screenshot set | Capture exact reference sizes during Stage 1 |
+| OPEN-10 | Windows-specific local backup/restore commands | Test on a disposable volume and media directory |
 
-**Do not promote** optional `UserLanguagePreference` persistence or local backup UI into required MVP tables/screens without a decision; the current client-local preferences + tested manual restore are sufficient.
+**Resolved by the 25 Nov decision:** External UI-package name/API/licensing/theme delivery are **removed**, not pending decisions. CSS Modules + in-project Iris tokens/components are approved. The palette values and MVP visual rules are in [08](08-taotale-design-system.md).
 
-## 5. Post-MVP roadmap and optional backlog
+## 5. Explicitly deferred work
 
-**Explicit post-MVP:** Dashboard; Vocabulary Practice; AI Text/Audio Generation Workspace (reuse the chosen AI provider adapter, not a parallel publishing backend); Language Islands Builder; phone-specific UX; Japanese and other languages; SRS/flashcards, scoring, curriculum, automatic difficulty and acquired-status assessment, word-level dictionary/speech, cross-device sync, cloud/SaaS auth and billing.
+Dashboard; Vocabulary Practice/SRS; AI Text/Audio Generation Workspace; Islands Builder; phone-specific UI; Japanese and further languages; scoring, word-level dictionary/TTS, public sharing, accounts/billing/cloud sync. An independent UI-component library can exist as another business/project, but **TaoTale does not need it and must not integrate it**.
 
-**Historical optional proposals from Mandarin Reader (not automatically adopted):**
+Historical optional ideas (still not MVP): Reader word browser, vocabulary CSV/JSON export, A–B repeat, audio bookmarks, reader text-size preferences, richer diagnostics.
 
-| ID | Future proposal / status |
-|---|---|
-| FEAT-01 | Reader vocabulary browser: This text vs All words; only after language/source reference definitions are clear. |
-| FEAT-02 | Vocabulary CSV/JSON export; protect Unicode/multiline and spreadsheet formula injection. |
-| FEAT-03 | Repeat selected segment or A–B audio region using native clock and immutable asset ID. |
-| FEAT-04 | Per-recording local bookmarks, invalidated when source recording changes. |
-| FEAT-05 | Reader text-size/line-spacing preferences preserving selection and highlights. |
-| FEAT-06 | Dirty guard / retained edits in vocabulary editor beyond the minimum state contract. |
-| FEAT-07 | Improved local diagnostic and recovery guide for disk/storage/generation failure; basic truthful error/recovery is already an MVP need, richer tooling is optional. |
+## 6. Governance and task tracking
 
-A public distribution/commercial plan would require **new** authentication/network authorization, HTTPS, privacy/terms, media authorization, cost/tenant controls and operations review; it is not an implicit requirement just because the UI component library is published to npm. The library is a separately distributable product; **TaoTale remains personal/local.**
-
-## 6. Decision governance
-
-- The full approved record with history is [`02-taotale-decision-register.md`](02-taotale-decision-register.md). Change a locked decision only with a new dated entry describing reason, scope, rejected alternatives and affected files/tests.
-- Product changes first update 01 and decision register; architecture/contract/persistence changes update 03–06/08/10, UI behaviors 09, operations 11 and tests 12 in the same change. Sources/traceability 14 is updated when authorities change.
-- This plan is **not** proof that the Go/Solid migration, real Azure two-language gate, npm UI library or restore procedure has been completed. Track actual evidence separately.
+The executable work breakdown is [15 — Implementation tasks](15-taotale-implementation-tasks.md). A checkbox is unchecked until verified with real implementation evidence; documentation is not a completion claim. Product scope changes update [01](01-taotale-overview-and-features.md) and [02](02-taotale-decision-register.md); CSS/UX changes update [03](03-taotale-client.md), [08](08-taotale-design-system.md) and [09](09-taotale-ui-states.md); acceptance changes update [12](12-taotale-quality-and-acceptance.md); the source index is [14](14-taotale-sources-and-coverage.md).

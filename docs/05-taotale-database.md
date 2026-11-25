@@ -2,7 +2,7 @@
 
 **Status:** Target **logical** schema for the current local single-user MVP. **Not executable migration SQL.** Physical DDL, constraint names and query files will be authored as reviewed SQL migrations and sqlc inputs.
 
-**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) defines product behavior; [`02-taotale-decision-register.md`](02-taotale-decision-register.md) tracks decisions; [`04-taotale-backend.md`](04-taotale-backend.md) defines the **Go + Gin + pgx/v5 + sqlc** architecture. This replaces the old **Prisma-centric** database document without discarding valid data-integrity decisions from Mandarin Reader.
+**Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) defines product behavior; [`02-decision-register.md`](02-taotale-decision-register.md) tracks decisions; [`04-taotale-backend.md`](04-taotale-backend.md) defines the **Go + Gin + pgx/v5 + sqlc** architecture. This replaces the old **Prisma-centric** database document without discarding valid data-integrity decisions from Mandarin Reader.
 
 ## 1. Storage and modeling rules
 
@@ -24,7 +24,7 @@
 | **WorkingRevision** (`working_revisions`) | `id`, `item_id UNIQUE`, `base_audio_asset_id`, candidate exact text, candidate voice/rate, `version`, timestamps | **Retain/adapt.** Candidate inherits item language; one per published item. Published active pair stays unchanged until atomic publish. |
 | **AudioGeneration** (`audio_generations`) | `id`, `owner_id`, `language_code`, `provider_key`, `target_type`, nullable `target_id`, immutable source snapshot, voice/rate, **`segmentation_strategy_id`**, **`segmentation_version`**, **`fingerprint_format_version`**, `source_fingerprint`, `idempotency_key`, status, nullable `audio_asset_id`, errors, claim/expiry/heartbeat/worker timestamps | **Update.** Persistent TTS job, not AI job. Candidate identity is language/strategy-aware. `OUTDATED` computed; `FAILED` records interruption. |
 | **AudioAsset** (`audio_assets`) | `id`, `owner_id`, `language_code`, `provider_key`, `storage_key UNIQUE`, MP3 MIME/size, measured `duration_ms`, exact voice/rate/fingerprint/strategy ID+version, **`fingerprint_format_version`**, **`segments JSONB`**, `created_at` | **Update.** Immutable bytes and timing pair. Metadata must identify the exact source/segmentation; keep legacy fingerprint reader. |
-| **Topic** (`topics`) | `id`, `user_id`, `name`, normalized `name_key`, system/default indicators, accessible light/dark text/background color values, timestamps | **Rename/retain `TopicTag`.** **No language column.** Global catalog reusable across Chinese/Korean. |
+| **Topic** (`topics`) | `id`, `user_id`, `name`, normalized `name_key`, system/default indicators, validated light/dark text/background color values, timestamps | **Rename/retain `TopicTag`.** **No language column.** Global catalog reusable across Chinese/Korean. |
 | **ItemTopic** (`item_topics`) | `(item_id, topic_id)` PK | Renamed `ItemTag`; join only, delete cascade. Max 10 per item at service/transaction boundary. |
 | **VocabularyEntry** (`vocabulary_entries`) | `id`, `user_id`, **`language_code`**, display `word`, **`normalized_word_key`**, optional **`reading`**, **`reading_system`** (e.g. pinyin/romanization), meaning/note, `status` `LEARNING`/`ACQUIRED`, nullable **legacy** `source_item_id`, timestamps | **Update `VocabularyItem`.** Uniqueness **`(user_id, language_code, normalized_word_key)`**. No universal `pinyin`; do not auto-convert scripts/lemmas. |
 | **VocabularyReference** (`vocabulary_references`) | `(vocabulary_entry_id, library_item_id)` PK, `added_at`, `manual_linked`, `auto_linked` | **Retain/adapt.** Manual association works for both languages; matching owner + language must be checked/enforced. Auto provenance only from verified per-language matcher. |
@@ -90,7 +90,7 @@
 ### Topics and images
 
 - Topic name uniqueness is **`(user_id, name_key)`**, case-insensitive after trim/casefold by a documented canonicalization. Do not scope Topics by language. System default keys are stable and protected from deletion, while approved renames/recolors remain supported.
-- Four saved accessible colors (light background/text, dark background/text) retain their validated contrast. Topic association limit defaults to ten per item/word; enforce in transactional services if SQL alone cannot safely express it.
+- Four saved light/dark colors (light background/text, dark background/text) retain their validated contrast. Topic association limit defaults to ten per item/word; enforce in transactional services if SQL alone cannot safely express it.
 - Image file metadata is immutable after upload; item associations can change. New/replacement upload rejects **`size_bytes > 1,000,000`**, invalid signature/MIME, unsafe dimensions or paths. A DB `CHECK (size_bytes <= 1000000)` would **incorrectly reject historical oversized covers** and should not be added without a separate migration policy. Enforce new-upload limits in the Go service; existing metadata may exceed the threshold.
 
 ## 4. Keys, constraints and indexes
@@ -213,4 +213,4 @@ These examples show the intended **SQL-first** pattern. Real queries must match 
 
 **Open physical-design decisions:** exact PostgreSQL/Go/sqlc versions and migration tool; whether `LearningLanguage` is physically a table or migration-controlled reference catalog (this specification **recommends a table** for FKs); explicit enum vs `TEXT CHECK` for difficulty/status; whether to retire `source_item_id` now or later; JSONB segments vs a separate table if querying per-segment ever becomes necessary; exact composite FK layout; MP3 integrity metadata; role of optional language-specific automatic vocabulary matching.
 
-**Maintenance:** Do not change the logical invariants solely to simplify code generation. A database change must update ordered migration SQL, `sqlc` query files/generated Go, API contract, matching domain behavior and regression tests. Record the **Go + Gin + sqlc** stack choice as a new `TT-` decision in `02-taotale-decision-register.md` when that register is next revised.
+**Maintenance:** Do not change the logical invariants solely to simplify code generation. A database change must update ordered migration SQL, `sqlc` query files/generated Go, API contract, matching domain behavior and regression tests. Record the **Go + Gin + sqlc** stack choice as a new `TT-` decision in `02-decision-register.md` when that register is next revised.

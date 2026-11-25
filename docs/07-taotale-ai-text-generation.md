@@ -148,12 +148,12 @@ The workspace eventually delegates to the existing `LibraryItem` / `GenerationJo
 
 ## 8. UX and performance expectations (future SolidJS client)
 
-- Build the workspace with **SolidJS + TypeScript + Vite + Solid Router** and the standalone UI library specified in [08](08-taotale-design-system.md) (**no Kobalte, no Tailwind**). Design-system details belong in 08, not in this document.
+- If prioritized after MVP, build the workspace in the **existing TaoTale SolidJS + TypeScript + Vite + Solid Router client**, using **app-owned Iris CSS Modules and native controls** from [08](08-taotale-design-system.md). Do **not** add a separate UI library, Kobalte/headless system or generic component-behavior framework.
 - Load the AI route and any optional provider UI **lazily** when introduced. The MVP bundle and startup should not contain a required AI connection or model-catalog fetch.
 - Keep form edits, word selections, candidate comparison and errors in Solid primitives; avoid global mutable stores for a single workspace. Use native fetch plus the shared typed API contract. Avoid adding framework-sized form/query packages without demonstrated need.
 - Show clear pending states, provider-unavailable/usage-limit errors, unknown outcome, explicit Retry, character limits, missing required words and a “data sent externally” disclosure before generation.
 - Preserve the distinction between an AI candidate, a **saved Draft**, a **temporary audio preview** and a **published item**. They must never appear to be interchangeable saved objects.
-- Keep the existing desktop/tablet support boundary; phone-specific workflow is post-MVP. Accessibility, keyboard navigation, focus, reduced-motion and safe text rendering follow 03/08.
+- Keep the existing desktop/tablet support boundary; phone-specific workflow is post-MVP. Use simple labeled native controls and safe plain-text rendering consistent with [03](03-taotale-client.md) and [08](08-taotale-design-system.md), without specialized keyboard/focus/overlay JavaScript.
 
 ## 9. Privacy, reliability and cost controls
 
@@ -186,7 +186,7 @@ The workspace eventually delegates to the existing `LibraryItem` / `GenerationJo
 | D-57/58 (Windows ChatGPT connection, DPAPI, SIWC, provider claims) | **Historical, not adopted as-is.** Reverify authorization, current provider interfaces, OS support and credential storage for a Go backend if still relevant. |
 | D-59 (separate generation workspace and candidate review) | **Post-MVP design reference.** No `/generate` or candidate API in current MVP. |
 | D-60 (Voice & Publish) | **Post-MVP UI reference.** Reuse existing Azure editor generation/preview/publish invariants instead of parallel paths. |
-| D-61 (disclosure, limits, recovery and accessible actions) | **Retain principles when feature is prioritized**; provider and protocol-specific implementation must be revalidated. |
+| D-61 (disclosure, limits, recovery and clear actions) | **Retain principles when feature is prioritized**; provider and protocol-specific implementation must be revalidated. |
 
 **Questions reserved for future implementation planning (not MVP blockers):** exact retained AI provider/model/authorization approach; required word coverage semantics per language; future prompt/output cap; whether candidates should survive browser reload; provider data-retention settings; whether the user wants HSK/TOPIK as optional *advisory* inputs; AI preview claim behavior on Save Draft; how provider credentials are stored on the installed OS. Do not prebuild tables/routes/SDK dependencies to answer questions that have no current product requirement.
 

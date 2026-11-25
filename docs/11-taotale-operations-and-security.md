@@ -1,11 +1,11 @@
 # 11 — TaoTale local operations, deployment and security
 
-**Status:** Target MVP operating model, revised 23 November 2026. **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-taotale-backend.md), [05 — PostgreSQL model](05-taotale-database.md), [10 — API](10-taotale-api.md), and [12 — Quality](12-taotale-quality-and-acceptance.md). Commands and configuration keys shown here are **proposed implementation conventions**, not verified commands from an existing TaoTale repository.
+**Status:** Target MVP operating model, revised **25 November 2026**. **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-taotale-backend.md), [05 — PostgreSQL model](05-taotale-database.md), [10 — API](10-taotale-api.md), and [12 — Quality](12-taotale-quality-and-acceptance.md). Commands and configuration keys shown here are **proposed implementation conventions**, not verified commands from an existing TaoTale repository.
 
 ## 1. Deployment boundary and selected stack
 
 - **Local, single-user web app**: SolidJS + TypeScript + Vite client, compiled for same-origin serving; **Go + Gin** HTTP server; **PostgreSQL in Docker** with persistent named volume; **pgx/v5 + sqlc** and forward SQL migrations; **local filesystem** for MP3s, cover images and temporary uploads.
-- Client consumes an **independently developed, versioned SolidJS-only npm UI library**. Generic interactive accessibility/theming/transitions come from that package; app does **not** install/import Kobalte or Tailwind. Npm is a **build-time distribution channel**, not a runtime CDN requirement.
+- The **SolidJS frontend owns its Iris CSS Modules and small native UI components**. No external UI component package, Kobalte/Tailwind, generic overlay manager or special accessibility JavaScript is part of the application. The Iris theme is local CSS, not a runtime CDN or npm dependency.
 - Backend binds to **`127.0.0.1` by default**, serves `/api/v1` and the built SPA from the same origin where feasible. Docker PostgreSQL port is loopback-only if published to the host; keep PostgreSQL on a private Compose network if Go is containerized. **Never** publish Gin/PostgreSQL unauthenticated on LAN or internet. Tablet-sized responsive UI does not imply network access from a second tablet.
 - A single persisted User row is seeded/resolved internally. No registration, sessions, OAuth, login, billing, cloud storage, managed jobs or hosted monitoring requirements in MVP.
 - **MVP learning languages:** `zh-CN` and `ko-KR`. **Japanese, Dashboard, Vocabulary Practice, AI workspace, Language Islands and phone-sized layouts are not deployment blockers because they are deferred.**
@@ -15,7 +15,7 @@
 Suggested structure (final project layout may differ):
 
 ```text
-frontend/                       # SolidJS app consuming published UI npm package
+frontend/                       # SolidJS app with app-local Iris CSS/components
 backend/                        # Go module (Gin handlers, services, sqlc output)
   db/migrations/                # reviewed forward-only .sql migrations
   db/queries/                   # sqlc input queries
@@ -48,7 +48,7 @@ local-data/                     # example of gitignored persisted media root
 | `SERVE_FRONTEND_DIST` | Optional absolute path to built SolidJS static assets. |
 | `LOG_LEVEL` | Structured safe metadata, default info. |
 
-Exact variable names, file permissions and platform-specific credential storage are resolved in runnable setup instructions. No application `.env`, PostgreSQL password, provider key, user text or private media belongs in Git, CI output, npm UI package bundle or `VITE_*` environment variables. **Do not implement AI credential flows merely because a post-MVP design exists** ([07](07-taotale-ai-text-generation.md)).
+Exact variable names, file permissions and platform-specific credential storage are resolved in runnable setup instructions. No application `.env`, PostgreSQL password, provider key, user text or private media belongs in Git, CI output, frontend bundle or `VITE_*` environment variables. **Do not implement AI credential flows merely because a post-MVP design exists** ([07](07-taotale-ai-text-generation.md)).
 
 ## 4. First start and upgrades
 
@@ -80,10 +80,10 @@ On upgrade, stop or quiesce writes and generation, take paired backup, apply for
 | Malicious cover uploads | Streaming size cap **≤1,000,000 encoded bytes**, actual JPEG/PNG/WebP signature + dimensions ≤4096×4096; avoid decompression bombs and keep previous cover if replacement fails. |
 | Private text/credentials in logs | Log only route/status/requestId/job ID/typed code and timing; redact source, title, notes, words, prompts, provider responses, secrets and absolute paths. |
 | Accidentally billable retry | Idempotency and bounded worker admissions; only explicit Generate triggers paid synthesis, no hidden retries/fallback. |
-| UI package supply-chain risk | Pin package versions/lockfile; validate actual npm package exports and provenance, audit dependencies and check the published JS/CSS is intentional; avoid runtime remote CDN. |
+| Frontend dependencies and style assets | Keep a small pinned SolidJS dependency set; review runtime packages, bundled local CSS/JS and SVGs; no external UI-component package/CDN is needed. |
 | Misleading alignment | Never serve corrupt/mismatched audio as READY. Preserve text-only Reader fallback. |
 
-The UI package owns generic keyboard/focus behavior, not backend security. Its theme or CSS override hooks must not be trusted as authorization or input validation. Keep private Local Data/backups access within explicit local paths; backup archives can reveal all user-created text and audio.
+TaoTale app-local CSS and native controls are presentation only, **never security validation or authorization**. No custom overlay/focus system is needed. Keep private Local Data/backups access within explicit local paths; backup archives can reveal all user-created text and audio.
 
 ## 7. Paired PostgreSQL + assets backup and restore
 
@@ -105,7 +105,7 @@ Settings should show honest manual instructions/status, **not** an inert Backup 
 - Structured logs, localhost health endpoints and optional process-local metrics are adequate for the personal MVP; no cloud monitoring/Redis/event bus required. Avoid recording private article contents in diagnostics.
 - Test local restart, disk-full, permission errors, missing media, corrupt alignment, Docker volume persistence, migration checksum mismatch, database outage/restart, expired previews, duplicate generation and abrupt backend termination.
 - Measure Gin/sqlc API p95, RSS/CPU, worker concurrency and route/network overhead separately from Azure provider latency. Go was selected for performance/control, **not** as proof that externally synthesized audio is faster.
-- For release, capture actual command output, commit, schema revision, UI package version, browser versions, startup logs and paired restore evidence. **Historical Mandarin Reader test counts do not certify TaoTale.** See 12.
+- For release, capture actual command output, commit, schema revision, Iris frontend revision, browser versions, startup logs and paired restore evidence. **Historical Mandarin Reader test counts do not certify TaoTale.** See 12.
 
 ## 9. Deferred and unresolved operations
 
