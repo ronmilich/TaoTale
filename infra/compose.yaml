@@ -17,6 +17,8 @@ services:
 
   api:
     build: ../backend
+    command: ["-listen", "api:8080"]
+    stop_grace_period: 15s
     depends_on:
       db:
         condition: service_healthy
@@ -27,6 +29,7 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD before starting Compose}
       PGSSLMODE: disable
       MEDIA_ROOT: /var/lib/taotale/media
+      TAOTALE_DEV_ORIGIN: ${TAOTALE_DEV_ORIGIN:-}
     ports:
       - "127.0.0.1:${PORT:-8080}:8080"
     volumes:

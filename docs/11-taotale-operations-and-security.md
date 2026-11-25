@@ -36,7 +36,8 @@ local-data/                     # example of gitignored persisted media root
 
 | Setting (proposed) | Constraint |
 |---|---|
-| `HOST` / `PORT` | Default `127.0.0.1`, chosen local port; reject accidental wildcard production binding. |
+| `-listen` / `PORT` | Standalone Go defaults to `127.0.0.1:8080`. In Compose, `PORT` selects the published loopback port. |
+| `TAOTALE_DEV_ORIGIN` | Optional single HTTP loopback origin for writes sent through a local dev proxy with a different Host. |
 | `DATABASE_URL` or separate PG fields | Local PostgreSQL credentials; backend only, never exposed in browser build. |
 | `MEDIA_ROOT` | Existing/creatable absolute persistent local directory, writable and safe. |
 | `TTS_PROVIDER` | `azure` or explicit deterministic `mock` in test/dev only. |

@@ -42,6 +42,9 @@ jobs:
           cache-dependency-path: backend/go.sum
       - run: sh ../scripts/check-go.sh
       - run: go mod verify && go vet ./... && go test ./...
+      - run: go install honnef.co/go/tools/cmd/staticcheck@v0.8.2
+      - run: staticcheck ./...
+      - run: go test -race ./...
 
   secrets:
     runs-on: ubuntu-24.04
