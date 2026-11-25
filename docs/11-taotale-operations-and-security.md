@@ -12,7 +12,7 @@
 
 ## 2. Repository, local paths and processes
 
-Suggested structure (final project layout may differ):
+Repository structure:
 
 ```text
 frontend/                       # SolidJS app with app-local Iris CSS/components
@@ -21,8 +21,9 @@ backend/                        # Go module (Gin handlers, services, sqlc output
   db/queries/                   # sqlc input queries
   db/sqlc.yaml                  # sqlc configuration
   internal/                     # domain/services/adapters/storage/worker
-infra/                          # docker-compose.yaml and local setup examples
+infra/                          # compose.yaml and .env.example
 docs/                           # numbered TaoTale specifications
+spikes/                         # isolated feasibility experiments
 local-data/                     # example of gitignored persisted media root
 ```
 

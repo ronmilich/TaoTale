@@ -1,6 +1,6 @@
-import { Title } from '@solidjs/meta';
-import Counter from '../components/Counter';
-import logo from '../logo.svg';
+import { Title } from "@solidjs/meta";
+import Counter from "../components/Counter";
+import logo from "../logo.svg";
 
 export default function Home() {
   return (
@@ -12,11 +12,7 @@ export default function Home() {
       <p>
         Edit <code>src/routes/index.tsx</code> and save to reload.
       </p>
-      <a
-        href="https://v2.solidjs.com/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <a href="https://v2.solidjs.com/" target="_blank" rel="noopener noreferrer">
         Learn Solid
       </a>
     </main>

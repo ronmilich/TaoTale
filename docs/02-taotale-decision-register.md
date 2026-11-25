@@ -52,6 +52,7 @@ These are the current product and implementation decisions. `MVP` identifies fir
 | TT-032 | MVP | Track milestone dependencies, completion and evidence in the TaoTale roadmap. Keep open decision IDs in this register. The rebuild plan provides context for the implementation sequence. | [Roadmap](taotale-roadmap.md), [13](13-taotale-rebuild-decisions.md) |
 | TT-033 | Migration | Import from a verified disposable restore into a **fresh TaoTale schema**. Preserve original IDs, text, media, published pins, timing and vocabulary provenance. Keep the original database/media pair and backup for rollback. Resolve historical difficulty and oversized-cover handling under OPEN-07. | [TAO-01 inventory and restore evidence](tao-01-legacy-inventory.md) |
 | TT-034 | MVP | Proceed with the Azure Go adapter for Mandarin (`zh-CN-XiaoxiaoNeural`) and Korean (`ko-KR-SunHiNeural`) on Linux amd64 with CGO and the native Speech SDK. Both passed all three tested rates. Map full escaped SSML code-point offsets to exact source UTF-16 spans and validate every recording. | [TAO-03 results](../spikes/azure-go/README.md), OPEN-12 |
+| TT-035 | MVP | Pin Go 1.27.4, Node 24.19.0 and pnpm 11.25.0. Keep exact frontend dependency versions and committed pnpm and Go checksums. Use the repository UI guard, formatter, lint and secret checks in CI. | [Repository checks](../README.md), OPEN-01 |
 
 
 ## 3. MVP implementation invariants and release gate

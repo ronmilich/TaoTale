@@ -1,1 +1,17 @@
 .pnpm-store/
+node_modules/
+/.work/
+/local-data/
+.env
+.env.*
+!.env.example
+*.dump
+*.sql.gz
+*.bak
+*.backup
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.webm
+media/

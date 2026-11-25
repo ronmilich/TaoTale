@@ -1,3 +1,5 @@
+name: taotale-backend
+
 services:
   db:
     image: postgres:17.11
@@ -14,7 +16,7 @@ services:
       retries: 10
 
   api:
-    build: .
+    build: ../backend
     depends_on:
       db:
         condition: service_healthy
