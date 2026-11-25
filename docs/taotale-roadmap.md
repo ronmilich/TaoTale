@@ -57,7 +57,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-01 | Legacy inventory and migration strategy | 0 | — | Done |
 | TAO-02 | Specification reconciliation | 0 | — | Done |
 | TAO-03 | Azure Go SDK feasibility spike | 0 | — | Done |
-| TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Planned |
+| TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Done |
 | TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Planned |
 | TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Planned |
 | TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Planned |
@@ -236,8 +236,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Pin compatible application dependencies and commit lockfiles; no component-package release pipeline.
 
 **Exit criteria**
-- [ ] CI green on the skeleton.
-- [ ] The dependency guard is proven by a deliberately failing test.
+- [x] The CI workflow verifies frontend format, lint, types, unit tests and build, Go format, modules, vet and tests, and Git secret scanning. Future migration, contract and browser jobs are labeled as placeholders.
+- [x] The dependency guard fixture suite proves prohibited manifests, package aliases and imports exit with failure. The native Solid fixture passes.
 
 **Depends on:** TAO-02
 

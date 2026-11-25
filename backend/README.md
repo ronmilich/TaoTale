@@ -4,7 +4,7 @@ The scaffold runs a Go/Gin HTTP service and PostgreSQL with Docker Compose. The 
 
 ## Run locally
 
-From this directory, copy `.env.example` to `.env` on first setup. Set `POSTGRES_PASSWORD` to a generated local password before starting PostgreSQL. Keep that value for subsequent starts with the same database volume. Set `PORT` to choose a host port (default 8080).
+From [infra](../infra), copy `.env.example` to `.env` on first setup. Set `POSTGRES_PASSWORD` to a generated local password before starting PostgreSQL. Keep that value for subsequent starts with the same database volume. Set `PORT` to choose a host port (default 8080).
 
 ```sh
 docker compose up --build -d

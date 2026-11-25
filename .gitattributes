@@ -1,0 +1,4 @@
+*.sh text eol=lf
+/.githooks/* text eol=lf
+/frontend/src/** text eol=lf
+/frontend/scripts/** text eol=lf
