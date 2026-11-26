@@ -43,7 +43,7 @@ type Item struct {
 }
 
 // Write transactions serialize updates to an item and its topic associations.
-func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, topics []pgtype.UUID) (Item, error) {
+func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, topics []pgtype.UUID, previewID pgtype.UUID) (Item, error) {
 	var result Item
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := queries.New(tx)
@@ -57,6 +57,11 @@ func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, to
 		if err := insertItemTopics(ctx, q, row.ID, topics); err != nil {
 			return err
 		}
+		if previewID.Valid {
+			if err := s.claimPreview(ctx, q, row, previewID); err != nil {
+				return err
+			}
+		}
 		result, err = s.loadItem(ctx, q, row)
 		return err
 	})
@@ -65,6 +70,7 @@ func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, to
 
 type ItemPatch struct {
 	ExpectedVersion                              int32
+	PreviewID                                    pgtype.UUID
 	Title, Description, Notes, Difficulty, Voice *pgtype.Text
 	SourceText                                   *string
 	Favorite                                     *bool
@@ -114,6 +120,11 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 				return err
 			}
 			if err := insertItemTopics(ctx, q, id, *patch.TopicIDs); err != nil {
+				return err
+			}
+		}
+		if patch.PreviewID.Valid {
+			if err := s.claimPreview(ctx, q, row, patch.PreviewID); err != nil {
 				return err
 			}
 		}
@@ -204,11 +215,18 @@ func (s Library) loadItem(ctx context.Context, q *queries.Queries, row queries.L
 func (s Library) loadItems(ctx context.Context, q *queries.Queries, rows []queries.LibraryItem) ([]Item, error) {
 	items := make([]Item, len(rows))
 	ids := make([]pgtype.UUID, len(rows))
+	var drafts, published []pgtype.UUID
 	positions := make(map[pgtype.UUID]int, len(rows))
 	for i, row := range rows {
 		ids[i] = row.ID
 		positions[row.ID] = i
 		items[i] = Item{LibraryItem: row, TopicIDs: []pgtype.UUID{}, Audio: Candidate{Status: "NOT_GENERATED"}}
+		if !row.PublishedAt.Valid {
+			drafts = append(drafts, row.ID)
+		} else if row.ActiveAudioAssetID.Valid {
+			published = append(published, row.ID)
+			items[i].Audio.Status = "FAILED"
+		}
 	}
 	if len(rows) == 0 {
 		return items, nil
@@ -221,13 +239,26 @@ func (s Library) loadItems(ctx context.Context, q *queries.Queries, rows []queri
 		i := positions[join.ItemID]
 		items[i].TopicIDs = append(items[i].TopicIDs, join.TopicID)
 	}
-	candidates, err := q.LatestDraftCandidates(ctx, ids)
-	if err != nil {
-		return nil, err
+	if len(drafts) != 0 {
+		candidates, err := q.LatestDraftCandidates(ctx, drafts)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range candidates {
+			item := &items[positions[row.ItemID]]
+			item.Audio = s.projectCandidate(item.LibraryItem, row)
+		}
 	}
-	for _, row := range candidates {
-		item := &items[positions[row.ItemID]]
-		item.Audio = s.projectCandidate(item.LibraryItem, row)
+	if len(published) != 0 {
+		assets, err := q.PublishedAudioAssets(ctx, published)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range assets {
+			if s.audioPresent(row.AssetID, row.StorageKey, row.ByteSize) {
+				items[positions[row.ItemID]].Audio = Candidate{Status: "READY", AssetID: row.AssetID}
+			}
+		}
 	}
 	return items, nil
 }

@@ -101,7 +101,7 @@ paths:
           $ref: '#/components/responses/APIError'
     post:
       operationId: createItem
-      summary: Save a new draft
+      summary: Save a new draft and optionally claim a matching preview
       requestBody:
         required: true
         content:
@@ -116,6 +116,8 @@ paths:
         '403':
           $ref: '#/components/responses/APIError'
         '404':
+          $ref: '#/components/responses/APIError'
+        '409':
           $ref: '#/components/responses/APIError'
         '413':
           $ref: '#/components/responses/APIError'
@@ -151,7 +153,7 @@ paths:
           $ref: '#/components/responses/APIError'
     patch:
       operationId: patchItem
-      summary: Update a saved item at the expected version
+      summary: Update an item at the expected version and optionally claim a matching preview for a draft
       requestBody:
         required: true
         content:
@@ -191,6 +193,190 @@ paths:
           $ref: '#/components/responses/APIError'
         '413':
           $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+  /items/{itemId}/audio:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/AudioAssetPin'
+    get:
+      operationId: streamItemAudio
+      summary: Stream the requested current item recording
+      parameters:
+        - $ref: '#/components/parameters/AudioRange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AudioStream'
+        '206':
+          $ref: '#/components/responses/PartialAudioStream'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '416':
+          $ref: '#/components/responses/InvalidAudioRange'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+  /items/{itemId}/audio/download:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/AudioAssetPin'
+    get:
+      operationId: downloadItemAudio
+      summary: Download the requested current item recording
+      parameters:
+        - $ref: '#/components/parameters/AudioRange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AudioDownload'
+        '206':
+          $ref: '#/components/responses/PartialAudioDownload'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '416':
+          $ref: '#/components/responses/InvalidAudioRange'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+  /tts/previews:
+    post:
+      operationId: createTTSPreview
+      summary: Admit a temporary speech preview
+      description: The exact synthesis inputs are snapshotted for 24 hours. The same key and inputs replay the original receipt. Expired keys remain reserved.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewInput'
+      responses:
+        '202':
+          description: Durable preview generation receipt.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [generationId]
+                properties:
+                  generationId: {type: string, format: uuid}
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+  /tts/previews/{generationId}:
+    parameters:
+      - $ref: '#/components/parameters/PreviewId'
+    get:
+      operationId: getTTSPreview
+      summary: Read the status of an unclaimed temporary preview
+      responses:
+        '200':
+          description: Preview status and playable asset identity when ready.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewStatus'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/MissingPreview'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+  /tts/previews/{generationId}/audio:
+    parameters:
+      - $ref: '#/components/parameters/PreviewId'
+    get:
+      operationId: streamTTSPreview
+      summary: Stream an unclaimed ready preview
+      parameters:
+        - $ref: '#/components/parameters/AudioRange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AudioStream'
+        '206':
+          $ref: '#/components/responses/PartialAudioStream'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/MissingPreview'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '416':
+          $ref: '#/components/responses/InvalidAudioRange'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+  /tts/previews/{generationId}/audio/download:
+    parameters:
+      - $ref: '#/components/parameters/PreviewId'
+    get:
+      operationId: downloadTTSPreview
+      summary: Download an unclaimed ready preview
+      parameters:
+        - $ref: '#/components/parameters/AudioRange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AudioDownload'
+        '206':
+          $ref: '#/components/responses/PartialAudioDownload'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/MissingPreview'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '416':
+          $ref: '#/components/responses/InvalidAudioRange'
         '500':
           $ref: '#/components/responses/APIError'
         '503':
@@ -440,6 +626,22 @@ paths:
                   requestId: example-request-id
 components:
   parameters:
+    AudioAssetPin:
+      name: audioAssetId
+      in: query
+      required: true
+      description: Expected asset identity. A stale or unknown recording returns 404.
+      schema: {type: string, format: uuid}
+    PreviewId:
+      name: generationId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    AudioRange:
+      name: Range
+      in: header
+      description: A single byte range, including open-ended and suffix ranges.
+      schema: {type: string}
     ItemId:
       name: itemId
       in: path
@@ -451,12 +653,106 @@ components:
       required: true
       schema: {type: string, enum: [zh-CN, ko-KR]}
   headers:
+    AcceptAudioRanges:
+      schema: {type: string, const: bytes}
+    PrivateAudioCache:
+      schema: {type: string, enum: ['private, no-cache', 'private, no-store']}
+    AudioContentRange:
+      schema: {type: string}
     RequestId:
       description: Server-generated identifier for this request.
       required: true
       schema:
         type: string
   responses:
+    AudioStream:
+      description: Full verified MP3.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptAudioRanges'
+        Cache-Control:
+          $ref: '#/components/headers/PrivateAudioCache'
+        Content-Length:
+          schema: {type: integer, minimum: 1}
+      content:
+        audio/mpeg:
+          schema: {type: string, format: binary}
+    AudioDownload:
+      description: Full verified MP3 served as an attachment.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptAudioRanges'
+        Cache-Control:
+          $ref: '#/components/headers/PrivateAudioCache'
+        Content-Length:
+          schema: {type: integer, minimum: 1}
+        Content-Disposition:
+          description: Attachment with a server-generated MP3 filename.
+          schema: {type: string}
+      content:
+        audio/mpeg:
+          schema: {type: string, format: binary}
+    PartialAudioStream:
+      description: One satisfiable byte range.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptAudioRanges'
+        Cache-Control:
+          $ref: '#/components/headers/PrivateAudioCache'
+        Content-Length:
+          schema: {type: integer, minimum: 1}
+        Content-Range:
+          $ref: '#/components/headers/AudioContentRange'
+      content:
+        audio/mpeg:
+          schema: {type: string, format: binary}
+    PartialAudioDownload:
+      description: One satisfiable byte range served as an attachment.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptAudioRanges'
+        Cache-Control:
+          $ref: '#/components/headers/PrivateAudioCache'
+        Content-Length:
+          schema: {type: integer, minimum: 1}
+        Content-Range:
+          $ref: '#/components/headers/AudioContentRange'
+        Content-Disposition:
+          description: Attachment with a server-generated MP3 filename.
+          schema: {type: string}
+      content:
+        audio/mpeg:
+          schema: {type: string, format: binary}
+    InvalidAudioRange:
+      description: INVALID_RANGE for a malformed, multiple or unsatisfiable byte range.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptAudioRanges'
+        Content-Range:
+          $ref: '#/components/headers/AudioContentRange'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    MissingPreview:
+      description: PREVIEW_NOT_FOUND for an unknown, expired or already claimed preview.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
     Item:
       description: Saved Library item.
       headers:
@@ -582,11 +878,39 @@ components:
           minItems: 1
           uniqueItems: true
           items: {type: number, exclusiveMinimum: 0}
+    PreviewInput:
+      type: object
+      additionalProperties: false
+      required: [languageCode, sourceText, voiceId, speakingRate]
+      properties:
+        languageCode: {type: string, enum: [zh-CN, ko-KR]}
+        sourceText:
+          type: string
+          minLength: 1
+          maxLength: 1500
+          description: Exact speech source of up to 1500 UTF-16 units.
+        voiceId: {type: string}
+        speakingRate: {type: number, enum: [0.75, 1, 1.25]}
+    PreviewStatus:
+      type: object
+      additionalProperties: false
+      required: [generationId, status, expiresAt, sourceFingerprint, audioAssetId, errorCode]
+      properties:
+        generationId: {type: string, format: uuid}
+        status: {type: string, enum: [PENDING, PROCESSING, READY, FAILED]}
+        expiresAt: {type: string, format: date-time}
+        sourceFingerprint: {type: string}
+        audioAssetId: {type: [string, 'null'], format: uuid}
+        errorCode: {type: [string, 'null']}
     ItemCreate:
       type: object
       additionalProperties: false
       required: [languageCode]
       properties:
+        previewGenerationId:
+          type: string
+          format: uuid
+          description: Claim this owned, unexpired READY preview with exactly matching synthesis inputs.
         languageCode: {type: string, enum: [zh-CN, ko-KR]}
         title: {type: [string, 'null'], maxLength: 120}
         sourceText:
@@ -609,6 +933,10 @@ components:
       additionalProperties: false
       required: [expectedVersion]
       properties:
+        previewGenerationId:
+          type: string
+          format: uuid
+          description: Claim this owned, unexpired READY preview against the draft inputs after applying the patch.
         expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
         title: {type: [string, 'null'], maxLength: 120}
         sourceText:

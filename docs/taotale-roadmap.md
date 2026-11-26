@@ -73,7 +73,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Done |
 | TAO-18 | Generation admission and idempotency | 3 | TAO-15, TAO-16 | Done |
 | TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Done |
-| TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Planned |
+| TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Done |
 | TAO-21 | Editor: new item and drafts | 4 | TAO-10, TAO-16 | Planned |
 | TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Planned |
 | TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Planned |
@@ -538,8 +538,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Temporary previews: `POST /tts/previews`, plus status, audio and download routes. Previews expire after 24 hours, are claimed on Save Draft (DB-3), and return a typed `PREVIEW_NOT_FOUND` once gone.
 
 **Exit criteria**
-- [ ] Range and pinning tests pass: a stale URL never serves new bytes.
-- [ ] Claim and expiry tests pass.
+- [x] Range and pinning tests pass: a stale URL never serves new bytes.
+- [x] Claim and expiry tests pass.
 
 **Depends on:** TAO-19
 

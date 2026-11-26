@@ -27,7 +27,7 @@ UPDATE public.audio_generations
 SET status = 'PROCESSING', started_at = statement_timestamp(), heartbeat_at = statement_timestamp()
 WHERE id = (SELECT g.id FROM public.audio_generations g WHERE g.status = 'PENDING'
             ORDER BY g.admission_order LIMIT 1 FOR UPDATE SKIP LOCKED)
-RETURNING id, user_id, item_id, operation, idempotency_key, admission_order, language_code, provider_id, voice_id, speaking_rate, strategy_id, strategy_version, fingerprint_format_version, source_text, source_fingerprint, status, audio_asset_id, error_code, created_at, started_at, heartbeat_at, completed_at
+RETURNING id, user_id, item_id, operation, idempotency_key, admission_order, language_code, provider_id, voice_id, speaking_rate, strategy_id, strategy_version, fingerprint_format_version, source_text, source_fingerprint, status, audio_asset_id, error_code, created_at, started_at, heartbeat_at, completed_at, expires_at
 `
 
 func (q *Queries) ClaimGeneration(ctx context.Context) (AudioGeneration, error) {
@@ -56,6 +56,7 @@ func (q *Queries) ClaimGeneration(ctx context.Context) (AudioGeneration, error) 
 		&i.StartedAt,
 		&i.HeartbeatAt,
 		&i.CompletedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }

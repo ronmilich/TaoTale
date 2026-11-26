@@ -1,11 +1,11 @@
 -- name: GetGenerationReceipt :one
 SELECT request_hash, generation_id, (expires_at > statement_timestamp())::boolean AS replayable
 FROM public.idempotency_records
-WHERE user_id = $1 AND operation = 'generate_draft_audio' AND key = $2;
+WHERE user_id = $1 AND operation = $2 AND key = $3;
 
 -- name: ReserveGenerationKey :one
 INSERT INTO public.idempotency_records (user_id, operation, key, request_hash, generation_id)
-VALUES ($1, 'generate_draft_audio', $2, $3, gen_random_uuid())
+VALUES ($1, $2, $3, $4, gen_random_uuid())
 RETURNING generation_id;
 
 -- name: GenerationUsage :one
@@ -15,12 +15,14 @@ SELECT
     (SELECT count(*) FROM public.audio_generations g WHERE g.user_id = sqlc.arg(user_id)
      AND g.status IN ('PENDING', 'PROCESSING')) AS active_count,
     (SELECT count(*) FROM public.idempotency_records r WHERE r.user_id = sqlc.arg(user_id)
-     AND r.operation = 'generate_draft_audio' AND r.created_at > statement_timestamp() - interval '1 hour') AS hourly_count;
+     AND r.operation IN ('generate_draft_audio', 'generate_preview_audio')
+     AND r.created_at > statement_timestamp() - interval '1 hour') AS hourly_count;
 
 -- name: InsertGeneration :exec
-INSERT INTO public.audio_generations (id, user_id, item_id, idempotency_key, language_code, provider_id,
-    voice_id, speaking_rate, strategy_id, strategy_version, fingerprint_format_version, source_text, source_fingerprint)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13);
+INSERT INTO public.audio_generations (id, user_id, item_id, operation, idempotency_key, language_code, provider_id,
+    voice_id, speaking_rate, strategy_id, strategy_version, fingerprint_format_version, source_text, source_fingerprint, expires_at)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+    CASE WHEN $4 = 'generate_preview_audio' THEN statement_timestamp() + interval '24 hours' END);
 
 -- name: LatestDraftCandidates :many
 SELECT DISTINCT ON (g.item_id) g.item_id, g.id, g.source_fingerprint, g.status, g.error_code,

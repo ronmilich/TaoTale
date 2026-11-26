@@ -19,7 +19,7 @@ SELECT u.id, l.code, $1, $2, $3, $4,
        $5, $6, $7, $8
 FROM public.users u CROSS JOIN public.learning_languages l
 WHERE u.singleton AND l.enabled AND l.code = $9
-RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at
+RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id
 `
 
 type AddItemParams struct {
@@ -63,6 +63,7 @@ func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) (LibraryItem, 
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ActiveAudioAssetID,
 	)
 	return i, err
 }
@@ -122,7 +123,7 @@ func (q *Queries) DeleteItem(ctx context.Context, id pgtype.UUID) (int64, error)
 }
 
 const getItem = `-- name: GetItem :one
-SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at FROM public.library_items
+SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id FROM public.library_items
 WHERE library_items.id = $1 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
 `
 
@@ -145,6 +146,7 @@ func (q *Queries) GetItem(ctx context.Context, id pgtype.UUID) (LibraryItem, err
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ActiveAudioAssetID,
 	)
 	return i, err
 }
@@ -181,7 +183,7 @@ func (q *Queries) GetItemTopics(ctx context.Context, itemIds []pgtype.UUID) ([]G
 }
 
 const lockItem = `-- name: LockItem :one
-SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at FROM public.library_items
+SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id FROM public.library_items
 WHERE library_items.id = $1 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
 FOR UPDATE
 `
@@ -205,6 +207,7 @@ func (q *Queries) LockItem(ctx context.Context, id pgtype.UUID) (LibraryItem, er
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ActiveAudioAssetID,
 	)
 	return i, err
 }
@@ -238,7 +241,7 @@ func (q *Queries) LockOwnedTopics(ctx context.Context, topicIds []pgtype.UUID) (
 }
 
 const pageItems = `-- name: PageItems :many
-SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at FROM public.library_items
+SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id FROM public.library_items
 WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND language_code = $1
 ORDER BY created_at DESC, id DESC
 LIMIT $3::int OFFSET $2::bigint
@@ -275,6 +278,7 @@ func (q *Queries) PageItems(ctx context.Context, arg PageItemsParams) ([]Library
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ActiveAudioAssetID,
 		); err != nil {
 			return nil, err
 		}
@@ -294,7 +298,7 @@ SET title = $1, source_text = $2, description = $3,
     version = version + 1, updated_at = clock_timestamp()
 WHERE library_items.id = $9 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
   AND version = $10
-RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at
+RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id
 `
 
 type UpdateItemParams struct {
@@ -340,6 +344,7 @@ func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Library
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ActiveAudioAssetID,
 	)
 	return i, err
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
+	"taotale/backend/internal/media"
 	"taotale/backend/internal/persistence"
 	"taotale/backend/internal/persistence/queries"
 	"taotale/backend/internal/sourcetext"
@@ -38,6 +39,7 @@ type itemInput struct {
 	VoiceID      field[string]   `json:"voiceId"`
 	SpeakingRate field[float64]  `json:"speakingRate"`
 	TopicIDs     field[[]string] `json:"topicIds"`
+	PreviewID    field[string]   `json:"previewGenerationId"`
 }
 
 func (i itemInput) validate(providerID string) (persistence.ItemPatch, string) {
@@ -96,10 +98,18 @@ func (i itemInput) validate(providerID string) (persistence.ItemPatch, string) {
 		}
 		topics = &ids
 	}
+	var previewID pgtype.UUID
+	if i.PreviewID.Set {
+		if id, ok := parseID(defaultValue(i.PreviewID.Value)); ok {
+			previewID = id
+		} else {
+			return persistence.ItemPatch{}, "Send a valid preview generation ID."
+		}
+	}
 	return persistence.ItemPatch{
 		Title: textField(i.Title), Description: textField(i.Description), Notes: textField(i.Notes),
 		Difficulty: textField(i.Difficulty), Voice: textField(i.VoiceID), SourceText: i.SourceText.Value,
-		Favorite: i.IsFavorite.Value, Rate: rate, TopicIDs: topics,
+		Favorite: i.IsFavorite.Value, Rate: rate, TopicIDs: topics, PreviewID: previewID,
 	}, ""
 }
 
@@ -200,7 +210,7 @@ func registerLibrary(router *gin.Engine, store *persistence.Library, providerID 
 			LanguageCode: input.Language, Title: defaultValue(patch.Title), SourceText: defaultValue(patch.SourceText),
 			Description: defaultValue(patch.Description), Notes: defaultValue(patch.Notes), Difficulty: defaultValue(patch.Difficulty),
 			IsFavorite: defaultValue(patch.Favorite), VoiceID: defaultValue(patch.Voice), SpeakingRate: defaultValue(patch.Rate),
-		}, defaultValue(patch.TopicIDs))
+		}, defaultValue(patch.TopicIDs), patch.PreviewID)
 		writeItem(c, item, err, http.StatusCreated)
 	})
 	router.GET("/api/v1/items/:itemId", func(c *gin.Context) {
@@ -304,6 +314,18 @@ func failLibrary(c *gin.Context, err error) {
 		failDetails(c, 409, "DUPLICATE_TOPIC", "A topic already has that name.", gin.H{"existingId": duplicate.ID})
 	case errors.Is(err, persistence.ErrItemNotFound):
 		fail(c, 404, "ITEM_NOT_FOUND", "Resource not found.")
+	case errors.Is(err, persistence.ErrPreviewNotFound):
+		fail(c, 404, "PREVIEW_NOT_FOUND", "Resource not found.")
+	case errors.Is(err, persistence.ErrPreviewMismatch):
+		fail(c, 409, "PREVIEW_MISMATCH", "The preview does not match the draft's speech inputs.")
+	case errors.Is(err, persistence.ErrAudioNotReady):
+		fail(c, 409, "AUDIO_NOT_READY", "The preview has no ready audio.")
+	case errors.Is(err, persistence.ErrAudioNotFound):
+		fail(c, 404, "AUDIO_NOT_FOUND", "The requested recording is not current or does not exist.")
+	case errors.Is(err, media.ErrAudioUnavailable):
+		fail(c, 503, "AUDIO_UNAVAILABLE", "The verified recording is unavailable.")
+	case errors.Is(err, persistence.ErrInvalidDraft):
+		fail(c, 409, "INVALID_ITEM_STATE", "Only a draft can claim a temporary preview.")
 	case errors.Is(err, persistence.ErrTopicNotFound):
 		fail(c, 404, "TOPIC_NOT_FOUND", "Resource not found.")
 	case errors.Is(err, persistence.ErrDefaultTopic):

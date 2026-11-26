@@ -43,7 +43,8 @@ SELECT
     (SELECT count(*) FROM public.audio_generations g WHERE g.user_id = $1
      AND g.status IN ('PENDING', 'PROCESSING')) AS active_count,
     (SELECT count(*) FROM public.idempotency_records r WHERE r.user_id = $1
-     AND r.operation = 'generate_draft_audio' AND r.created_at > statement_timestamp() - interval '1 hour') AS hourly_count
+     AND r.operation IN ('generate_draft_audio', 'generate_preview_audio')
+     AND r.created_at > statement_timestamp() - interval '1 hour') AS hourly_count
 `
 
 type GenerationUsageParams struct {
@@ -67,12 +68,13 @@ func (q *Queries) GenerationUsage(ctx context.Context, arg GenerationUsageParams
 const getGenerationReceipt = `-- name: GetGenerationReceipt :one
 SELECT request_hash, generation_id, (expires_at > statement_timestamp())::boolean AS replayable
 FROM public.idempotency_records
-WHERE user_id = $1 AND operation = 'generate_draft_audio' AND key = $2
+WHERE user_id = $1 AND operation = $2 AND key = $3
 `
 
 type GetGenerationReceiptParams struct {
-	UserID pgtype.UUID
-	Key    pgtype.UUID
+	UserID    pgtype.UUID
+	Operation string
+	Key       pgtype.UUID
 }
 
 type GetGenerationReceiptRow struct {
@@ -82,22 +84,24 @@ type GetGenerationReceiptRow struct {
 }
 
 func (q *Queries) GetGenerationReceipt(ctx context.Context, arg GetGenerationReceiptParams) (GetGenerationReceiptRow, error) {
-	row := q.db.QueryRow(ctx, getGenerationReceipt, arg.UserID, arg.Key)
+	row := q.db.QueryRow(ctx, getGenerationReceipt, arg.UserID, arg.Operation, arg.Key)
 	var i GetGenerationReceiptRow
 	err := row.Scan(&i.RequestHash, &i.GenerationID, &i.Replayable)
 	return i, err
 }
 
 const insertGeneration = `-- name: InsertGeneration :exec
-INSERT INTO public.audio_generations (id, user_id, item_id, idempotency_key, language_code, provider_id,
-    voice_id, speaking_rate, strategy_id, strategy_version, fingerprint_format_version, source_text, source_fingerprint)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+INSERT INTO public.audio_generations (id, user_id, item_id, operation, idempotency_key, language_code, provider_id,
+    voice_id, speaking_rate, strategy_id, strategy_version, fingerprint_format_version, source_text, source_fingerprint, expires_at)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+    CASE WHEN $4 = 'generate_preview_audio' THEN statement_timestamp() + interval '24 hours' END)
 `
 
 type InsertGenerationParams struct {
 	ID                       pgtype.UUID
 	UserID                   pgtype.UUID
 	ItemID                   pgtype.UUID
+	Operation                string
 	IdempotencyKey           pgtype.UUID
 	LanguageCode             string
 	ProviderID               string
@@ -115,6 +119,7 @@ func (q *Queries) InsertGeneration(ctx context.Context, arg InsertGenerationPara
 		arg.ID,
 		arg.UserID,
 		arg.ItemID,
+		arg.Operation,
 		arg.IdempotencyKey,
 		arg.LanguageCode,
 		arg.ProviderID,
@@ -183,18 +188,24 @@ func (q *Queries) LatestDraftCandidates(ctx context.Context, itemIds []pgtype.UU
 
 const reserveGenerationKey = `-- name: ReserveGenerationKey :one
 INSERT INTO public.idempotency_records (user_id, operation, key, request_hash, generation_id)
-VALUES ($1, 'generate_draft_audio', $2, $3, gen_random_uuid())
+VALUES ($1, $2, $3, $4, gen_random_uuid())
 RETURNING generation_id
 `
 
 type ReserveGenerationKeyParams struct {
 	UserID      pgtype.UUID
+	Operation   string
 	Key         pgtype.UUID
 	RequestHash string
 }
 
 func (q *Queries) ReserveGenerationKey(ctx context.Context, arg ReserveGenerationKeyParams) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, reserveGenerationKey, arg.UserID, arg.Key, arg.RequestHash)
+	row := q.db.QueryRow(ctx, reserveGenerationKey,
+		arg.UserID,
+		arg.Operation,
+		arg.Key,
+		arg.RequestHash,
+	)
 	var generation_id pgtype.UUID
 	err := row.Scan(&generation_id)
 	return generation_id, err

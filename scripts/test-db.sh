@@ -39,6 +39,7 @@ docker run --rm --network "$test_network" -v "$root/backend:/src:ro" -w /src \
                           go test -count=1 -v ./internal/httpapi -run "^TestGenerationPostgres$"
                           apt-get update -qq
                           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null
+                          go test -count=1 -v ./internal/httpapi -run "^TestPreviewAudioPostgres$"
                           go test -count=1 -v ./internal/generation -run "^TestWorkerPostgres$"'
 
 restored_db=$(fresh_postgres --network none)
