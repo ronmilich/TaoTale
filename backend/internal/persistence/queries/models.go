@@ -47,6 +47,9 @@ type AudioGeneration struct {
 	AudioAssetID             pgtype.UUID
 	ErrorCode                pgtype.Text
 	CreatedAt                pgtype.Timestamptz
+	StartedAt                pgtype.Timestamptz
+	HeartbeatAt              pgtype.Timestamptz
+	CompletedAt              pgtype.Timestamptz
 }
 
 type IdempotencyRecord struct {

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/sync/errgroup"
+	"taotale/backend/internal/generation"
 	"taotale/backend/internal/httpapi"
 	"taotale/backend/internal/media"
 	"taotale/backend/internal/persistence"
@@ -60,9 +62,15 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 	if err != nil {
 		return errors.New("cannot open HTTP listener")
 	}
+	defer listener.Close()
+	provider := tts.NewAzure(config.SpeechKey, config.SpeechRegion, "/usr/local/bin/taotale-azure", tts.DefaultTimeout)
+	worker, err := generation.Open(ctx, pool, config.MediaRoot, provider)
+	if err != nil {
+		return err
+	}
+	defer worker.Close()
 	server := &http.Server{
-		Handler: httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa,
-			tts.NewAzure(config.SpeechKey, config.SpeechRegion, "/usr/local/bin/taotale-azure", tts.DefaultTimeout),
+		Handler: httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa, provider,
 			&persistence.Library{Pool: pool, MediaRoot: config.MediaRoot, Limits: config.GenerationLimits}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -70,7 +78,10 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		IdleTimeout:       time.Minute,
 		MaxHeaderBytes:    16 * 1024,
 	}
-	return serve(ctx, listener, server)
+	group, ctx := errgroup.WithContext(ctx)
+	group.Go(func() error { return worker.Run(ctx, config.GenerationLimits.Active) })
+	group.Go(func() error { return serve(ctx, listener, server) })
+	return group.Wait()
 }
 
 func serve(ctx context.Context, listener net.Listener, server *http.Server) error {

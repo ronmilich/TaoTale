@@ -36,7 +36,10 @@ docker run --rm --network "$test_network" -v "$root/backend:/src:ro" -w /src \
     -e 'TAOTALE_TEST_DATABASE_URL=postgres://postgres@postgres/taotale_test?sslmode=disable' \
     golang:1.27.4 sh -ec 'go test -count=1 -v ./internal/persistence -run "^TestPostgresMigrateAndSeed$"
                           go test -count=1 -v ./internal/httpapi -run "^TestLibraryPostgres$"
-                          go test -count=1 -v ./internal/httpapi -run "^TestGenerationPostgres$"'
+                          go test -count=1 -v ./internal/httpapi -run "^TestGenerationPostgres$"
+                          apt-get update -qq
+                          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null
+                          go test -count=1 -v ./internal/generation -run "^TestWorkerPostgres$"'
 
 restored_db=$(fresh_postgres --network none)
 wait_postgres "$restored_db"

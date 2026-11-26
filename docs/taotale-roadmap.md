@@ -72,7 +72,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-16 | Library item and draft API | 3 | TAO-07, TAO-08 | Done |
 | TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Done |
 | TAO-18 | Generation admission and idempotency | 3 | TAO-15, TAO-16 | Done |
-| TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Planned |
+| TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Done |
 | TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Planned |
 | TAO-21 | Editor: new item and drafts | 4 | TAO-10, TAO-16 | Planned |
 | TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Planned |
@@ -523,9 +523,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Startup reconciliation: interrupted jobs become FAILED with `GENERATION_INTERRUPTED` and are never resubmitted. Readiness waits until reconciliation finishes.
 
 **Exit criteria**
-- [ ] NFR-13: the same key never calls the provider twice (counted through the mock).
-- [ ] A restart mid-job is handled correctly.
-- [ ] A failed promotion never affects published assets.
+- [x] Replaying an admitted key yields one synthesis call in the counting mock.
+- [x] Killing a worker inside synthesis leaves a recorded heartbeat. Startup marks its active and queued jobs interrupted and replay preserves their outcomes.
+- [x] A destination collision preserves published bytes. A forced READY transaction failure rolls back asset metadata and startup removes the orphan file.
 
 **Depends on:** TAO-18
 

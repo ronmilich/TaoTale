@@ -20,7 +20,7 @@ The optional Linux amd64 Speech image uses the pinned native SDK. Set `TAOTALE_B
 
 The Speech image includes FFmpeg for measuring decoded MP3 duration. To replay the existing TAO-03 captures, set `TAOTALE_AZURE_REPLAY_DIR` to the local evidence directory and run `go test -run TestTAO03Replay -v ./internal/alignment` from `backend/` with FFmpeg on your path. Replay reads the captured audio and events offline.
 
-`GET /api/v1/tts/voices?languageCode=zh-CN` or `?languageCode=ko-KR` lists the verified voice and supported rates for the requested language. The endpoint uses the local allowlist and makes no Azure requests. It returns `503 TTS_UNAVAILABLE` when the provider lacks credentials or its native worker. Automated tests use the deterministic mock and offline worker fixtures. The generation job and publishing flow are later milestones.
+`GET /api/v1/tts/voices?languageCode=zh-CN` or `?languageCode=ko-KR` lists the verified voice and supported rates for the requested language. The endpoint uses the local allowlist and makes no Azure requests. It returns `503 TTS_UNAVAILABLE` when the provider lacks credentials or its native worker. Automated tests use the deterministic mock and offline worker fixtures.
 
 Standalone Go runs default to `127.0.0.1:8080`. Compose binds the Go process to the private address of its `api` service and publishes the host port on loopback. Every request must use a loopback Host. For a write with an Origin header, the origin must match the request's HTTP origin or the optional `TAOTALE_DEV_ORIGIN` in `infra/.env` (for example, `http://localhost:3000`). Configure it only when the local dev proxy uses a different Host. The normal Vite proxy preserves the browser's Host.
 
@@ -35,6 +35,10 @@ Add a numbered SQL file to `db/migrations/` for schema changes. Keep applied SQL
 From the repository root, use `sh scripts/sqlc.sh generate` to regenerate the pgx/v5 query package and `sh scripts/sqlc.sh diff` to check for drift. Run `bash scripts/test-db.sh` to exercise migration, seeding and SQL-only dump/restore in disposable PostgreSQL containers.
 
 Saved-draft generation admits at most two active jobs and 60 jobs per owner in a rolling hour. Set `TTS_MAX_CONCURRENT_GENERATIONS` and `TTS_MAX_GENERATIONS_PER_HOUR` to positive integers to change those defaults. Each receipt is replayable for 24 hours. Expired keys remain reserved.
+
+The API process runs the generation worker. A claimed job records its start and a heartbeat every five seconds. Before reporting `READY`, the worker decodes the staged MP3 with FFmpeg, checks segment alignment, and durably links the validated file under `audio/{audioAssetId}.mp3`. Staging and audio directories must share a filesystem that supports hard links. The asset metadata and completed generation commit together.
+
+Startup acquires a PostgreSQL session lock before recovery. It records existing `PENDING` and `PROCESSING` jobs as `FAILED / GENERATION_INTERRUPTED`, clears abandoned worker staging files and reconciles unreferenced audio files before serving requests. The original key still identifies the interrupted attempt. A deliberate retry requires a new key.
 
 PostgreSQL 17.11 stores data in the `taotale-backend_postgres` named volume. The API runs as UID 10001 and initializes its absolute `MEDIA_ROOT` at `/var/lib/taotale/media` in the `taotale-backend_media` named volume. The root, `staging/`, `temporary/audio/`, `audio/`, `temporary/images/`, and `images/` use owner-only directory permissions (`0700`).
 

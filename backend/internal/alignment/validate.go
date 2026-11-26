@@ -26,8 +26,8 @@ func unreliable(reason string) error { return &Error{reason} }
 
 type TimedSegment struct {
 	segmentation.Segment
-	StartMS int64
-	EndMS   int64
+	StartMS int64 `json:"startMs"`
+	EndMS   int64 `json:"endMs"`
 }
 
 type Verified struct {

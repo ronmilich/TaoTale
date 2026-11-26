@@ -32,13 +32,13 @@ func Default(languageCode string) (Key, error) {
 }
 
 type Span struct {
-	TextStart int
-	TextEnd   int
-	Text      string
+	TextStart int    `json:"textStart"`
+	TextEnd   int    `json:"textEnd"`
+	Text      string `json:"text"`
 }
 
 type Segment struct {
-	Index int
+	Index int `json:"index"`
 	Span
 }
 
