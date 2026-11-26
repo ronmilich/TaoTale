@@ -21,7 +21,7 @@ paths:
         '200':
           $ref: '#/components/responses/Healthy'
         '503':
-          description: PostgreSQL or the media directory is unavailable.
+          description: PostgreSQL is unreachable, its migration history is incompatible, or the media directory is unwritable.
           headers:
             X-Request-Id:
               $ref: '#/components/headers/RequestId'
