@@ -64,7 +64,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Done |
 | TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Done |
 | TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Done |
-| TAO-11 | Unicode offsets and fingerprints | 2 | TAO-01, TAO-06 | Planned |
+| TAO-11 | Unicode offsets and fingerprints | 2 | TAO-01, TAO-06 | Done |
 | TAO-12 | Segmentation registry and Mandarin strategies | 2 | TAO-11 | Planned |
 | TAO-13 | Korean segmentation strategy | 2 | TAO-12 | Planned |
 | TAO-14 | TTS provider adapter, voice catalog and mock provider | 2 | TAO-03, TAO-08 | Planned |
@@ -368,8 +368,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - A legacy fingerprint verifier that reproduces the Mandarin Reader format, using the frozen vectors from TAO-01.
 
 **Exit criteria**
-- [ ] Golden vectors pass.
-- [ ] Offset convention documented; no Go byte offsets are ever persisted.
+- [x] Four schema-2 byte and digest vectors and five frozen Mandarin Reader fingerprints pass.
+- [x] F3 tests cover all three coordinates, exact boundaries and malformed input. Persisted ranges use half-open UTF-16 coordinates. [Offset and fingerprint conventions](06-taotale-segmentation-and-audio.md)
 
 **Depends on:** TAO-01, TAO-06
 
