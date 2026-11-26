@@ -55,6 +55,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the owner's items for one learning language */
+        get: operations["listItems"];
+        put?: never;
+        /** Save a new draft */
+        post: operations["createItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Read a saved item */
+        get: operations["getItem"];
+        put?: never;
+        post?: never;
+        /** Delete an owned item and its topic associations */
+        delete: operations["deleteItem"];
+        options?: never;
+        head?: never;
+        /** Update a saved item at the expected version */
+        patch: operations["patchItem"];
+        trace?: never;
+    };
     "/topics": {
         parameters: {
             query?: never;
@@ -65,11 +104,32 @@ export interface paths {
         /** List the local owner's Topics */
         get: operations["listTopics"];
         put?: never;
-        post?: never;
+        /** Create a Topic shared across the owner's learning languages */
+        post: operations["createTopic"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/topics/{topicId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topicId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a custom Topic and its associations */
+        delete: operations["deleteTopic"];
+        options?: never;
+        head?: never;
+        /** Rename or recolor an owned Topic */
+        patch: operations["patchTopic"];
         trace?: never;
     };
     "/tts/voices": {
@@ -99,6 +159,9 @@ export interface components {
                 message: string;
                 requestId: string;
                 details?: {
+                    currentVersion?: number;
+                    /** Format: uuid */
+                    existingId?: string;
                     fields?: {
                         path: string;
                         code: string;
@@ -127,6 +190,83 @@ export interface components {
             providerId: "azure" | "mock";
             speakingRates: number[];
         };
+        ItemCreate: {
+            /** @enum {string} */
+            languageCode: "zh-CN" | "ko-KR";
+            title?: string | null;
+            /** @description Exact source of up to 1500 UTF-16 units. */
+            sourceText?: string;
+            description?: string | null;
+            notes?: string | null;
+            /** @enum {string|null} */
+            difficulty?: "beginner" | "intermediate" | "advanced" | null;
+            isFavorite?: boolean;
+            voiceId?: string | null;
+            /** @enum {number|null} */
+            speakingRate?: 0.75 | 1 | 1.25 | null;
+            topicIds?: string[];
+        };
+        ItemPatch: {
+            expectedVersion: number;
+            title?: string | null;
+            /** @description Exact source of up to 1500 UTF-16 units. */
+            sourceText?: string;
+            description?: string | null;
+            notes?: string | null;
+            /** @enum {string|null} */
+            difficulty?: "beginner" | "intermediate" | "advanced" | null;
+            isFavorite?: boolean;
+            voiceId?: string | null;
+            /** @enum {number|null} */
+            speakingRate?: 0.75 | 1 | 1.25 | null;
+            topicIds?: string[];
+        };
+        Item: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            languageCode: "zh-CN" | "ko-KR";
+            /** @enum {string} */
+            status: "draft" | "published";
+            version: number;
+            /** Format: date-time */
+            publishedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @enum {string} */
+            audioStatus: "NOT_GENERATED";
+            title: string | null;
+            /** @description Exact source of up to 1500 UTF-16 units. */
+            sourceText: string;
+            description: string | null;
+            notes: string | null;
+            /** @enum {string|null} */
+            difficulty: "beginner" | "intermediate" | "advanced" | null;
+            isFavorite: boolean;
+            voiceId: string | null;
+            /** @enum {number|null} */
+            speakingRate: 0.75 | 1 | 1.25 | null;
+            topicIds: string[];
+        };
+        ItemPage: {
+            items: components["schemas"]["Item"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        TopicCreate: {
+            name: string;
+            /** @default iris */
+            colorPreset: components["schemas"]["TopicPreset"];
+        };
+        TopicPatch: {
+            name?: string;
+            colorPreset?: components["schemas"]["TopicPreset"];
+        };
+        /** @enum {string} */
+        TopicPreset: "iris" | "periwinkle" | "orchid" | "sage" | "amber" | "slate";
         TopicList: {
             items: components["schemas"]["Topic"][];
         };
@@ -134,6 +274,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+            usageCount: number;
             isDefault: boolean;
             systemKey: string | null;
             colors: {
@@ -147,6 +288,44 @@ export interface components {
         };
     };
     responses: {
+        /** @description Saved Library item. */
+        Item: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Item"];
+            };
+        };
+        /** @description A page of matching Library items. */
+        ItemPage: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ItemPage"];
+            };
+        };
+        /** @description Saved Topic and its item usage count. */
+        Topic: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Topic"];
+            };
+        };
+        /** @description The resource was deleted. */
+        Deleted: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
         /** @description The health check passed. */
         Healthy: {
             headers: {
@@ -171,7 +350,9 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        ItemLanguage: "zh-CN" | "ko-KR";
+    };
     requestBodies: never;
     headers: {
         /** @description Server-generated identifier for this request. */
@@ -255,6 +436,116 @@ export interface operations {
             503: components["responses"]["APIError"];
         };
     };
+    listItems: {
+        parameters: {
+            query: {
+                languageCode: components["parameters"]["ItemLanguage"];
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ItemPage"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    createItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemCreate"];
+            };
+        };
+        responses: {
+            201: components["responses"]["Item"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Item"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    deleteItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: components["responses"]["Deleted"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    patchItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemPatch"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Item"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
     listTopics: {
         parameters: {
             query?: never;
@@ -278,6 +569,77 @@ export interface operations {
             413: components["responses"]["APIError"];
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
+        };
+    };
+    createTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopicCreate"];
+            };
+        };
+        responses: {
+            201: components["responses"]["Topic"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    deleteTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topicId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: components["responses"]["Deleted"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    patchTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topicId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopicPatch"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Topic"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
         };
     };
     listTTSVoices: {

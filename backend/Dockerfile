@@ -36,7 +36,7 @@ RUN go test -tags azure_sdk ./cmd/taotale-azure \
     && go build -tags azure_sdk -trimpath -o /taotale-azure ./cmd/taotale-azure
 
 FROM debian:bookworm-slim AS speech-runtime
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libasound2 libssl3 libstdc++6 libuuid1 \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg libasound2 libssl3 libstdc++6 libuuid1 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=speech-worker /opt/speech/lib/x64/ /opt/speech/lib/x64/
 COPY --from=speech-worker /taotale-azure /usr/local/bin/taotale-azure

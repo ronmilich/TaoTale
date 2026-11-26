@@ -43,7 +43,7 @@ func (m Mock) Synthesize(ctx context.Context, request Request) (Result, error) {
 		})
 	}
 	for i := range result.Boundaries {
-		duration := int64(10_000_000 / len(result.Boundaries))
+		duration := int64(1000/len(result.Boundaries)) * 10_000
 		result.Boundaries[i].AudioTicks = uint64(int64(i) * duration)
 		result.Boundaries[i].DurationTicks = duration
 	}

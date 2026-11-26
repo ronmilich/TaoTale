@@ -68,9 +68,9 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-12 | Segmentation registry and Mandarin strategies | 2 | TAO-11 | Done |
 | TAO-13 | Korean segmentation strategy | 2 | TAO-12 | Done |
 | TAO-14 | TTS provider adapter, voice catalog and mock provider | 2 | TAO-03, TAO-08 | Done |
-| TAO-15 | MP3 measurement and alignment validation | 2 | TAO-12, TAO-13, TAO-14 | Planned |
-| TAO-16 | Library item and draft API | 3 | TAO-07, TAO-08 | Planned |
-| TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Planned |
+| TAO-15 | MP3 measurement and alignment validation | 2 | TAO-12, TAO-13, TAO-14 | Done |
+| TAO-16 | Library item and draft API | 3 | TAO-07, TAO-08 | Done |
+| TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Done |
 | TAO-18 | Generation admission and idempotency | 3 | TAO-15, TAO-16 | Planned |
 | TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Planned |
 | TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Planned |
@@ -436,8 +436,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Decide whether to keep 1,500 UTF-16 units or plan chunking (OPEN-04).
 
 **Exit criteria**
-- [ ] The recorded `zh-CN` and `ko-KR` outputs validate; corrupt fixtures fail with typed errors.
-- [ ] Tolerance policy documented.
+- [x] All six TAO-03 Mandarin and Korean recordings validated offline. Invalid audio, missing coverage, and timing or identity mismatches return `ALIGNMENT_UNRELIABLE`.
+- [x] Documented exact timing and the legacy-only 50 ms final-end clamp.
 
 **Depends on:** TAO-12, TAO-13, TAO-14
 
@@ -464,8 +464,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   - the owner is resolved by the server, and unknown or foreign IDs return the same not-found.
 
 **Exit criteria**
-- [ ] Integration tests, including `409 VERSION_CONFLICT`.
-- [ ] Contract conformance passes.
+- [x] PostgreSQL integration tests verify `409 VERSION_CONFLICT`, atomic rollback on an unknown Topic, and stable language-scoped pages.
+- [x] Gin routes and their responses conform to OpenAPI.
 
 **Depends on:** TAO-07, TAO-08
 
@@ -482,7 +482,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Settle `/topics` naming and whether any `/tags` alias is needed (OPEN-14).
 
 **Exit criteria**
-- [ ] Tests pass, including a seed rerun that keeps renamed or recolored defaults.
+- [x] Tests verify Unicode case-folded uniqueness, shared usage counts, association cleanup, and preservation of renamed and recolored defaults on seed rerun.
 
 **Depends on:** TAO-07, TAO-08
 

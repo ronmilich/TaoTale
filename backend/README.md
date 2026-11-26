@@ -18,6 +18,8 @@ Open `http://127.0.0.1:8080/library` for the production client. Compose builds t
 
 The optional Linux amd64 Speech image uses the pinned native SDK. Set `TAOTALE_BACKEND_TARGET=speech-runtime` and provide `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` to the backend via the local Compose environment, then run `docker compose up -d --build` from `infra/`. The standard image supports the Library and Reader without Azure credentials.
 
+The Speech image includes FFmpeg for measuring decoded MP3 duration. To replay the existing TAO-03 captures, set `TAOTALE_AZURE_REPLAY_DIR` to the local evidence directory and run `go test -run TestTAO03Replay -v ./internal/alignment` from `backend/` with FFmpeg on your path. Replay reads the captured audio and events offline.
+
 `GET /api/v1/tts/voices?languageCode=zh-CN` or `?languageCode=ko-KR` lists the verified voice and supported rates for the requested language. The endpoint uses the local allowlist and makes no Azure requests. It returns `503 TTS_UNAVAILABLE` when the provider lacks credentials or its native worker. Automated tests use the deterministic mock and offline worker fixtures. The generation job and publishing flow are later milestones.
 
 Standalone Go runs default to `127.0.0.1:8080`. Compose binds the Go process to the private address of its `api` service and publishes the host port on loopback. Every request must use a loopback Host. For a write with an Origin header, the origin must match the request's HTTP origin or the optional `TAOTALE_DEV_ORIGIN` in `infra/.env` (for example, `http://localhost:3000`). Configure it only when the local dev proxy uses a different Host. The normal Vite proxy preserves the browser's Host.

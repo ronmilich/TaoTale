@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -19,7 +18,6 @@ const DefaultTimeout = 30 * time.Second
 
 var (
 	azureRegion = regexp.MustCompile("^[a-z][a-z0-9]{0,31}$")
-	xmlText     = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&apos;", "\r", "&#13;")
 )
 
 type Azure struct {
@@ -105,11 +103,4 @@ func (a *Azure) Synthesize(ctx context.Context, request Request) (Result, error)
 		return Result{}, &Error{reply.Code}
 	}
 	return Result{}, &Error{Failed}
-}
-
-func ssml(request Request) string {
-	rate := strconv.FormatFloat(request.Rate, 'f', -1, 64)
-	return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="` +
-		request.Language + `"><voice name="` + request.VoiceID + `"><prosody rate="` + rate + `">` +
-		xmlText.Replace(request.Source) + "</prosody></voice></speak>"
 }

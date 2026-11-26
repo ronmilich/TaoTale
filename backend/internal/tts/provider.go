@@ -73,6 +73,22 @@ func SupportsLanguage(language string) bool {
 	return language == "zh-CN" || language == "ko-KR"
 }
 
+func AllowedVoice(language, provider, id string) bool {
+	if provider != "azure" && provider != "mock" {
+		return false
+	}
+	catalog, err := voices(language, provider)
+	return err == nil && slices.ContainsFunc(catalog, func(voice Voice) bool { return voice.ID == id })
+}
+
+func ValidateRequest(provider string, request Request) error {
+	if !AllowedVoice(request.Language, provider, request.VoiceID) {
+		return &Error{Invalid}
+	}
+	catalog, _ := voices(request.Language, provider)
+	return validate(request, catalog)
+}
+
 func voices(language, provider string) ([]Voice, error) {
 	var id, name string
 	switch language {

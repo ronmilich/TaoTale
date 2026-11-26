@@ -212,7 +212,7 @@ The old code may already implement many `D-` behaviors. This table is an **imple
 | OPEN-01 | **Exact compatible versions and build/tooling choices** for the approved Go/Gin/pgx/sqlc and SolidJS/Vite/Router stacks. | Frameworks are **already selected** (TT-025–031); this is not permission to reconsider NestJS/Prisma/React. |
 | OPEN-02 | **Resolved.** TT-036 records the Compose runtime and volume layout. TT-037 records migration and seed execution. | Keep PostgreSQL on the Compose network and retain its named database and media volumes. |
 | OPEN-03 | Closed for TAO-12/13. The owner approved Mandarin and Korean v1 rules. Keep `zh-cn-legacy-v1@1.0.0` registered for historical Mandarin spans. | Separate versioned strategies preserve exact text and half-open UTF-16 offsets. [Approved rules and golden vectors](06-taotale-segmentation-and-audio.md#3-language-specific-segmentation-registry-seg) |
-| OPEN-04 | Whether to retain 1,500 UTF-16 source-text units or implement verified TTS chunking for longer articles. | Exact text integrity and validated READY must hold. |
+| OPEN-04 | Retain a single synthesis output and a 1,500 UTF-16 unit source cap for Mandarin and Korean in the MVP. | Both languages use the same cap and offset convention. Longer articles require verified stitching and alignment. |
 | OPEN-05 | Extent of language-aware automatic vocabulary highlighting/linking at initial MVP. | Manual Reader collection works; do not promise Korean morphology/substring correctness. |
 | OPEN-06 | Backup packaging, verified Windows backup/restore commands and whether a UI-triggered backup follows the first stable local release. | Rehearse paired `pg_dump`/restore and media recovery on a disposable database and media root. |
 | OPEN-07 | Policy for `native` and other unsupported difficulty values in future snapshots, and how to represent the two oversized covers from the TAO-01 snapshot. | Preserve original values for review and keep existing cover bytes and references. New and replacement covers retain the 1,000,000-byte limit. [Inventory](tao-01-legacy-inventory.md) |
@@ -221,8 +221,8 @@ The old code may already implement many `D-` behaviors. This table is an **imple
 | OPEN-10 | **Resolved 25 Nov:** no standalone UI npm package or component API. | All components and Iris CSS live in TaoTale. No release task. |
 | OPEN-11 | **Resolved 25 Nov:** use app-local CSS Modules and the specific Iris tokens in document 08. | No public styling/theme contract, slot protocol, or Tailwind. |
 | OPEN-12 | **Resolved 25 Nov, TT-034.** Go for both tested voices on Linux amd64 with SDK 1.53.0. | Preserve the observed offset convention and verify each recording before publication. |
-| OPEN-13 | MP3 decoder/probe and verified duration/timing precision. | Use measurements of the persisted MP3 and validate timing against them. |
-| OPEN-14 | Whether the TaoTale `/topics` API needs a compatibility alias for legacy `/tags`. | Preserve Topic identity during data migration and settle API compatibility in OpenAPI. |
+| OPEN-13 | TAO-15 uses MPEG Layer III frame validation and FFmpeg decoding to 24 kHz mono PCM. | The six TAO-03 replays match their previously measured duration. [Timing policy](06-taotale-segmentation-and-audio.md#6-validation-gate-before-ready-and-publication-aln) |
+| OPEN-14 | `/topics` is the TaoTale API. The future importer maps legacy tag data to Topics while preserving IDs. | The route and schema are pinned in OpenAPI. |
 | OPEN-15 | Supported desktop/tablet browser, viewport and zoom matrix, screenshot references and performance thresholds. | Measure comparable workloads and review app-owned Iris screens on the supported matrix. |
 | OPEN-16 | **Resolved.** TT-038 selects Redocly, openapi-typescript and kin-openapi. | OpenAPI changes precede handler changes. CI checks generated declarations and Go conformance. |
 
