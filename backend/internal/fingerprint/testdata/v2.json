@@ -1,0 +1,58 @@
+[
+  {
+    "name": "integer",
+    "identity": {
+      "languageCode": "zh-CN",
+      "providerId": "azure",
+      "voiceId": "zh-CN-XiaoxiaoNeural",
+      "speakingRate": 1,
+      "strategyId": "zh-cn",
+      "strategyVersion": "1.0.0",
+      "exactSourceText": "  甲𠀀😀<&>\r\n\"乙\"\\\t "
+    },
+    "canonicalJson": "{\"fingerprintSchemaVersion\":2,\"languageCode\":\"zh-CN\",\"providerId\":\"azure\",\"voiceId\":\"zh-CN-XiaoxiaoNeural\",\"speakingRate\":1,\"strategyId\":\"zh-cn\",\"strategyVersion\":\"1.0.0\",\"exactSourceText\":\"  甲𠀀😀<&>\\r\\n\\\"乙\\\"\\\\\\t \"}",
+    "sha256": "8cbf83705cd34713e7068fc679d7aad854848c6de5ee6cbff782c94cce67dc42"
+  },
+  {
+    "name": "decimal",
+    "identity": {
+      "languageCode": "zh-CN",
+      "providerId": "azure",
+      "voiceId": "zh-CN-XiaoxiaoNeural",
+      "speakingRate": 1.0,
+      "strategyId": "zh-cn",
+      "strategyVersion": "1.0.0",
+      "exactSourceText": "  甲𠀀😀<&>\r\n\"乙\"\\\t "
+    },
+    "canonicalJson": "{\"fingerprintSchemaVersion\":2,\"languageCode\":\"zh-CN\",\"providerId\":\"azure\",\"voiceId\":\"zh-CN-XiaoxiaoNeural\",\"speakingRate\":1,\"strategyId\":\"zh-cn\",\"strategyVersion\":\"1.0.0\",\"exactSourceText\":\"  甲𠀀😀<&>\\r\\n\\\"乙\\\"\\\\\\t \"}",
+    "sha256": "8cbf83705cd34713e7068fc679d7aad854848c6de5ee6cbff782c94cce67dc42"
+  },
+  {
+    "name": "line-ending",
+    "identity": {
+      "languageCode": "zh-CN",
+      "providerId": "azure",
+      "voiceId": "zh-CN-XiaoxiaoNeural",
+      "speakingRate": 1,
+      "strategyId": "zh-cn",
+      "strategyVersion": "1.0.0",
+      "exactSourceText": "  甲𠀀😀<&>\n\"乙\"\\\t "
+    },
+    "canonicalJson": "{\"fingerprintSchemaVersion\":2,\"languageCode\":\"zh-CN\",\"providerId\":\"azure\",\"voiceId\":\"zh-CN-XiaoxiaoNeural\",\"speakingRate\":1,\"strategyId\":\"zh-cn\",\"strategyVersion\":\"1.0.0\",\"exactSourceText\":\"  甲𠀀😀<&>\\n\\\"乙\\\"\\\\\\t \"}",
+    "sha256": "e0fe4bd2945b6ebcfc0f076fb15a5304212e365d35992ccd29ff5d4afad0fcb2"
+  },
+  {
+    "name": "korean-controls",
+    "identity": {
+      "languageCode": "ko-KR",
+      "providerId": "azure",
+      "voiceId": "ko-KR-SunHiNeural",
+      "speakingRate": 0.75,
+      "strategyId": "ko-kr",
+      "strategyVersion": "1.0.0",
+      "exactSourceText": "한글 é \\u2028\\\u2028\u2029\b\f\u0000\u001f"
+    },
+    "canonicalJson": "{\"fingerprintSchemaVersion\":2,\"languageCode\":\"ko-KR\",\"providerId\":\"azure\",\"voiceId\":\"ko-KR-SunHiNeural\",\"speakingRate\":0.75,\"strategyId\":\"ko-kr\",\"strategyVersion\":\"1.0.0\",\"exactSourceText\":\"한글 é \\\\u2028\\\\\u2028\u2029\\b\\f\\u0000\\u001f\"}",
+    "sha256": "1f549a58410760d0c67d53f7aa58465d15bea507c1f70a8e6a93367c9cb92527"
+  }
+]
