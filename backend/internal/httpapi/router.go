@@ -11,12 +11,15 @@ import (
 
 const RequestTimeout = 10 * time.Second
 
-func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog) *gin.Engine {
+func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA) *gin.Engine {
 	router := gin.New()
 	router.HandleMethodNotAllowed = true
 	router.RedirectTrailingSlash = false
 	router.Use(requestMetadata(logger), recoverRequest, localRequests(devOrigin), requestDeadline(RequestTimeout), limitJSON)
 	router.NoRoute(func(c *gin.Context) {
+		if spa != nil && spa.serve(c) {
+			return
+		}
 		fail(c, http.StatusNotFound, "NOT_FOUND", "The route does not exist.")
 	})
 	router.NoMethod(func(c *gin.Context) {

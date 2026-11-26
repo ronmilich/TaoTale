@@ -13,14 +13,18 @@ export default defineConfig({
     fileRoutes({ types: true }),
   ],
   server: {
+    host: '127.0.0.1',
     port: 3000,
+    strictPort: true,
+    cors: { origin: ['http://127.0.0.1:3000', 'http://localhost:3000'] },
     proxy: {
-      '/api': 'http://127.0.0.1:8080',
+      '^/api(?:/|$)': { target: 'http://127.0.0.1:8080', changeOrigin: false },
     },
   },
   test: {
     environment: 'jsdom',
     globals: false,
+    include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./vitest-setup.ts'],
     // if you have few tests, try commenting this
     // out to improve performance:

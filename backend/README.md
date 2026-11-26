@@ -12,6 +12,8 @@ docker compose up --build --wait
 
 Open `http://127.0.0.1:8080/health/live` to check the process or `/health/ready` to check the database connection and writable media directory. Both routes are also available under `/api/v1`. The response contract is in [api/openapi.yaml](api/openapi.yaml).
 
+Open `http://127.0.0.1:8080/library` for the production client. Compose builds the client and Gin serves its files from the same origin as the API. For a standalone backend, set `SERVE_FRONTEND_DIST` to the absolute path of `frontend/dist/client`. App routes use the SPA fallback on refresh. Missing API routes return JSON errors.
+
 Standalone Go runs default to `127.0.0.1:8080`. Compose binds the Go process to the private address of its `api` service and publishes the host port on loopback. Every request must use a loopback Host. For a write with an Origin header, the origin must match the request's HTTP origin or the optional `TAOTALE_DEV_ORIGIN` in `infra/.env` (for example, `http://localhost:3000`). Configure it only when the local dev proxy uses a different Host. The normal Vite proxy preserves the browser's Host.
 
 API logs contain the server-generated request ID, method, route template, status and duration. JSON handlers use the shared decoder for one UTF-8 object up to 100 KiB with known fields. Readiness verifies the exact migration history and writable media root. A readiness failure returns a sanitized `503 SERVICE_UNAVAILABLE` envelope with the same request ID as the response header.

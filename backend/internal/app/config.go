@@ -15,10 +15,11 @@ import (
 const DefaultListen = "127.0.0.1:8080"
 
 type Config struct {
-	Listen    string
-	MediaRoot string
-	DevOrigin string
-	Database  *pgxpool.Config
+	Listen       string
+	MediaRoot    string
+	DevOrigin    string
+	FrontendDist string
+	Database     *pgxpool.Config
 }
 
 func LoadConfig(ctx context.Context, listen string, getenv func(string) string) (Config, error) {
@@ -29,6 +30,10 @@ func LoadConfig(ctx context.Context, listen string, getenv func(string) string) 
 	mediaRoot := getenv("MEDIA_ROOT")
 	if !filepath.IsAbs(mediaRoot) {
 		return Config{}, errors.New("MEDIA_ROOT must be an absolute path")
+	}
+	frontendDist := getenv("SERVE_FRONTEND_DIST")
+	if frontendDist != "" && !filepath.IsAbs(frontendDist) {
+		return Config{}, errors.New("SERVE_FRONTEND_DIST must be an absolute path")
 	}
 	var devOrigin string
 	if raw := getenv("TAOTALE_DEV_ORIGIN"); raw != "" {
@@ -41,7 +46,7 @@ func LoadConfig(ctx context.Context, listen string, getenv func(string) string) 
 	if err != nil {
 		return Config{}, errors.New("invalid PostgreSQL configuration")
 	}
-	return Config{Listen: address, MediaRoot: filepath.Clean(mediaRoot), DevOrigin: devOrigin, Database: db}, nil
+	return Config{Listen: address, MediaRoot: filepath.Clean(mediaRoot), DevOrigin: devOrigin, FrontendDist: frontendDist, Database: db}, nil
 }
 
 func listenAddress(ctx context.Context, listen string) (string, error) {

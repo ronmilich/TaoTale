@@ -17,6 +17,14 @@ import (
 )
 
 func Run(ctx context.Context, config Config, logger *slog.Logger) error {
+	var spa *httpapi.SPA
+	if config.FrontendDist != "" {
+		var err error
+		spa, err = httpapi.NewSPA(os.DirFS(config.FrontendDist))
+		if err != nil {
+			return errors.New("cannot load the built frontend")
+		}
+	}
 	if err := media.PrepareRoot(config.MediaRoot); err != nil {
 		return err
 	}
@@ -52,7 +60,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return errors.New("cannot open HTTP listener")
 	}
 	server := &http.Server{
-		Handler:           httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool)),
+		Handler:           httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

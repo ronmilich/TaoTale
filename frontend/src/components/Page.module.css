@@ -1,0 +1,45 @@
+.page {
+  max-width: 840px;
+}
+.description {
+  color: var(--color-text-muted);
+  margin-top: var(--space-8);
+}
+.description:empty {
+  display: none;
+}
+.content {
+  margin-top: var(--space-24);
+}
+.content:empty {
+  display: none;
+}
+.panel {
+  padding: var(--space-24);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.field {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 300px;
+}
+.field label {
+  font-weight: 600;
+}
+.field p {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+.reader {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
+  font-size: 1.375rem;
+  line-height: 1.94;
+}
+.reader:lang(ko) {
+  font-family: "Noto Serif KR", "Malgun Gothic", Batang, serif;
+}

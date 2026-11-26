@@ -27,9 +27,9 @@ func TestOpenAPIConformance(t *testing.T) {
 	}
 	logger := slog.New(slog.DiscardHandler)
 	catalog := contractCatalog(t)
-	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog)
+	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog, nil)
 	storageError := errors.New("private catalog error")
-	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError})
+	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError}, nil)
 
 	operations := make(map[string]*routers.Route)
 	for template, item := range spec.Paths.Map() {
