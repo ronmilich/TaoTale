@@ -10,7 +10,7 @@ import (
 
 const (
 	decodeRate      = 24000
-	maxMP3Bytes     = 4 * 1024 * 1024
+	MaxMP3Bytes     = 4 * 1024 * 1024
 	maxDecodedBytes = 20 * 60 * decodeRate * 2
 )
 
@@ -27,7 +27,7 @@ func (count *pcmCount) Write(data []byte) (int, error) {
 // measureMP3 returns the duration in 100 ns ticks, rounded down. Decode the
 // actual bytes to mono PCM instead of trusting the provider or MP3 metadata.
 func measureMP3(ctx context.Context, data []byte) (uint64, error) {
-	if len(data) == 0 || len(data) > maxMP3Bytes {
+	if len(data) == 0 || len(data) > MaxMP3Bytes {
 		return 0, unreliable("missing or oversized MP3")
 	}
 	if !completeFrames(data) {
