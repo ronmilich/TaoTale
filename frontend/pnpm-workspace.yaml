@@ -1,6 +1,10 @@
 packages:
   - '.'
 
+# The generator uses the TypeScript 5 compiler API. The frontend uses TypeScript 7.
+overrides:
+  'openapi-typescript>typescript': 5.9.3
+
 # pnpm settings for this project (honored even for a single-package project —
 # this file marks the workspace root). The Solid packages release in lockstep
 # and templates track them closely; exclude the whole family from any

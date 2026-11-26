@@ -2,24 +2,42 @@ openapi: 3.1.0
 info:
   title: TaoTale backend
   version: 0.1.0
+  description: Loopback-only JSON API for the local TaoTale application.
 servers:
   - url: /api/v1
-  - url: /
 paths:
   /health/live:
+    servers:
+      - url: /api/v1
+      - url: /
     get:
       operationId: healthLive
+      summary: Check whether the API process is running
       responses:
         '200':
           $ref: '#/components/responses/Healthy'
-        default:
+        '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
           $ref: '#/components/responses/APIError'
   /health/ready:
+    servers:
+      - url: /api/v1
+      - url: /
     get:
       operationId: healthReady
+      summary: Check whether the API can use its local storage
       responses:
         '200':
           $ref: '#/components/responses/Healthy'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
         '503':
           description: PostgreSQL is unreachable, its migration history is incompatible, or the media directory is unwritable.
           headers:
@@ -34,7 +52,49 @@ paths:
                   code: SERVICE_UNAVAILABLE
                   message: Backend storage unavailable.
                   requestId: example-request-id
-        default:
+  /languages:
+    get:
+      operationId: listLanguages
+      summary: List enabled learning languages
+      responses:
+        '200':
+          description: Enabled, supported languages in locale-code order.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LanguageList'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+  /topics:
+    get:
+      operationId: listTopics
+      summary: List the local owner's Topics
+      responses:
+        '200':
+          description: Shared Topics in normalized name order, with ID as the tie-breaker.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicList'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
           $ref: '#/components/responses/APIError'
 components:
   headers:
@@ -54,6 +114,7 @@ components:
           schema:
             type: object
             required: [status]
+            additionalProperties: false
             properties:
               status: {const: ok}
     APIError:
@@ -69,14 +130,16 @@ components:
     ErrorEnvelope:
       type: object
       required: [error]
+      additionalProperties: false
       properties:
         error:
           type: object
           required: [code, message, requestId]
+          additionalProperties: false
           properties:
             code: {type: string}
             message: {type: string}
-            requestId: {type: string}
+            requestId: {type: string, minLength: 1}
             details:
               type: object
               properties:
@@ -89,3 +152,68 @@ components:
                       path: {type: string}
                       code: {type: string}
                       message: {type: string}
+    LanguageList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LearningLanguage'
+    LearningLanguage:
+      type: object
+      additionalProperties: false
+      required: [code, displayName]
+      properties:
+        code:
+          type: string
+          enum: [zh-CN, ko-KR]
+        displayName:
+          type: string
+          minLength: 1
+    TopicList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Topic'
+    Topic:
+      type: object
+      additionalProperties: false
+      required: [id, name, isDefault, systemKey, colors]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+        isDefault:
+          type: boolean
+        systemKey:
+          type: [string, 'null']
+          pattern: '^[a-z][a-z0-9_]*$'
+        colors:
+          type: object
+          additionalProperties: false
+          required: [light, dark]
+          properties:
+            light:
+              $ref: '#/components/schemas/ThemeColors'
+            dark:
+              $ref: '#/components/schemas/ThemeColors'
+    ThemeColors:
+      type: object
+      additionalProperties: false
+      required: [background, text]
+      properties:
+        background:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        text:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'

@@ -23,6 +23,7 @@ jobs:
           node-version-file: .nvmrc
       - run: npm install -g pnpm@11.25.0
       - run: pnpm install --frozen-lockfile
+      - run: pnpm api:check
       - run: pnpm check:ui && pnpm check:ui:test
       - run: pnpm format:check && pnpm lint && pnpm typecheck
       - run: pnpm test --run && pnpm build
@@ -69,6 +70,6 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        gate: [OpenAPI and types, browser E2E with mock TTS]
+        gate: [browser E2E with mock TTS]
     steps:
       - run: echo 'Placeholder. See docs/12-taotale-quality-and-acceptance.md.'

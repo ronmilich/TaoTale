@@ -11,7 +11,7 @@ import (
 
 const RequestTimeout = 10 * time.Second
 
-func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string) *gin.Engine {
+func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog) *gin.Engine {
 	router := gin.New()
 	router.HandleMethodNotAllowed = true
 	router.RedirectTrailingSlash = false
@@ -37,6 +37,8 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 	}
+	router.GET("/api/v1/languages", listLanguages(catalog))
+	router.GET("/api/v1/topics", listTopics(catalog))
 	return router
 }
 

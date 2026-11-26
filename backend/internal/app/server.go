@@ -13,6 +13,7 @@ import (
 	"taotale/backend/internal/httpapi"
 	"taotale/backend/internal/media"
 	"taotale/backend/internal/persistence"
+	"taotale/backend/internal/persistence/queries"
 )
 
 func Run(ctx context.Context, config Config, logger *slog.Logger) error {
@@ -51,7 +52,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return errors.New("cannot open HTTP listener")
 	}
 	server := &http.Server{
-		Handler:           httpapi.Router(ready, logger, config.DevOrigin),
+		Handler:           httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool)),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

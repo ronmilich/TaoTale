@@ -32,3 +32,15 @@ WHERE NOT EXISTS (
     WHERE topics.user_id = sqlc.arg(user_id)::uuid AND topics.system_key = defaults.system_key
 )
 ON CONFLICT (user_id, system_key) WHERE system_key IS NOT NULL DO NOTHING;
+
+-- name: ListEnabledLanguages :many
+SELECT code, display_name
+FROM public.learning_languages
+WHERE enabled AND code IN ('zh-CN', 'ko-KR')
+ORDER BY code;
+
+-- name: ListTopics :many
+SELECT id, name, system_key, light_background, light_text, dark_background, dark_text
+FROM public.topics
+WHERE user_id = (SELECT id FROM public.users WHERE singleton)
+ORDER BY name_key, id;

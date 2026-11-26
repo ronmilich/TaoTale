@@ -6,6 +6,7 @@ const paths = process.argv[2] ?? fileURLToPath(new URL("../", import.meta.url));
 const manifest = JSON.parse(readFileSync(join(paths, "package.json"), "utf8"));
 const runtimePackages = new Set(["solid-js", "@solidjs/meta", "@solidjs/router", "@solidjs/web"]);
 const toolingPackages = new Set([
+  "@redocly/cli",
   "@solidjs/diagnostics",
   "@solidjs/testing-library",
   "@solidjs/vite-plugin",
@@ -13,6 +14,7 @@ const toolingPackages = new Set([
   "eslint-plugin-solid",
   "filesystem-routing",
   "jsdom",
+  "openapi-typescript",
   "oxfmt",
   "oxlint",
   "typescript",

@@ -22,6 +22,83 @@ func (q *Queries) GetLocalOwnerID(ctx context.Context) (pgtype.UUID, error) {
 	return id, err
 }
 
+const listEnabledLanguages = `-- name: ListEnabledLanguages :many
+SELECT code, display_name
+FROM public.learning_languages
+WHERE enabled AND code IN ('zh-CN', 'ko-KR')
+ORDER BY code
+`
+
+type ListEnabledLanguagesRow struct {
+	Code        string
+	DisplayName string
+}
+
+func (q *Queries) ListEnabledLanguages(ctx context.Context) ([]ListEnabledLanguagesRow, error) {
+	rows, err := q.db.Query(ctx, listEnabledLanguages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListEnabledLanguagesRow
+	for rows.Next() {
+		var i ListEnabledLanguagesRow
+		if err := rows.Scan(&i.Code, &i.DisplayName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTopics = `-- name: ListTopics :many
+SELECT id, name, system_key, light_background, light_text, dark_background, dark_text
+FROM public.topics
+WHERE user_id = (SELECT id FROM public.users WHERE singleton)
+ORDER BY name_key, id
+`
+
+type ListTopicsRow struct {
+	ID              pgtype.UUID
+	Name            string
+	SystemKey       pgtype.Text
+	LightBackground string
+	LightText       string
+	DarkBackground  string
+	DarkText        string
+}
+
+func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
+	rows, err := q.db.Query(ctx, listTopics)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTopicsRow
+	for rows.Next() {
+		var i ListTopicsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.SystemKey,
+			&i.LightBackground,
+			&i.LightText,
+			&i.DarkBackground,
+			&i.DarkText,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const seedDefaultTopics = `-- name: SeedDefaultTopics :exec
 INSERT INTO public.topics (
     id, user_id, name, name_key, system_key, light_background, light_text, dark_background, dark_text
