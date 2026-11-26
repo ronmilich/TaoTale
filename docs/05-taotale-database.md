@@ -1,6 +1,6 @@
 # 05 — TaoTale database and persistence
 
-**Status:** Target **logical** schema for the current local single-user MVP. **Not executable migration SQL.** Physical DDL, constraint names and query files will be authored as reviewed SQL migrations and sqlc inputs.
+The first physical migration creates the owner, learning language catalog and Topics. Later sections describe the logical schema for subsequent milestones. [Catalog migration](../backend/db/migrations/0001_catalog.sql)
 
 **Authority:** [`01-taotale-overview-and-features.md`](01-taotale-overview-and-features.md) defines product behavior; [`02-decision-register.md`](02-taotale-decision-register.md) tracks decisions; [`04-taotale-backend.md`](04-taotale-backend.md) defines the **Go + Gin + pgx/v5 + sqlc** architecture. This replaces the old **Prisma-centric** database document without discarding valid data-integrity decisions from Mandarin Reader.
 
@@ -149,18 +149,20 @@ When an automatic matcher is **enabled and verified** for an individual language
 - Explicit manual link upgrades an automatic link to manual. Explicit unlink removes the association; a later *enabled* sync can rediscover it according to the documented policy. No background Library-wide scans for MVP.
 - If a language's matcher is not approved (especially Korean in MVP), skip automatic reconciliation **without blocking item publication**. Manual references/highlights based on known links remain available.
 
-## 6. Example sqlc workflow (illustrative, not migration DDL)
+## 6. sqlc workflow
+
+The project pins sqlc v1.31.1 and checks `sqlc diff` in GitHub CI. The following example shows how the configuration links ordered SQL migrations to pgx/v5 query generation. [Actual configuration](../backend/db/sqlc.yaml)
 
 ```yaml
-# backend/db/sqlc.yaml — generated Go package; version pins chosen at implementation
+# backend/db/sqlc.yaml
 version: "2"
 sql:
   - engine: "postgresql"
-    schema: "migrations"   # confirm the migration runner files are sqlc-compatible
+    schema: "migrations"
     queries: "queries"
     gen:
       go:
-        package: "db"
+        package: "queries"
         out: "../internal/persistence/queries"
         sql_package: "pgx/v5"
 ```
@@ -211,6 +213,6 @@ These examples show the intended **SQL-first** pattern. Real queries must match 
 - Legacy Mandarin segment offsets/fingerprints remain readable; new Mandarin/Korean strategies store independent IDs/versions and correct UTF-16 offsets.
 - SQL transactions roll back partial publication/vocabulary links; file-orphan cleanup does not erase live media; a real DB + media restore succeeds.
 
-**Open physical-design decisions:** exact PostgreSQL/Go/sqlc versions and migration tool; whether `LearningLanguage` is physically a table or migration-controlled reference catalog (this specification **recommends a table** for FKs); explicit enum vs `TEXT CHECK` for difficulty/status; whether to retire `source_item_id` now or later; JSONB segments vs a separate table if querying per-segment ever becomes necessary; exact composite FK layout; MP3 integrity metadata; role of optional language-specific automatic vocabulary matching.
+TT-037 records the migration runner, first catalog and sqlc pin. Later schema choices include difficulty/status representation, legacy `source_item_id` retention, language-safe composite FKs and MP3 integrity metadata.
 
 **Maintenance:** Keep the logical invariants intact when changing code generation. Update the ordered migration SQL, `sqlc` queries and generated Go, API contract, domain behavior and regression tests together. TT-025 and TT-026 record the stack in the [decision register](02-taotale-decision-register.md).

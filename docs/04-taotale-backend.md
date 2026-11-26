@@ -13,7 +13,7 @@
 | Database | **PostgreSQL** running locally in **Docker Compose** | Persist data in a named volume/bind mount; no managed database. |
 | Driver/pool | **pgx/v5** and `pgxpool` | Native PostgreSQL access, context-aware queries and pooled connections. |
 | SQL access | **sqlc** | SQL files are authoritative for queries; generate type-safe Go code. **No Prisma, GORM or other ORM.** |
-| Migrations | Ordered, reviewed **SQL migrations** with a lightweight runner | Migration tool selection remains open; sqlc is **not** a migration runner. |
+| Migrations | Ordered SQL embedded in the Go binary | A pgx transaction applies pending SQL and records migration checksums. |
 | Asset storage | Local filesystem outside source/build and ephemeral container layers | Immutable MP3 and cover files, temporary previews, safe generated keys. |
 | TTS | Existing **Azure Speech TTS**, behind a Go adapter | Preserve audio/word-boundary behavior; do not couple domain services to SDK types. |
 | AI | Previously chosen AI provider behind an adapter **when its feature is implemented** | **No AI generation API/workspace, account connection or startup dependency in MVP.** |
@@ -83,7 +83,7 @@ Do not introduce a Japanese strategy package until `ja-JP` support is planned; k
 ## 3. PostgreSQL, sqlc and transactional data access
 
 - Start **PostgreSQL via Docker Compose** with a persistent volume, health check and an explicit non-default application credential. **No runtime Prisma schema or Prisma migration history as the source of truth.**
-- SQL migrations are versioned, reviewed, forward-moving files. On startup/deployment, apply migrations with a separately selected migration runner and then seed the single User, language catalog and default Topics idempotently. Do **not** call `sqlc generate` to migrate a live database.
+- Versioned SQL runs before the HTTP listener opens. The pgx runner applies pending migrations and seeds the owner, languages and default Topics under one advisory lock and transaction. sqlc generates the typed query package at development time. [Schema workflow](../backend/README.md)
 - Keep SQL in named query files (`-- name: ... :one/:many/:exec`) and generate Go methods/models with `sqlc` using `sql_package: "pgx/v5"`. Generated code is checked in or regenerated in a reproducible build; CI rejects drift from SQL/query inputs.
 - Use `pgxpool` (small, configurable pool for the single-user application). Use `pgx.Tx` plus `sqlc` queries bound to the transaction (`WithTx`/`New(tx)` depending on generated API) for item mutation, generation admission, publication, vocabulary linking and idempotency.
 - **Explicit SQL first:** add joins, indexes and batch/set-based queries for paginated Library and vocabulary views. Do not perform one query per Library card, topic chip or vocabulary reference. Add indexes based on measured `EXPLAIN (ANALYZE, BUFFERS)` results for realistic local data.

@@ -113,4 +113,4 @@ Settings should show honest manual instructions/status, **not** an inert Backup 
 
 **Deferred:** app accounts/auth/HTTPS for public exposure, billing and multi-tenant quotas, hosted database/storage, cross-device sync, public dashboards, AI runtime credentials/inference, phone support, network-connected tablet deployment, high-availability worker coordination and one-click backup UI.
 
-Remaining setup decisions include the SQL migration runner, production Azure runtime packaging, MP3 decoding, backup paths and procedures, developer origin allowlists, and Chinese automatic vocabulary matching. See the [decision register](02-taotale-decision-register.md#6-implementation-decision-register).
+Remaining setup decisions include production Azure runtime packaging, MP3 decoding, backup paths and procedures, and Chinese automatic vocabulary matching. See the [decision register](02-taotale-decision-register.md#6-implementation-decision-register).
