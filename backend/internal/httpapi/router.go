@@ -13,7 +13,7 @@ import (
 
 const RequestTimeout = 10 * time.Second
 
-func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.TTSProvider, library *persistence.Library) *gin.Engine {
+func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.VoiceCatalog, library *persistence.Library) *gin.Engine {
 	router := gin.New()
 	router.HandleMethodNotAllowed = true
 	router.RedirectTrailingSlash = false
@@ -45,7 +45,13 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 	router.GET("/api/v1/languages", listLanguages(catalog))
 	router.GET("/api/v1/topics", listTopics(catalog))
 	router.GET("/api/v1/tts/voices", listVoices(provider))
-	registerLibrary(router, library)
+	if library != nil {
+		store := *library
+		store.Voices = provider
+		library = &store
+	}
+	registerLibrary(router, library, provider.ProviderID())
+	registerGenerations(router, library)
 	registerTopicWrites(router, library)
 	return router
 }

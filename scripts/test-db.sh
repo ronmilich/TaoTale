@@ -35,7 +35,8 @@ wait_postgres "$source_db"
 docker run --rm --network "$test_network" -v "$root/backend:/src:ro" -w /src \
     -e 'TAOTALE_TEST_DATABASE_URL=postgres://postgres@postgres/taotale_test?sslmode=disable' \
     golang:1.27.4 sh -ec 'go test -count=1 -v ./internal/persistence -run "^TestPostgresMigrateAndSeed$"
-                          go test -count=1 -v ./internal/httpapi -run "^TestLibraryPostgres$"'
+                          go test -count=1 -v ./internal/httpapi -run "^TestLibraryPostgres$"
+                          go test -count=1 -v ./internal/httpapi -run "^TestGenerationPostgres$"'
 
 restored_db=$(fresh_postgres --network none)
 wait_postgres "$restored_db"
@@ -51,10 +52,13 @@ snapshot() {
             (SELECT jsonb_agg(t ORDER BY id) FROM public.topics AS t),
             (SELECT jsonb_agg(i ORDER BY id) FROM public.library_items AS i),
             (SELECT jsonb_agg(it ORDER BY item_id, topic_id) FROM public.item_topics AS it),
+            (SELECT jsonb_agg(g ORDER BY id) FROM public.audio_generations AS g),
+            (SELECT jsonb_agg(a ORDER BY id) FROM public.audio_assets AS a),
+            (SELECT jsonb_agg(r ORDER BY user_id, operation, key) FROM public.idempotency_records AS r),
             (SELECT jsonb_agg(m ORDER BY version) FROM public.schema_migrations AS m)
         );"
 }
 original=$(snapshot "$source_db")
 restored=$(snapshot "$restored_db")
 [[ "$original" == "$restored" ]]
-echo 'Restored catalog, items, topic associations and migration history match the source database.'
+echo 'Restored catalog, items, topic associations, audio generations, assets, receipts and migration history match the source database.'

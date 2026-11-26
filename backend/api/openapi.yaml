@@ -195,6 +195,102 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+  /items/{itemId}/audio/generate:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+    post:
+      operationId: generateDraftAudio
+      summary: Admit one generation of the saved draft
+      description: A retry with the same key and target returns the original generation for 24 hours, including after edits. Expired keys remain reserved. A different active job on this draft conflicts.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '202':
+          description: Durable generation receipt, identical on replay.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [generationId]
+                additionalProperties: false
+                properties:
+                  generationId: {type: string, format: uuid}
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '429':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+  /items/{itemId}/audio/generations/{generationId}:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - name: generationId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      operationId: getDraftGeneration
+      summary: Read a saved generation and its current eligibility for this draft
+      responses:
+        '200':
+          description: Generation status projected against the current saved synthesis inputs.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [generationId, itemId, status, jobStatus, sourceFingerprint, audioAssetId, errorCode]
+                additionalProperties: false
+                properties:
+                  generationId: {type: string, format: uuid}
+                  itemId: {type: string, format: uuid}
+                  status: {type: string, enum: [PENDING, PROCESSING, READY, FAILED, OUTDATED]}
+                  jobStatus:
+                    description: Persisted job lifecycle for polling. Use status and audioAssetId for playback eligibility.
+                    type: string
+                    enum: [PENDING, PROCESSING, READY, FAILED]
+                  sourceFingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
+                  audioAssetId: {type: [string, 'null'], format: uuid}
+                  errorCode: {type: [string, 'null']}
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
   /topics:
     get:
       operationId: listTopics
@@ -344,6 +440,11 @@ paths:
                   requestId: example-request-id
 components:
   parameters:
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
     ItemLanguage:
       name: languageCode
       in: query
@@ -528,7 +629,7 @@ components:
     Item:
       type: object
       additionalProperties: false
-      required: [id, languageCode, title, sourceText, description, notes, difficulty, isFavorite, voiceId, speakingRate, topicIds, status, publishedAt, version, createdAt, updatedAt, audioStatus]
+      required: [id, languageCode, title, sourceText, description, notes, difficulty, isFavorite, voiceId, speakingRate, topicIds, status, publishedAt, version, createdAt, updatedAt, audioStatus, audioAssetId]
       properties:
         id: {type: string, format: uuid}
         languageCode: {type: string, enum: [zh-CN, ko-KR]}
@@ -537,7 +638,8 @@ components:
         publishedAt: {type: [string, 'null'], format: date-time}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
-        audioStatus: {type: string, enum: [NOT_GENERATED]}
+        audioStatus: {type: string, enum: [NOT_GENERATED, PENDING, PROCESSING, READY, FAILED, OUTDATED]}
+        audioAssetId: {type: [string, 'null'], format: uuid}
         title: {type: [string, 'null'], maxLength: 120}
         sourceText:
           type: string

@@ -64,9 +64,22 @@ type Result struct {
 	BoundaryText string
 }
 
-type TTSProvider interface {
+type VoiceCatalog interface {
+	ProviderID() string
 	ListVoices(ctx context.Context, language string) ([]Voice, error)
+}
+
+type TTSProvider interface {
+	VoiceCatalog
 	Synthesize(ctx context.Context, request Request) (Result, error)
+}
+
+func DefaultVoice(language, provider string) (string, error) {
+	catalog, err := voices(language, provider)
+	if err != nil {
+		return "", err
+	}
+	return catalog[0].ID, nil
 }
 
 func SupportsLanguage(language string) bool {

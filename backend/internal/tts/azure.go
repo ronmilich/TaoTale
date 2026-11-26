@@ -32,6 +32,8 @@ func NewAzure(key, region, worker string, timeout time.Duration) *Azure {
 	return &Azure{strings.TrimSpace(key), strings.TrimSpace(region), worker, timeout}
 }
 
+func (*Azure) ProviderID() string { return "azure" }
+
 func (a *Azure) ListVoices(ctx context.Context, language string) ([]Voice, error) {
 	if err := contextError(ctx); err != nil {
 		return nil, err

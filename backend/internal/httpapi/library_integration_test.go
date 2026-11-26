@@ -17,7 +17,8 @@ import (
 	"taotale/backend/internal/tts"
 )
 
-func TestLibraryPostgres(t *testing.T) {
+func libraryTestDatabase(t *testing.T) (*pgxpool.Pool, persistence.Schema) {
+	t.Helper()
 	dsn := os.Getenv("TAOTALE_TEST_DATABASE_URL")
 	if dsn == "" {
 		t.Skip("run scripts/test-db.sh with disposable PostgreSQL")
@@ -30,7 +31,7 @@ func TestLibraryPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close)
 	schema, err := persistence.LoadSchema()
 	if err != nil {
 		t.Fatal(err)
@@ -38,6 +39,11 @@ func TestLibraryPostgres(t *testing.T) {
 	if err := schema.Prepare(t.Context(), pool); err != nil {
 		t.Fatal(err)
 	}
+	return pool, schema
+}
+
+func TestLibraryPostgres(t *testing.T) {
+	pool, schema := libraryTestDatabase(t)
 	spec, err := openapi3.NewLoader().LoadFromFile("../../api/openapi.yaml")
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +97,7 @@ func TestLibraryPostgres(t *testing.T) {
 	draftBody, _ := json.Marshal(map[string]any{
 		"languageCode": "zh-CN", "sourceText": source, "title": strings.Repeat("😀", 120), "description": "preserve me",
 		"notes": "clear me", "difficulty": "intermediate", "isFavorite": true, "topicIds": []string{id},
-		"voiceId": "zh-CN-XiaoxiaoNeural", "speakingRate": 1,
+		"voiceId": "zh-CN-mock", "speakingRate": 1,
 	})
 	item := call("POST", "/items", "/items", string(draftBody), 201)
 	itemID := item["id"].(string)

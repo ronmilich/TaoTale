@@ -34,6 +34,8 @@ Add a numbered SQL file to `db/migrations/` for schema changes. Keep applied SQL
 
 From the repository root, use `sh scripts/sqlc.sh generate` to regenerate the pgx/v5 query package and `sh scripts/sqlc.sh diff` to check for drift. Run `bash scripts/test-db.sh` to exercise migration, seeding and SQL-only dump/restore in disposable PostgreSQL containers.
 
+Saved-draft generation admits at most two active jobs and 60 jobs per owner in a rolling hour. Set `TTS_MAX_CONCURRENT_GENERATIONS` and `TTS_MAX_GENERATIONS_PER_HOUR` to positive integers to change those defaults. Each receipt is replayable for 24 hours. Expired keys remain reserved.
+
 PostgreSQL 17.11 stores data in the `taotale-backend_postgres` named volume. The API runs as UID 10001 and initializes its absolute `MEDIA_ROOT` at `/var/lib/taotale/media` in the `taotale-backend_media` named volume. The root, `staging/`, `temporary/audio/`, `audio/`, `temporary/images/`, and `images/` use owner-only directory permissions (`0700`).
 
 Use `docker compose logs api` to inspect the service. Use `docker compose stop` to stop it, or `docker compose down` to remove containers while keeping both volumes. Never use `docker compose down -v` for routine shutdown. It deletes the database and media volumes.

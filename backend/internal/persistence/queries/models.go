@@ -8,6 +8,57 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AudioAsset struct {
+	ID                       pgtype.UUID
+	UserID                   pgtype.UUID
+	LanguageCode             string
+	ProviderID               string
+	VoiceID                  string
+	SpeakingRate             float64
+	StrategyID               string
+	StrategyVersion          string
+	FingerprintFormatVersion int32
+	SourceFingerprint        string
+	StorageKey               string
+	ContentType              string
+	ByteSize                 int64
+	DurationMs               int64
+	Segments                 []byte
+	CreatedAt                pgtype.Timestamptz
+}
+
+type AudioGeneration struct {
+	ID                       pgtype.UUID
+	UserID                   pgtype.UUID
+	ItemID                   pgtype.UUID
+	Operation                string
+	IdempotencyKey           pgtype.UUID
+	AdmissionOrder           pgtype.Int8
+	LanguageCode             string
+	ProviderID               string
+	VoiceID                  string
+	SpeakingRate             float64
+	StrategyID               string
+	StrategyVersion          string
+	FingerprintFormatVersion int32
+	SourceText               string
+	SourceFingerprint        string
+	Status                   string
+	AudioAssetID             pgtype.UUID
+	ErrorCode                pgtype.Text
+	CreatedAt                pgtype.Timestamptz
+}
+
+type IdempotencyRecord struct {
+	UserID       pgtype.UUID
+	Operation    string
+	Key          pgtype.UUID
+	RequestHash  string
+	GenerationID pgtype.UUID
+	CreatedAt    pgtype.Timestamptz
+	ExpiresAt    pgtype.Timestamptz
+}
+
 type ItemTopic struct {
 	UserID  pgtype.UUID
 	ItemID  pgtype.UUID

@@ -94,6 +94,48 @@ export interface paths {
         patch: operations["patchItem"];
         trace?: never;
     };
+    "/items/{itemId}/audio/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admit one generation of the saved draft
+         * @description A retry with the same key and target returns the original generation for 24 hours, including after edits. Expired keys remain reserved. A different active job on this draft conflicts.
+         */
+        post: operations["generateDraftAudio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/audio/generations/{generationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        /** Read a saved generation and its current eligibility for this draft */
+        get: operations["getDraftGeneration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/topics": {
         parameters: {
             query?: never;
@@ -236,7 +278,9 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             /** @enum {string} */
-            audioStatus: "NOT_GENERATED";
+            audioStatus: "NOT_GENERATED" | "PENDING" | "PROCESSING" | "READY" | "FAILED" | "OUTDATED";
+            /** Format: uuid */
+            audioAssetId: string | null;
             title: string | null;
             /** @description Exact source of up to 1500 UTF-16 units. */
             sourceText: string;
@@ -351,6 +395,7 @@ export interface components {
         };
     };
     parameters: {
+        ItemId: string;
         ItemLanguage: "zh-CN" | "ko-KR";
     };
     requestBodies: never;
@@ -541,6 +586,94 @@ export interface operations {
             409: components["responses"]["APIError"];
             413: components["responses"]["APIError"];
             415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    generateDraftAudio: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Durable generation receipt, identical on replay. */
+            202: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        generationId: string;
+                    };
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getDraftGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Generation status projected against the current saved synthesis inputs. */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        generationId: string;
+                        /** Format: uuid */
+                        itemId: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "OUTDATED";
+                        /**
+                         * @description Persisted job lifecycle for polling. Use status and audioAssetId for playback eligibility.
+                         * @enum {string}
+                         */
+                        jobStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+                        sourceFingerprint: string;
+                        /** Format: uuid */
+                        audioAssetId: string | null;
+                        errorCode: string | null;
+                    };
+                };
+            };
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
             504: components["responses"]["APIError"];

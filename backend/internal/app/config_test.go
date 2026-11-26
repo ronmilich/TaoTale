@@ -2,6 +2,21 @@ package app
 
 import "testing"
 
+func TestGenerationLimits(t *testing.T) {
+	for _, tc := range []struct {
+		active, hourly         string
+		wantActive, wantHourly int64
+	}{
+		{"", "", 2, 60}, {"1", "12", 1, 12}, {"0", "", 0, 0}, {"", "-1", 0, 0}, {"invalid", "", 0, 0},
+	} {
+		env := map[string]string{"MEDIA_ROOT": t.TempDir(), "TTS_MAX_CONCURRENT_GENERATIONS": tc.active, "TTS_MAX_GENERATIONS_PER_HOUR": tc.hourly}
+		config, err := LoadConfig(t.Context(), DefaultListen, func(name string) string { return env[name] })
+		if (err != nil) != (tc.wantActive == 0) || config.GenerationLimits.Active != tc.wantActive || config.GenerationLimits.Hourly != tc.wantHourly {
+			t.Fatalf("limits (%q, %q) produced %+v, error %v", tc.active, tc.hourly, config.GenerationLimits, err)
+		}
+	}
+}
+
 func TestLoadConfigValidatesLocalSettings(t *testing.T) {
 	path := t.TempDir()
 	for _, tc := range []struct {

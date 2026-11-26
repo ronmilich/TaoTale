@@ -115,12 +115,12 @@ func (q *Queries) InsertTopic(ctx context.Context, arg InsertTopicParams) (Topic
 	return i, err
 }
 
-const lockTopicOwner = `-- name: LockTopicOwner :one
+const lockOwner = `-- name: LockOwner :one
 SELECT u.id FROM public.users u WHERE u.singleton FOR NO KEY UPDATE
 `
 
-func (q *Queries) LockTopicOwner(ctx context.Context) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, lockTopicOwner)
+func (q *Queries) LockOwner(ctx context.Context) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, lockOwner)
 	var id pgtype.UUID
 	err := row.Scan(&id)
 	return id, err
