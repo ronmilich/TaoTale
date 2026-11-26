@@ -171,8 +171,7 @@ type Segment struct {
 | Root-relative path | Purpose |
 |---|---|
 | `staging/{random}.part` | Untrusted/in-progress bytes; never served. |
-| `temporary/audio/{generationId}.mp3` | Unclaimed, expiring preview. |
-| `audio/{audioAssetId}.mp3` | Immutable attached candidate/published recording. |
+| `audio/{audioAssetId}.mp3` | Immutable verified preview, candidate or published recording. |
 | `temporary/images/{imageId}.{ext}` | Unattached, expiring cover. |
 | `images/{imageId}.{ext}` | Attached item cover. |
 
@@ -180,6 +179,7 @@ type Segment struct {
 - **New/replacement cover size must be ≤ 1,000,000 bytes**, measured from encoded bytes. Verify actual JPEG/PNG/WebP signature and decoded dimensions (inherited upper bound 4096×4096 unless 01 changes it). At exactly 1,000,000 bytes size alone is valid; 1,000,001 is rejected. Existing larger legacy covers remain readable until reviewed.
 - Bound upload bodies/streaming, validate before promotion, and never replace an old cover until save succeeds. Use atomic rename on same filesystem, explicit copy/lease when needed, and after-commit cleanup; recover from disk-full/corrupt files.
 - Audio endpoints support byte-range responses, safe download filenames and asset-pinned URLs. No cloud storage, public object URLs or image proxy service in MVP.
+- Preview access expires in PostgreSQL after 24 hours. Claiming a preview changes its database reference and reuses its immutable file. TAO-43 covers removing expired, unreferenced files from disk.
 
 ## 9. Language-scoped vocabulary and topic behavior
 

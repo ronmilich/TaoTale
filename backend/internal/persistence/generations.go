@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"os"
-	"path/filepath"
 	"slices"
 
 	"github.com/jackc/pgx/v5"
@@ -27,6 +25,8 @@ var (
 
 const DefaultActiveLimit = 2
 const DefaultHourlyLimit = 60
+const draftOperation = "generate_draft_audio"
+const previewOperation = "generate_preview_audio"
 
 type GenerationLimits struct{ Active, Hourly int64 }
 
@@ -69,20 +69,10 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID) (
 		}
 		// No client synthesis overrides: the canonical request is the operation
 		// and target UUID. The mutable draft fingerprint is a separate identity.
-		digest := sha256.Sum256([]byte("generate_draft_audio/" + itemID.String()))
+		digest := sha256.Sum256([]byte(draftOperation + "/" + itemID.String()))
 		intent := hex.EncodeToString(digest[:])
-		receipt, err := q.GetGenerationReceipt(ctx, queries.GetGenerationReceiptParams{UserID: owner, Key: key})
-		switch {
-		case err == nil:
-			if receipt.RequestHash != intent {
-				return ErrKeyReused
-			}
-			if !receipt.Replayable {
-				return ErrKeyExpired
-			}
-			id = receipt.GenerationID
-			return nil
-		case !errors.Is(err, pgx.ErrNoRows):
+		id, err = generationReceipt(ctx, q, owner, key, draftOperation, intent)
+		if err != nil || id.Valid {
 			return err
 		}
 		item, err := q.LockItem(ctx, itemID)
@@ -99,31 +89,58 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID) (
 		if err != nil {
 			return ErrInvalidDraft
 		}
-		if err := tts.ValidateRequest(identity.ProviderID, tts.Request{Language: identity.LanguageCode,
-			VoiceID: identity.VoiceID, Source: identity.ExactSourceText, Rate: identity.SpeakingRate}); err != nil {
+		if err := validateSynthesis(identity); err != nil {
 			return ErrInvalidDraft
 		}
-		// Voice discovery only inspects the local configuration and worker binary.
-		voices, err := s.Voices.ListVoices(ctx, item.LanguageCode)
-		if err != nil || !slices.ContainsFunc(voices, func(v tts.Voice) bool {
-			return v.ID == identity.VoiceID && slices.Contains(v.Rates, identity.SpeakingRate)
-		}) {
-			return &tts.Error{Code: tts.Unavailable}
-		}
-		sum, err := identity.Sum()
-		if err != nil {
-			return err
-		}
-		id, err = q.ReserveGenerationKey(ctx, queries.ReserveGenerationKeyParams{UserID: owner, Key: key, RequestHash: intent})
-		if err != nil {
-			return err
-		}
-		return q.InsertGeneration(ctx, queries.InsertGenerationParams{
-			ID: id, UserID: owner, ItemID: itemID, IdempotencyKey: key,
-			LanguageCode: identity.LanguageCode, ProviderID: identity.ProviderID, VoiceID: identity.VoiceID,
-			SpeakingRate: identity.SpeakingRate, StrategyID: identity.StrategyID, StrategyVersion: identity.StrategyVersion,
-			FingerprintFormatVersion: fingerprint.SchemaVersion, SourceText: identity.ExactSourceText, SourceFingerprint: sum,
-		})
+		id, err = s.queueSynthesis(ctx, q, owner, itemID, key, draftOperation, intent, identity)
+		return err
+	})
+	return id, err
+}
+
+func generationReceipt(ctx context.Context, q *queries.Queries, owner, key pgtype.UUID, operation, intent string) (pgtype.UUID, error) {
+	receipt, err := q.GetGenerationReceipt(ctx, queries.GetGenerationReceiptParams{UserID: owner, Operation: operation, Key: key})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return pgtype.UUID{}, nil
+	}
+	if err != nil {
+		return pgtype.UUID{}, err
+	}
+	if receipt.RequestHash != intent {
+		return pgtype.UUID{}, ErrKeyReused
+	}
+	if !receipt.Replayable {
+		return pgtype.UUID{}, ErrKeyExpired
+	}
+	return receipt.GenerationID, nil
+}
+
+func validateSynthesis(id fingerprint.Identity) error {
+	return tts.ValidateRequest(id.ProviderID, tts.Request{Language: id.LanguageCode,
+		VoiceID: id.VoiceID, Source: id.ExactSourceText, Rate: id.SpeakingRate})
+}
+
+func (s Library) queueSynthesis(ctx context.Context, q *queries.Queries, owner, itemID, key pgtype.UUID, operation, intent string, identity fingerprint.Identity) (pgtype.UUID, error) {
+	// Voice discovery only inspects the local configuration and worker binary.
+	voices, err := s.Voices.ListVoices(ctx, identity.LanguageCode)
+	if err != nil || !slices.ContainsFunc(voices, func(v tts.Voice) bool {
+		return v.ID == identity.VoiceID && slices.Contains(v.Rates, identity.SpeakingRate)
+	}) {
+		return pgtype.UUID{}, &tts.Error{Code: tts.Unavailable}
+	}
+	sum, err := identity.Sum()
+	if err != nil {
+		return pgtype.UUID{}, err
+	}
+	id, err := q.ReserveGenerationKey(ctx, queries.ReserveGenerationKeyParams{UserID: owner, Operation: operation, Key: key, RequestHash: intent})
+	if err != nil {
+		return pgtype.UUID{}, err
+	}
+	err = q.InsertGeneration(ctx, queries.InsertGenerationParams{
+		ID: id, UserID: owner, ItemID: itemID, Operation: operation, IdempotencyKey: key,
+		LanguageCode: identity.LanguageCode, ProviderID: identity.ProviderID, VoiceID: identity.VoiceID,
+		SpeakingRate: identity.SpeakingRate, StrategyID: identity.StrategyID, StrategyVersion: identity.StrategyVersion,
+		FingerprintFormatVersion: fingerprint.SchemaVersion, SourceText: identity.ExactSourceText, SourceFingerprint: sum,
 	})
 	return id, err
 }
@@ -178,17 +195,12 @@ func (s Library) GetGeneration(ctx context.Context, itemID, id pgtype.UUID) (Can
 
 func (s Library) projectCandidate(item queries.LibraryItem, row queries.LatestDraftCandidatesRow) Candidate {
 	result := Candidate{ID: row.ID, SourceFingerprint: row.SourceFingerprint, JobStatus: row.Status, ErrorCode: row.ErrorCode, Status: "OUTDATED"}
-	id, err := s.identity(item)
-	if err != nil {
-		return result
-	}
-	sum, err := id.Sum()
-	if err != nil || sum != row.SourceFingerprint {
+	if !s.matchesDraft(item, row.SourceFingerprint) {
 		return result
 	}
 	result.Status = row.Status
 	if row.Status == "READY" {
-		if row.AssetID.Valid && s.assetPresent(row.StorageKey.String, row.ByteSize.Int64) {
+		if s.audioPresent(row.AssetID, row.StorageKey.String, row.ByteSize.Int64) {
 			result.AssetID = row.AssetID
 		} else {
 			result.Status = "FAILED"
@@ -198,15 +210,11 @@ func (s Library) projectCandidate(item queries.LibraryItem, row queries.LatestDr
 	return result
 }
 
-func (s Library) assetPresent(key string, size int64) bool {
-	if !filepath.IsLocal(key) || size <= 0 {
-		return false
-	}
-	root, err := os.OpenRoot(s.MediaRoot)
+func (s Library) matchesDraft(item queries.LibraryItem, expected string) bool {
+	identity, err := s.identity(item)
 	if err != nil {
 		return false
 	}
-	defer root.Close()
-	info, err := root.Lstat(key)
-	return err == nil && info.Mode().IsRegular() && info.Size() == size
+	sum, err := identity.Sum()
+	return err == nil && sum == expected
 }

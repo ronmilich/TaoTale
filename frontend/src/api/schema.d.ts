@@ -65,7 +65,7 @@ export interface paths {
         /** List the owner's items for one learning language */
         get: operations["listItems"];
         put?: never;
-        /** Save a new draft */
+        /** Save a new draft and optionally claim a matching preview */
         post: operations["createItem"];
         delete?: never;
         options?: never;
@@ -90,8 +90,129 @@ export interface paths {
         delete: operations["deleteItem"];
         options?: never;
         head?: never;
-        /** Update a saved item at the expected version */
+        /** Update an item at the expected version and optionally claim a matching preview for a draft */
         patch: operations["patchItem"];
+        trace?: never;
+    };
+    "/items/{itemId}/audio": {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        /** Stream the requested current item recording */
+        get: operations["streamItemAudio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/audio/download": {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        /** Download the requested current item recording */
+        get: operations["downloadItemAudio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tts/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admit a temporary speech preview
+         * @description The exact synthesis inputs are snapshotted for 24 hours. The same key and inputs replay the original receipt. Expired keys remain reserved.
+         */
+        post: operations["createTTSPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tts/previews/{generationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                generationId: components["parameters"]["PreviewId"];
+            };
+            cookie?: never;
+        };
+        /** Read the status of an unclaimed temporary preview */
+        get: operations["getTTSPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tts/previews/{generationId}/audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                generationId: components["parameters"]["PreviewId"];
+            };
+            cookie?: never;
+        };
+        /** Stream an unclaimed ready preview */
+        get: operations["streamTTSPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tts/previews/{generationId}/audio/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                generationId: components["parameters"]["PreviewId"];
+            };
+            cookie?: never;
+        };
+        /** Download an unclaimed ready preview */
+        get: operations["downloadTTSPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/items/{itemId}/audio/generate": {
@@ -232,7 +353,33 @@ export interface components {
             providerId: "azure" | "mock";
             speakingRates: number[];
         };
+        PreviewInput: {
+            /** @enum {string} */
+            languageCode: "zh-CN" | "ko-KR";
+            /** @description Exact speech source of up to 1500 UTF-16 units. */
+            sourceText: string;
+            voiceId: string;
+            /** @enum {number} */
+            speakingRate: 0.75 | 1 | 1.25;
+        };
+        PreviewStatus: {
+            /** Format: uuid */
+            generationId: string;
+            /** @enum {string} */
+            status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+            /** Format: date-time */
+            expiresAt: string;
+            sourceFingerprint: string;
+            /** Format: uuid */
+            audioAssetId: string | null;
+            errorCode: string | null;
+        };
         ItemCreate: {
+            /**
+             * Format: uuid
+             * @description Claim this owned, unexpired READY preview with exactly matching synthesis inputs.
+             */
+            previewGenerationId?: string;
             /** @enum {string} */
             languageCode: "zh-CN" | "ko-KR";
             title?: string | null;
@@ -249,6 +396,11 @@ export interface components {
             topicIds?: string[];
         };
         ItemPatch: {
+            /**
+             * Format: uuid
+             * @description Claim this owned, unexpired READY preview against the draft inputs after applying the patch.
+             */
+            previewGenerationId?: string;
             expectedVersion: number;
             title?: string | null;
             /** @description Exact source of up to 1500 UTF-16 units. */
@@ -332,6 +484,86 @@ export interface components {
         };
     };
     responses: {
+        /** @description Full verified MP3. */
+        AudioStream: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                "Accept-Ranges": components["headers"]["AcceptAudioRanges"];
+                "Cache-Control": components["headers"]["PrivateAudioCache"];
+                "Content-Length"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "audio/mpeg": string;
+            };
+        };
+        /** @description Full verified MP3 served as an attachment. */
+        AudioDownload: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                "Accept-Ranges": components["headers"]["AcceptAudioRanges"];
+                "Cache-Control": components["headers"]["PrivateAudioCache"];
+                "Content-Length"?: number;
+                /** @description Attachment with a server-generated MP3 filename. */
+                "Content-Disposition"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "audio/mpeg": string;
+            };
+        };
+        /** @description One satisfiable byte range. */
+        PartialAudioStream: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                "Accept-Ranges": components["headers"]["AcceptAudioRanges"];
+                "Cache-Control": components["headers"]["PrivateAudioCache"];
+                "Content-Length"?: number;
+                "Content-Range": components["headers"]["AudioContentRange"];
+                [name: string]: unknown;
+            };
+            content: {
+                "audio/mpeg": string;
+            };
+        };
+        /** @description One satisfiable byte range served as an attachment. */
+        PartialAudioDownload: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                "Accept-Ranges": components["headers"]["AcceptAudioRanges"];
+                "Cache-Control": components["headers"]["PrivateAudioCache"];
+                "Content-Length"?: number;
+                "Content-Range": components["headers"]["AudioContentRange"];
+                /** @description Attachment with a server-generated MP3 filename. */
+                "Content-Disposition"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "audio/mpeg": string;
+            };
+        };
+        /** @description INVALID_RANGE for a malformed, multiple or unsatisfiable byte range. */
+        InvalidAudioRange: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                "Accept-Ranges": components["headers"]["AcceptAudioRanges"];
+                "Content-Range": components["headers"]["AudioContentRange"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description PREVIEW_NOT_FOUND for an unknown, expired or already claimed preview. */
+        MissingPreview: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
         /** @description Saved Library item. */
         Item: {
             headers: {
@@ -395,11 +627,19 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Expected asset identity. A stale or unknown recording returns 404. */
+        AudioAssetPin: string;
+        PreviewId: string;
+        /** @description A single byte range, including open-ended and suffix ranges. */
+        AudioRange: string;
         ItemId: string;
         ItemLanguage: "zh-CN" | "ko-KR";
     };
     requestBodies: never;
     headers: {
+        AcceptAudioRanges: "bytes";
+        PrivateAudioCache: "private, no-cache" | "private, no-store";
+        AudioContentRange: string;
         /** @description Server-generated identifier for this request. */
         RequestId: string;
     };
@@ -519,6 +759,7 @@ export interface operations {
             400: components["responses"]["APIError"];
             403: components["responses"]["APIError"];
             404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
             413: components["responses"]["APIError"];
             415: components["responses"]["APIError"];
             500: components["responses"]["APIError"];
@@ -589,6 +830,179 @@ export interface operations {
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
             504: components["responses"]["APIError"];
+        };
+    };
+    streamItemAudio: {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AudioStream"];
+            206: components["responses"]["PartialAudioStream"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            416: components["responses"]["InvalidAudioRange"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    downloadItemAudio: {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AudioDownload"];
+            206: components["responses"]["PartialAudioDownload"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            416: components["responses"]["InvalidAudioRange"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    createTTSPreview: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewInput"];
+            };
+        };
+        responses: {
+            /** @description Durable preview generation receipt. */
+            202: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        generationId: string;
+                    };
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getTTSPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                generationId: components["parameters"]["PreviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview status and playable asset identity when ready. */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewStatus"];
+                };
+            };
+            403: components["responses"]["APIError"];
+            404: components["responses"]["MissingPreview"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    streamTTSPreview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                generationId: components["parameters"]["PreviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AudioStream"];
+            206: components["responses"]["PartialAudioStream"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["MissingPreview"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            416: components["responses"]["InvalidAudioRange"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+        };
+    };
+    downloadTTSPreview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                generationId: components["parameters"]["PreviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AudioDownload"];
+            206: components["responses"]["PartialAudioDownload"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["MissingPreview"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            416: components["responses"]["InvalidAudioRange"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
         };
     };
     generateDraftAudio: {

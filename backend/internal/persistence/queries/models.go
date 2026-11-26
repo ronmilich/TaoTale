@@ -50,6 +50,7 @@ type AudioGeneration struct {
 	StartedAt                pgtype.Timestamptz
 	HeartbeatAt              pgtype.Timestamptz
 	CompletedAt              pgtype.Timestamptz
+	ExpiresAt                pgtype.Timestamptz
 }
 
 type IdempotencyRecord struct {
@@ -75,21 +76,22 @@ type LearningLanguage struct {
 }
 
 type LibraryItem struct {
-	ID           pgtype.UUID
-	UserID       pgtype.UUID
-	LanguageCode string
-	Title        pgtype.Text
-	SourceText   string
-	Description  pgtype.Text
-	Notes        pgtype.Text
-	Difficulty   pgtype.Text
-	IsFavorite   bool
-	VoiceID      pgtype.Text
-	SpeakingRate pgtype.Float8
-	Version      int32
-	PublishedAt  pgtype.Timestamptz
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	ID                 pgtype.UUID
+	UserID             pgtype.UUID
+	LanguageCode       string
+	Title              pgtype.Text
+	SourceText         string
+	Description        pgtype.Text
+	Notes              pgtype.Text
+	Difficulty         pgtype.Text
+	IsFavorite         bool
+	VoiceID            pgtype.Text
+	SpeakingRate       pgtype.Float8
+	Version            int32
+	PublishedAt        pgtype.Timestamptz
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
+	ActiveAudioAssetID pgtype.UUID
 }
 
 type Topic struct {

@@ -105,7 +105,7 @@ func TestWorkerPostgres(t *testing.T) {
 	lib := persistence.Library{Pool: pool, Voices: provider, MediaRoot: dir, Limits: persistence.GenerationLimits{Active: 4, Hourly: 1000}}
 	draft := func(source string) pgtype.UUID {
 		t.Helper()
-		item, err := lib.CreateItem(ctx, queries.AddItemParams{LanguageCode: "zh-CN", SourceText: source}, nil)
+		item, err := lib.CreateItem(ctx, queries.AddItemParams{LanguageCode: "zh-CN", SourceText: source}, nil, pgtype.UUID{})
 		if err != nil {
 			t.Fatal(err)
 		}

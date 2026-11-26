@@ -70,8 +70,14 @@ func TestOpenAPIConformance(t *testing.T) {
 			case "listItems":
 				url += "?languageCode=ko-KR"
 				status = http.StatusServiceUnavailable
-			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration":
+			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration",
+				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview":
 				status = http.StatusServiceUnavailable
+			case "streamItemAudio", "downloadItemAudio":
+				url += "?audioAssetId=" + contractID
+				status = http.StatusServiceUnavailable
+			case "createTTSPreview":
+				body, status = `{"languageCode":"zh-CN","sourceText":"你好。","voiceId":"zh-CN-mock","speakingRate":1}`, http.StatusServiceUnavailable
 			case "createItem":
 				body, status = `{"languageCode":"zh-CN"}`, http.StatusServiceUnavailable
 			case "patchItem":
@@ -80,7 +86,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				body, status = `{"name":"Example"}`, http.StatusServiceUnavailable
 			}
 			req := httptest.NewRequest(route.Method, url, strings.NewReader(body))
-			if operation == "generateDraftAudio" {
+			if operation == "generateDraftAudio" || operation == "createTTSPreview" {
 				req.Header.Set("Idempotency-Key", contractID)
 			}
 			if body != "" {

@@ -1,4 +1,4 @@
-// Package generation runs the durable saved-draft synthesis queue.
+// Package generation runs the durable speech synthesis queue.
 package generation
 
 import (
@@ -148,6 +148,9 @@ func (w *Worker) process(parent context.Context, job queries.AudioGeneration) er
 }
 
 func (w *Worker) generate(ctx context.Context, job queries.AudioGeneration) string {
+	if job.ExpiresAt.Valid && !job.StartedAt.Time.Before(job.ExpiresAt.Time) {
+		return "PREVIEW_EXPIRED"
+	}
 	id := fingerprint.Identity{LanguageCode: job.LanguageCode, ProviderID: job.ProviderID, VoiceID: job.VoiceID,
 		SpeakingRate: job.SpeakingRate, StrategyID: job.StrategyID, StrategyVersion: job.StrategyVersion, ExactSourceText: job.SourceText}
 	sum, err := id.Sum()
