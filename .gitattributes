@@ -1,5 +1,6 @@
 *.sh text eol=lf
 *.go text eol=lf
+*.sql text eol=lf
 /.githooks/* text eol=lf
 /frontend/src/** text eol=lf
 /frontend/scripts/** text eol=lf

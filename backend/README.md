@@ -14,7 +14,15 @@ Open `http://127.0.0.1:8080/health/live` to check the process or `/health/ready`
 
 Standalone Go runs default to `127.0.0.1:8080`. Compose binds the Go process to the private address of its `api` service and publishes the host port on loopback. Every request must use a loopback Host. For a write with an Origin header, the origin must match the request's HTTP origin or the optional `TAOTALE_DEV_ORIGIN` in `infra/.env` (for example, `http://localhost:3000`). Configure it only when the local dev proxy uses a different Host. The normal Vite proxy preserves the browser's Host.
 
-API logs contain the server-generated request ID, method, route template, status and duration. JSON handlers use the shared decoder for one UTF-8 object up to 100 KiB with known fields. PostgreSQL or media failures return a sanitized `503 SERVICE_UNAVAILABLE` envelope with the same request ID as the response header.
+API logs contain the server-generated request ID, method, route template, status and duration. JSON handlers use the shared decoder for one UTF-8 object up to 100 KiB with known fields. Readiness verifies the exact migration history and writable media root. A readiness failure returns a sanitized `503 SERVICE_UNAVAILABLE` envelope with the same request ID as the response header.
+
+## Schema and seeds
+
+The API applies pending migrations and ensures the local owner, two learning languages and eight default Topics exist before opening its HTTP listener. Startup serializes migration and seeding in one PostgreSQL transaction. Renames and recolors survive subsequent starts.
+
+Add a numbered SQL file to `db/migrations/` for schema changes. Keep applied SQL immutable because each version is recorded with its SHA-256 checksum. Downgrading to a binary that expects an older schema fails startup. Preserve a paired backup before upgrades.
+
+From the repository root, use `sh scripts/sqlc.sh generate` to regenerate the pgx/v5 query package and `sh scripts/sqlc.sh diff` to check for drift. Run `bash scripts/test-db.sh` to exercise migration, seeding and SQL-only dump/restore in disposable PostgreSQL containers.
 
 PostgreSQL 17.11 stores data in the `taotale-backend_postgres` named volume. The API runs as UID 10001 and initializes its absolute `MEDIA_ROOT` at `/var/lib/taotale/media` in the `taotale-backend_media` named volume. The root, `staging/`, `temporary/audio/`, `audio/`, `temporary/images/`, and `images/` use owner-only directory permissions (`0700`).
 

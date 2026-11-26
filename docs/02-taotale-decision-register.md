@@ -54,6 +54,7 @@ These are the current product and implementation decisions. `MVP` identifies fir
 | TT-034 | MVP | Proceed with the Azure Go adapter for Mandarin (`zh-CN-XiaoxiaoNeural`) and Korean (`ko-KR-SunHiNeural`) on Linux amd64 with CGO and the native Speech SDK. Both passed all three tested rates. Map full escaped SSML code-point offsets to exact source UTF-16 spans and validate every recording. | [TAO-03 results](../spikes/azure-go/README.md), OPEN-12 |
 | TT-035 | MVP | Pin Go 1.27.4, Node 24.19.0 and pnpm 11.25.0. Keep exact frontend dependency versions and committed pnpm and Go checksums. Use the repository UI guard, formatter, lint and secret checks in CI. | [Repository checks](../README.md), OPEN-01 |
 | TT-036 | MVP | Run Go and PostgreSQL in Compose. Connect Go to PostgreSQL through `db:5432` without publishing the database port. Publish the API on IPv4 loopback. Keep the existing Compose project and named volumes. The API initializes owner-only directories on the media volume as UID 10001. | [Backend setup](../backend/README.md), OPEN-02 |
+| TT-037 | MVP | Use embedded forward-only SQL and a pgx migration runner. Startup applies pending migrations and seeds under one PostgreSQL transaction and advisory lock. Readiness checks the complete SHA-256 migration history. sqlc v1.31.1 generates pgx/v5 queries. | [Schema workflow](../backend/README.md), OPEN-02 |
 
 
 ## 3. MVP implementation invariants and release gate
@@ -208,7 +209,7 @@ The old code may already implement many `D-` behaviors. This table is an **imple
 | ID | Unresolved implementation choice | Constraint already decided |
 |---|---|---|
 | OPEN-01 | **Exact compatible versions and build/tooling choices** for the approved Go/Gin/pgx/sqlc and SolidJS/Vite/Router stacks. | Frameworks are **already selected** (TT-025–031); this is not permission to reconsider NestJS/Prisma/React. |
-| OPEN-02 | SQL migration runner and seed strategy remain open. TT-036 resolves the runtime, Compose paths, volume layout and database port exposure. | Keep PostgreSQL on the Compose network and retain the named database and media volumes. |
+| OPEN-02 | **Resolved.** TT-036 records the Compose runtime and volume layout. TT-037 records migration and seed execution. | Keep PostgreSQL on the Compose network and retain its named database and media volumes. |
 | OPEN-03 | Exact Chinese/Korean segmentation rules, offset convention and legacy-asset compatibility map. | Separate versioned language strategies and safe alignment are mandatory. |
 | OPEN-04 | Whether to retain 1,500 UTF-16 source-text units or implement verified TTS chunking for longer articles. | Exact text integrity and validated READY must hold. |
 | OPEN-05 | Extent of language-aware automatic vocabulary highlighting/linking at initial MVP. | Manual Reader collection works; do not promise Korean morphology/substring correctness. |

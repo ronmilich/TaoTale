@@ -46,6 +46,15 @@ jobs:
       - run: staticcheck ./...
       - run: go test -race ./...
 
+  database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - run: sh scripts/sqlc.sh diff
+      - run: bash scripts/test-db.sh
+
   secrets:
     runs-on: ubuntu-24.04
     steps:
@@ -60,6 +69,6 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        gate: [sqlc and migrations, OpenAPI and types, browser E2E with mock TTS]
+        gate: [OpenAPI and types, browser E2E with mock TTS]
     steps:
       - run: echo 'Placeholder. See docs/12-taotale-quality-and-acceptance.md.'

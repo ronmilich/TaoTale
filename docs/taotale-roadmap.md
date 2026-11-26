@@ -60,7 +60,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-04 | Repository and tooling foundation | 1 | TAO-02 | Done |
 | TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Done |
 | TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Done |
-| TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Planned |
+| TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Done |
 | TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Planned |
 | TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Planned |
 | TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Planned |
@@ -295,8 +295,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - An early `pg_dump`/`pg_restore` smoke test into a fresh volume (01 §9 Stage 1 exit). The full paired procedure comes in TAO-44.
 
 **Exit criteria**
-- [ ] Migrate + seed is deterministic, both fresh and repeated.
-- [ ] Drift check enforced in CI; dump/restore smoke passes.
+- [x] Disposable PostgreSQL verified fresh and concurrent startup, rollback on a failed migration, one owner, two enabled languages, eight protected Topics and repeat seeding that preserves edits and IDs. Readiness checks the complete migration history.
+- [x] CI checks generated pgx/v5 code with `sqlc diff`. A custom-format `pg_dump` restored into fresh disposable PostgreSQL with matching catalog rows, edited Topic metadata and migration history. [Schema workflow](../backend/README.md)
 
 **Depends on:** TAO-06
 

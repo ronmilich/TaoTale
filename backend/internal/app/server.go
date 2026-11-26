@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"taotale/backend/internal/httpapi"
 	"taotale/backend/internal/media"
+	"taotale/backend/internal/persistence"
 )
 
 func Run(ctx context.Context, config Config, logger *slog.Logger) error {
@@ -24,8 +25,19 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 	}
 	defer pool.Close()
 
+	schema, err := persistence.LoadSchema()
+	if err != nil {
+		return errors.New("cannot load embedded database migrations")
+	}
+	if err := schema.Prepare(ctx, pool); err != nil {
+		if errors.Is(err, persistence.ErrSchemaHistoryMismatch) {
+			return err
+		}
+		return errors.New("cannot migrate and seed PostgreSQL")
+	}
+
 	ready := func(ctx context.Context) error {
-		if err := pool.Ping(ctx); err != nil {
+		if err := schema.Check(ctx, pool); err != nil {
 			return err
 		}
 		file, err := os.CreateTemp(config.MediaRoot, ".health-*")
