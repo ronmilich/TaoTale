@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"taotale/backend/internal/persistence"
 	"taotale/backend/internal/tts"
 )
 
 const RequestTimeout = 10 * time.Second
 
-func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.TTSProvider) *gin.Engine {
+func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.TTSProvider, library *persistence.Library) *gin.Engine {
 	router := gin.New()
 	router.HandleMethodNotAllowed = true
 	router.RedirectTrailingSlash = false
@@ -44,6 +45,8 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 	router.GET("/api/v1/languages", listLanguages(catalog))
 	router.GET("/api/v1/topics", listTopics(catalog))
 	router.GET("/api/v1/tts/voices", listVoices(provider))
+	registerLibrary(router, library)
+	registerTopicWrites(router, library)
 	return router
 }
 
@@ -51,8 +54,13 @@ type apiError struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
 	RequestID string `json:"requestId"`
+	Details   gin.H  `json:"details,omitempty"`
 }
 
 func fail(c *gin.Context, status int, code, message string) {
-	c.AbortWithStatusJSON(status, gin.H{"error": apiError{code, message, c.Writer.Header().Get("X-Request-Id")}})
+	failDetails(c, status, code, message, nil)
+}
+
+func failDetails(c *gin.Context, status int, code, message string, details gin.H) {
+	c.AbortWithStatusJSON(status, gin.H{"error": apiError{code, message, c.Writer.Header().Get("X-Request-Id"), details}})
 }

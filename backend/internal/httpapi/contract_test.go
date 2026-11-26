@@ -28,9 +28,9 @@ func TestOpenAPIConformance(t *testing.T) {
 	}
 	logger := slog.New(slog.DiscardHandler)
 	catalog := contractCatalog(t)
-	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog, nil, tts.Mock{})
+	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog, nil, tts.Mock{}, nil)
 	storageError := errors.New("private catalog error")
-	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError}, nil, tts.NewAzure("", "", "", 0))
+	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError}, nil, tts.NewAzure("", "", "", 0), nil)
 
 	operations := make(map[string]*routers.Route)
 	for template, item := range spec.Paths.Map() {
@@ -43,7 +43,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				servers = *operation.Servers
 			}
 			for _, server := range servers {
-				key := method + " " + path.Join(server.URL, template)
+				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{topicId}", ":topicId").Replace(path.Join(server.URL, template))
 				if operations[key] != nil {
 					t.Fatalf("duplicate contract route %s", key)
 				}
@@ -60,16 +60,34 @@ func TestOpenAPIConformance(t *testing.T) {
 		}
 		delete(operations, key)
 		t.Run(key, func(t *testing.T) {
-			url := "http://127.0.0.1" + route.Path
-			if contractRoute.Operation.OperationID == "listTTSVoices" {
+			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":topicId", contractID).Replace(route.Path)
+			operation := contractRoute.Operation.OperationID
+			var body string
+			status := http.StatusOK
+			switch operation {
+			case "listTTSVoices":
 				url += "?languageCode=ko-KR"
+			case "listItems":
+				url += "?languageCode=ko-KR"
+				status = http.StatusServiceUnavailable
+			case "getItem", "deleteItem", "deleteTopic":
+				status = http.StatusServiceUnavailable
+			case "createItem":
+				body, status = `{"languageCode":"zh-CN"}`, http.StatusServiceUnavailable
+			case "patchItem":
+				body, status = `{"expectedVersion":1,"isFavorite":false}`, http.StatusServiceUnavailable
+			case "createTopic", "patchTopic":
+				body, status = `{"name":"Example"}`, http.StatusServiceUnavailable
 			}
-			req := httptest.NewRequest(route.Method, url, nil)
+			req := httptest.NewRequest(route.Method, url, strings.NewReader(body))
+			if body != "" {
+				req.Header.Set("Content-Type", "application/json")
+			}
 			result := httptest.NewRecorder()
 			healthy.ServeHTTP(result, req)
-			requireContractResponse(t, req, contractRoute, result, http.StatusOK)
+			requireContractResponse(t, req, contractRoute, result, status)
 
-			switch contractRoute.Operation.OperationID {
+			switch operation {
 			case "listTTSVoices":
 				if !strings.Contains(result.Body.String(), "SunHi (mock)") || strings.Contains(result.Body.String(), "zh-CN") {
 					t.Fatal("expected only a labeled Korean voice")
@@ -92,7 +110,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				assertAPIError(t, result, 503, "SERVICE_UNAVAILABLE")
 			}
 
-			forbidden := httptest.NewRequest(route.Method, "http://invalid.example"+route.Path, nil)
+			forbidden := httptest.NewRequest(route.Method, strings.Replace(url, "127.0.0.1", "invalid.example", 1), nil)
 			result = httptest.NewRecorder()
 			healthy.ServeHTTP(result, forbidden)
 			requireContractResponse(t, forbidden, contractRoute, result, http.StatusForbidden)
@@ -125,10 +143,12 @@ func requireContractResponse(t *testing.T, req *http.Request, route *routers.Rou
 	if err := openapi3filter.ValidateResponse(t.Context(), input.SetBodyBytes(result.Body.Bytes())); err != nil {
 		t.Fatal(err)
 	}
-	if result.Header().Get("X-Request-Id") == "" || !strings.HasPrefix(result.Header().Get("Content-Type"), "application/json") {
+	if result.Header().Get("X-Request-Id") == "" || (status != http.StatusNoContent && !strings.HasPrefix(result.Header().Get("Content-Type"), "application/json")) {
 		t.Fatal("response lacks request ID or JSON content type")
 	}
 }
+
+const contractID = "06dc9132-13d3-42da-a09c-000000000101"
 
 type fixtureCatalog struct {
 	languages []queries.ListEnabledLanguagesRow

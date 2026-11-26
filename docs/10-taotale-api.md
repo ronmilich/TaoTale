@@ -38,7 +38,7 @@ The canonical OpenAPI 3.1 contract covers health, the enabled learning languages
 
 ## 3. MVP operation inventory
 
-Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to define each new method, path, request and response before implementing the handler. The legacy `/tags` alias choice remains OPEN-14.
+Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to define each new method, path, request and response before implementing the handler. OPEN-14 records the decision to use `/topics`.
 
 | Method | Proposed path | Intent / key contract |
 |---|---|---|
@@ -94,6 +94,10 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 - Pure metadata writes, including Favorite changes, do not require regeneration; old media URLs are pinned to expected `audioAssetId` to prevent mixed byte-range playback after revision.
 
 ## 5. Mutations, idempotency and errors
+
+The draft API accepts omitted fields as defaults at creation. A PATCH carries `expectedVersion`. Omission preserves a field, `null` clears nullable metadata, an empty string is stored as typed, an empty `topicIds` clears associations, and `false` explicitly clears the favorite flag. Page size defaults to 8 and allows up to 50. The current sort is creation timestamp descending, with descending item ID for ties.
+
+Topics use `/topics` across all learning languages. Writes accept `colorPreset` and the server resolves the stored colors. New Topics default to Iris. Names are unique after Unicode whitespace trimming and case folding. `DUPLICATE_TOPIC` includes `error.details.existingId`. The `usageCount` counts linked items across languages. Default Topics can be renamed and recolored while their system keys and deletion protection persist.
 
 - **Idempotency-Key** (UUID) required on new TTS generation and direct publication operations. Server stores operation+canonical intent hash and a durable replay outcome. Same key+same body resolves the original attempt; same key+different body is `409 IDEMPOTENCY_KEY_REUSED`. Once a provider may have been charged, never auto-issue a new call to repair an uncertain result.
 - Item/revision expected-version conditional SQL update returns `409 VERSION_CONFLICT` + current version on stale writes. Favorites are a **separate set-value operation** not a whole-item save; avoid lost updates even across multiple browser tabs.

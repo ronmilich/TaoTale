@@ -17,7 +17,7 @@ import (
 )
 
 func TestHealthAndSanitizedErrors(t *testing.T) {
-	router := Router(func(context.Context) error { return errors.New("private diagnostic") }, slog.New(slog.DiscardHandler), "", nil, nil, tts.Mock{})
+	router := Router(func(context.Context) error { return errors.New("private diagnostic") }, slog.New(slog.DiscardHandler), "", nil, nil, tts.Mock{}, nil)
 	for _, prefix := range []string{"", "/api/v1"} {
 		live := httptest.NewRecorder()
 		router.ServeHTTP(live, httptest.NewRequest("GET", "http://localhost"+prefix+"/health/live", nil))
@@ -40,7 +40,7 @@ func TestHealthAndSanitizedErrors(t *testing.T) {
 }
 
 func TestLocalWritePolicy(t *testing.T) {
-	router := Router(nil, slog.New(slog.DiscardHandler), "localhost:3000", nil, nil, tts.Mock{})
+	router := Router(nil, slog.New(slog.DiscardHandler), "localhost:3000", nil, nil, tts.Mock{}, nil)
 	router.POST("/write", func(c *gin.Context) { c.Status(204) })
 	for _, tc := range []struct {
 		name, host, origin, fetchSite string
@@ -76,7 +76,7 @@ func TestLocalWritePolicy(t *testing.T) {
 
 func TestRequestLogsExcludePrivateData(t *testing.T) {
 	var logs bytes.Buffer
-	router := Router(nil, slog.New(slog.NewJSONHandler(&logs, nil)), "", nil, nil, tts.Mock{})
+	router := Router(nil, slog.New(slog.NewJSONHandler(&logs, nil)), "", nil, nil, tts.Mock{}, nil)
 	router.POST("/items/:id", func(c *gin.Context) {
 		_, _ = io.ReadAll(c.Request.Body)
 		panic("private-panic")

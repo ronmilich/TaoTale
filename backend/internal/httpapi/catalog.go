@@ -29,11 +29,12 @@ type topicColors struct {
 }
 
 type topic struct {
-	ID        string      `json:"id"`
-	Name      string      `json:"name"`
-	IsDefault bool        `json:"isDefault"`
-	SystemKey *string     `json:"systemKey"`
-	Colors    topicColors `json:"colors"`
+	ID         string      `json:"id"`
+	Name       string      `json:"name"`
+	IsDefault  bool        `json:"isDefault"`
+	SystemKey  *string     `json:"systemKey"`
+	Colors     topicColors `json:"colors"`
+	UsageCount int64       `json:"usageCount"`
 }
 
 func listLanguages(catalog Catalog) gin.HandlerFunc {
@@ -60,18 +61,22 @@ func listTopics(catalog Catalog) gin.HandlerFunc {
 		}
 		items := make([]topic, 0, len(rows))
 		for _, row := range rows {
-			var key *string
-			if row.SystemKey.Valid {
-				key = &row.SystemKey.String
-			}
-			items = append(items, topic{
-				ID: row.ID.String(), Name: row.Name, IsDefault: key != nil, SystemKey: key,
-				Colors: topicColors{
-					Light: themeColors{Background: row.LightBackground, Text: row.LightText},
-					Dark:  themeColors{Background: row.DarkBackground, Text: row.DarkText},
-				},
-			})
+			items = append(items, topicResponse(row))
 		}
 		c.JSON(http.StatusOK, gin.H{"items": items})
+	}
+}
+
+func topicResponse(row queries.ListTopicsRow) topic {
+	var key *string
+	if row.SystemKey.Valid {
+		key = &row.SystemKey.String
+	}
+	return topic{
+		ID: row.ID.String(), Name: row.Name, IsDefault: key != nil, SystemKey: key, UsageCount: row.UsageCount,
+		Colors: topicColors{
+			Light: themeColors{Background: row.LightBackground, Text: row.LightText},
+			Dark:  themeColors{Background: row.DarkBackground, Text: row.DarkText},
+		},
 	}
 }

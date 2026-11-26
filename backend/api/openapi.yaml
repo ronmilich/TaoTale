@@ -74,6 +74,127 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+  /items:
+    get:
+      operationId: listItems
+      summary: List the owner's items for one learning language
+      parameters:
+        - $ref: '#/components/parameters/ItemLanguage'
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 2147483647, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 50, default: 8}
+      responses:
+        '200':
+          $ref: '#/components/responses/ItemPage'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+    post:
+      operationId: createItem
+      summary: Save a new draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemCreate'
+      responses:
+        '201':
+          $ref: '#/components/responses/Item'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+  /items/{itemId}:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      operationId: getItem
+      summary: Read a saved item
+      responses:
+        '200':
+          $ref: '#/components/responses/Item'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+    patch:
+      operationId: patchItem
+      summary: Update a saved item at the expected version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemPatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Item'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+    delete:
+      operationId: deleteItem
+      summary: Delete an owned item and its topic associations
+      responses:
+        '204':
+          $ref: '#/components/responses/Deleted'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
   /topics:
     get:
       operationId: listTopics
@@ -89,6 +210,88 @@ paths:
               schema:
                 $ref: '#/components/schemas/TopicList'
         '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+    post:
+      operationId: createTopic
+      summary: Create a Topic shared across the owner's learning languages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicCreate'
+      responses:
+        '201':
+          $ref: '#/components/responses/Topic'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+  /topics/{topicId}:
+    parameters:
+      - name: topicId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    patch:
+      operationId: patchTopic
+      summary: Rename or recolor an owned Topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicPatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Topic'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+    delete:
+      operationId: deleteTopic
+      summary: Delete a custom Topic and its associations
+      responses:
+        '204':
+          $ref: '#/components/responses/Deleted'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
           $ref: '#/components/responses/APIError'
         '413':
           $ref: '#/components/responses/APIError'
@@ -140,6 +343,12 @@ paths:
                   message: Speech synthesis is unavailable.
                   requestId: example-request-id
 components:
+  parameters:
+    ItemLanguage:
+      name: languageCode
+      in: query
+      required: true
+      schema: {type: string, enum: [zh-CN, ko-KR]}
   headers:
     RequestId:
       description: Server-generated identifier for this request.
@@ -147,6 +356,38 @@ components:
       schema:
         type: string
   responses:
+    Item:
+      description: Saved Library item.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Item'
+    ItemPage:
+      description: A page of matching Library items.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ItemPage'
+    Topic:
+      description: Saved Topic and its item usage count.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Topic'
+    Deleted:
+      description: The resource was deleted.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
     Healthy:
       description: The health check passed.
       headers:
@@ -186,6 +427,8 @@ components:
             details:
               type: object
               properties:
+                currentVersion: {type: integer, minimum: 1}
+                existingId: {type: string, format: uuid}
                 fields:
                   type: array
                   items:
@@ -238,6 +481,112 @@ components:
           minItems: 1
           uniqueItems: true
           items: {type: number, exclusiveMinimum: 0}
+    ItemCreate:
+      type: object
+      additionalProperties: false
+      required: [languageCode]
+      properties:
+        languageCode: {type: string, enum: [zh-CN, ko-KR]}
+        title: {type: [string, 'null'], maxLength: 120}
+        sourceText:
+          type: string
+          maxLength: 1500
+          description: Exact source of up to 1500 UTF-16 units.
+        description: {type: [string, 'null'], maxLength: 1000}
+        notes: {type: [string, 'null'], maxLength: 5000}
+        difficulty: {type: [string, 'null'], enum: [beginner, intermediate, advanced, null]}
+        isFavorite: {type: boolean}
+        voiceId: {type: [string, 'null']}
+        speakingRate: {type: [number, 'null'], enum: [0.75, 1, 1.25, null]}
+        topicIds:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items: {type: string, format: uuid}
+    ItemPatch:
+      type: object
+      additionalProperties: false
+      required: [expectedVersion]
+      properties:
+        expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
+        title: {type: [string, 'null'], maxLength: 120}
+        sourceText:
+          type: string
+          maxLength: 1500
+          description: Exact source of up to 1500 UTF-16 units.
+        description: {type: [string, 'null'], maxLength: 1000}
+        notes: {type: [string, 'null'], maxLength: 5000}
+        difficulty: {type: [string, 'null'], enum: [beginner, intermediate, advanced, null]}
+        isFavorite: {type: boolean}
+        voiceId: {type: [string, 'null']}
+        speakingRate: {type: [number, 'null'], enum: [0.75, 1, 1.25, null]}
+        topicIds:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items: {type: string, format: uuid}
+    Item:
+      type: object
+      additionalProperties: false
+      required: [id, languageCode, title, sourceText, description, notes, difficulty, isFavorite, voiceId, speakingRate, topicIds, status, publishedAt, version, createdAt, updatedAt, audioStatus]
+      properties:
+        id: {type: string, format: uuid}
+        languageCode: {type: string, enum: [zh-CN, ko-KR]}
+        status: {type: string, enum: [draft, published]}
+        version: {type: integer, minimum: 1}
+        publishedAt: {type: [string, 'null'], format: date-time}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        audioStatus: {type: string, enum: [NOT_GENERATED]}
+        title: {type: [string, 'null'], maxLength: 120}
+        sourceText:
+          type: string
+          maxLength: 1500
+          description: Exact source of up to 1500 UTF-16 units.
+        description: {type: [string, 'null'], maxLength: 1000}
+        notes: {type: [string, 'null'], maxLength: 5000}
+        difficulty: {type: [string, 'null'], enum: [beginner, intermediate, advanced, null]}
+        isFavorite: {type: boolean}
+        voiceId: {type: [string, 'null']}
+        speakingRate: {type: [number, 'null'], enum: [0.75, 1, 1.25, null]}
+        topicIds:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items: {type: string, format: uuid}
+    ItemPage:
+      type: object
+      additionalProperties: false
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        total: {type: integer, minimum: 0}
+        page: {type: integer, minimum: 1}
+        pageSize: {type: integer, minimum: 1, maximum: 50}
+    TopicCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 40}
+        colorPreset:
+          allOf:
+            - $ref: '#/components/schemas/TopicPreset'
+          default: iris
+    TopicPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: {type: string, minLength: 1, maxLength: 40}
+        colorPreset:
+          $ref: '#/components/schemas/TopicPreset'
+    TopicPreset:
+      type: string
+      enum: [iris, periwinkle, orchid, sage, amber, slate]
     TopicList:
       type: object
       additionalProperties: false
@@ -250,7 +599,7 @@ components:
     Topic:
       type: object
       additionalProperties: false
-      required: [id, name, isDefault, systemKey, colors]
+      required: [id, name, isDefault, systemKey, colors, usageCount]
       properties:
         id:
           type: string
@@ -258,6 +607,7 @@ components:
         name:
           type: string
           minLength: 1
+        usageCount: {type: integer, minimum: 0}
         isDefault:
           type: boolean
         systemKey:

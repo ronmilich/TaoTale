@@ -8,10 +8,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ItemTopic struct {
+	UserID  pgtype.UUID
+	ItemID  pgtype.UUID
+	TopicID pgtype.UUID
+}
+
 type LearningLanguage struct {
 	Code        string
 	DisplayName string
 	Enabled     bool
+}
+
+type LibraryItem struct {
+	ID           pgtype.UUID
+	UserID       pgtype.UUID
+	LanguageCode string
+	Title        pgtype.Text
+	SourceText   string
+	Description  pgtype.Text
+	Notes        pgtype.Text
+	Difficulty   pgtype.Text
+	IsFavorite   bool
+	VoiceID      pgtype.Text
+	SpeakingRate pgtype.Float8
+	Version      int32
+	PublishedAt  pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 }
 
 type Topic struct {

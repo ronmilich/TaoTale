@@ -55,10 +55,11 @@ func (q *Queries) ListEnabledLanguages(ctx context.Context) ([]ListEnabledLangua
 }
 
 const listTopics = `-- name: ListTopics :many
-SELECT id, name, system_key, light_background, light_text, dark_background, dark_text
-FROM public.topics
-WHERE user_id = (SELECT id FROM public.users WHERE singleton)
-ORDER BY name_key, id
+SELECT t.id, t.name, t.system_key, t.light_background, t.light_text, t.dark_background, t.dark_text,
+    (SELECT count(*) FROM public.item_topics it WHERE it.user_id = t.user_id AND it.topic_id = t.id) AS usage_count
+FROM public.topics t
+WHERE t.user_id = (SELECT id FROM public.users WHERE singleton)
+ORDER BY t.name_key, t.id
 `
 
 type ListTopicsRow struct {
@@ -69,6 +70,7 @@ type ListTopicsRow struct {
 	LightText       string
 	DarkBackground  string
 	DarkText        string
+	UsageCount      int64
 }
 
 func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
@@ -88,6 +90,7 @@ func (q *Queries) ListTopics(ctx context.Context) ([]ListTopicsRow, error) {
 			&i.LightText,
 			&i.DarkBackground,
 			&i.DarkText,
+			&i.UsageCount,
 		); err != nil {
 			return nil, err
 		}
