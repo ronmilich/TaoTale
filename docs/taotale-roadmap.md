@@ -61,7 +61,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-05 | Local Docker PostgreSQL and media root | 1 | TAO-04 | Done |
 | TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Done |
 | TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Done |
-| TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Planned |
+| TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Done |
 | TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Planned |
 | TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Planned |
 | TAO-11 | Unicode offsets and fingerprints | 2 | TAO-01, TAO-06 | Planned |
@@ -311,8 +311,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Rule for all later milestones: extend the contract before writing handlers.
 
 **Exit criteria**
-- [ ] `GET /languages` implemented and conformance-tested.
-- [ ] Freshness checks enforced in CI.
+- [x] `GET /languages` and `GET /topics` read PostgreSQL and conform to OpenAPI along with both health aliases. A disposable Compose run verified enabled-language filtering, Topic ordering, nullable system keys and request IDs.
+- [x] CI lints OpenAPI, checks generated TypeScript freshness and compares Gin routes and responses to the contract. A deliberately altered declaration failed the freshness check. [API workflow](10-taotale-api.md#7-openapi-and-migration-workflow)
 
 **Depends on:** TAO-07
 

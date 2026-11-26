@@ -9,6 +9,7 @@ Install Node 24.19.0 from `.nvmrc`, pnpm 11.25.0 from `frontend/package.json`, a
 - In `frontend/`, run `pnpm install --frozen-lockfile`. Run `pnpm format` to format source. The CI checks are `pnpm check:ui`, `pnpm check:ui:test`, `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test --run`, and `pnpm build`.
 - In `backend/`, run `gofmt -w ./cmd ./db ./internal`, then `go mod verify`, `go vet ./...`, and `go test -race ./...`. CI also runs Staticcheck v0.8.2.
 - From the repository root, run `sh scripts/sqlc.sh diff` to check generated database queries and `bash scripts/test-db.sh` to test migration, seed and restore against disposable PostgreSQL.
+- Update `backend/api/openapi.yaml` before implementing handlers. In `frontend/`, run `pnpm api:generate` to refresh the declarations and `pnpm api:check` to lint the contract and check freshness.
 - From the repository root, run `git config core.hooksPath .githooks` to enable the pre-commit hook. It checks staged whitespace and secrets, Go formatting and vet, and frontend formatting, lint and UI dependencies. Run `sh scripts/check-secrets.sh` in Git Bash or another POSIX shell to scan Git history.
 
 The frontend uses native controls and app-owned styling. Document the purpose of a new runtime dependency before adding it to the allowlist in `frontend/scripts/check-ui.mjs`.

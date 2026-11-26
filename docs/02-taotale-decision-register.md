@@ -55,6 +55,7 @@ These are the current product and implementation decisions. `MVP` identifies fir
 | TT-035 | MVP | Pin Go 1.27.4, Node 24.19.0 and pnpm 11.25.0. Keep exact frontend dependency versions and committed pnpm and Go checksums. Use the repository UI guard, formatter, lint and secret checks in CI. | [Repository checks](../README.md), OPEN-01 |
 | TT-036 | MVP | Run Go and PostgreSQL in Compose. Connect Go to PostgreSQL through `db:5432` without publishing the database port. Publish the API on IPv4 loopback. Keep the existing Compose project and named volumes. The API initializes owner-only directories on the media volume as UID 10001. | [Backend setup](../backend/README.md), OPEN-02 |
 | TT-037 | MVP | Use embedded forward-only SQL and a pgx migration runner. Startup applies pending migrations and seeds under one PostgreSQL transaction and advisory lock. Readiness checks the complete SHA-256 migration history. sqlc v1.31.1 generates pgx/v5 queries. | [Schema workflow](../backend/README.md), OPEN-02 |
+| TT-038 | MVP | Edit the canonical OpenAPI 3.1 file before implementing handlers. Redocly lints the contract, openapi-typescript generates the frontend declarations, and kin-openapi validates responses from the Gin router in tests. CI checks route parity and generated declaration freshness. | [API workflow](10-taotale-api.md#7-openapi-and-migration-workflow), OPEN-16 |
 
 
 ## 3. MVP implementation invariants and release gate
@@ -223,7 +224,7 @@ The old code may already implement many `D-` behaviors. This table is an **imple
 | OPEN-13 | MP3 decoder/probe and verified duration/timing precision. | Use measurements of the persisted MP3 and validate timing against them. |
 | OPEN-14 | Whether the TaoTale `/topics` API needs a compatibility alias for legacy `/tags`. | Preserve Topic identity during data migration and settle API compatibility in OpenAPI. |
 | OPEN-15 | Supported desktop/tablet browser, viewport and zoom matrix, screenshot references and performance thresholds. | Measure comparable workloads and review app-owned Iris screens on the supported matrix. |
-| OPEN-16 | OpenAPI linting, client code generation and Go conformance strategy. | Use a canonical OpenAPI contract, generated client types and verified handler conformance. |
+| OPEN-16 | **Resolved.** TT-038 selects Redocly, openapi-typescript and kin-openapi. | OpenAPI changes precede handler changes. CI checks generated declarations and Go conformance. |
 
 ## 7. Document change protocol
 

@@ -1,6 +1,6 @@
 # 10 — TaoTale API contract and compatibility
 
-**Status:** **Target operation inventory**, revised 23 November 2026; **not** a substitute for a machine-readable OpenAPI 3.1 file. The **new TaoTale OpenAPI contract must be authored and validated** before implementing Gin handlers and generating SolidJS client types. Where route spellings differ from Mandarin Reader, the paths below are **proposed target paths**, not a claim that an existing YAML file already implements them.
+The canonical OpenAPI 3.1 contract covers health, the enabled learning languages and the Topic list. The inventory below describes subsequent MVP operations. [Canonical OpenAPI](../backend/api/openapi.yaml)
 
 **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-taotale-backend.md), [05 — PostgreSQL/sqlc schema](05-taotale-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md) and [09 — UI states](09-taotale-ui-states.md).
 
@@ -38,7 +38,7 @@
 
 ## 3. MVP operation inventory
 
-All paths below omit the `/api/v1` prefix. HTTP methods and response DTOs must be locked in the future OpenAPI file. Existing Mandarin Reader `/tags` and item paths are historical; **`/topics` is the proposed TaoTale naming** (alias/compatibility mapping is an explicit migration decision).
+Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to define each new method, path, request and response before implementing the handler. The legacy `/tags` alias choice remains OPEN-14.
 
 | Method | Proposed path | Intent / key contract |
 |---|---|---|
@@ -109,9 +109,7 @@ All paths below omit the `/api/v1` prefix. HTTP methods and response DTOs must b
 
 ## 7. OpenAPI and migration workflow
 
-1. Inventory the historical [Mandarin Reader OpenAPI 3.1 YAML](https://github.com/ronmilich/mandarin-reader/blob/dc71c1b1820345023585be95e72674bf1b3a4a00/docs/api/openapi.yaml). It had 52 historical method/path pairs; **that is not TaoTale's final endpoint count**.
-2. Create TaoTale's canonical YAML: language additions, favorites, three difficulty values, language-specific vocabulary and TTS, proposed `/topics` rename; remove or mark deferred all `/ai/*` and other non-MVP routes. Decide if legacy `/tags` or older filter syntax needs an alias; do not promise compatibility without tests.
-3. Generate SolidJS TypeScript types, validate Gin handlers and examples against the YAML, and make the contract part of CI. Verify nullability, UTF-16 offsets, error and media headers, language and version invariants with real PostgreSQL integration tests.
-4. Data and API migration are independent: **preserve existing UUIDs/audio bytes** even if URLs and DTOs change. Import against a copy and compare published asset identity and vocabulary source references.
-
-**Open decisions:** exact OpenAPI code generator/runtime validation strategy, final `/topics` vs `/tags` path, source length/chunking adjustments and whether a verified Chinese auto-sync operation is MVP-enabled. Those decisions require a contract revision, not ad-hoc handler differences.
+1. Edit `backend/api/openapi.yaml` before changing a Gin handler. Include response status codes, request IDs and the shared error envelope where applicable.
+2. From `frontend/`, run `pnpm api:generate` and commit `src/api/schema.d.ts` with the contract update. Run `pnpm api:check` to lint the YAML with Redocly and check generated declaration freshness. openapi-typescript uses its TypeScript 5 peer in isolation from the application's TypeScript 7 compiler.
+3. Run `go test ./internal/httpapi -run TestOpenAPIConformance` from `backend/`. The tests compare Gin method and path registrations with OpenAPI and validate HTTP statuses, headers and bodies using kin-openapi. Add representative success and failure fixtures as operations grow.
+4. Preserve existing UUIDs and audio bytes during data import. Rehearse against a copy and compare published asset identity and vocabulary source references even when the HTTP paths or DTOs change.
