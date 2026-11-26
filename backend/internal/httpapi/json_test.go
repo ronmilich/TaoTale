@@ -12,7 +12,7 @@ import (
 )
 
 func TestDecodeJSON(t *testing.T) {
-	router := Router(nil, slog.New(slog.DiscardHandler), "", nil)
+	router := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil)
 	router.POST("/write", func(c *gin.Context) {
 		var input struct {
 			Text string `json:"text"`

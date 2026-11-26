@@ -16,7 +16,9 @@ services:
       retries: 10
 
   api:
-    build: ../backend
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     command: ["-listen", "api:8080"]
     stop_grace_period: 15s
     depends_on:

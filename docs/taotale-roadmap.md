@@ -62,8 +62,8 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-06 | Go/Gin backend skeleton | 1 | TAO-04, TAO-05 | Done |
 | TAO-07 | SQL migrations, sqlc and seeds | 1 | TAO-06 | Done |
 | TAO-08 | OpenAPI contract pipeline | 1 | TAO-07 | Done |
-| TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Planned |
-| TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Planned |
+| TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Done |
+| TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Done |
 | TAO-11 | Unicode offsets and fingerprints | 2 | TAO-01, TAO-06 | Planned |
 | TAO-12 | Segmentation registry and Mandarin strategies | 2 | TAO-11 | Planned |
 | TAO-13 | Korean segmentation strategy | 2 | TAO-12 | Planned |
@@ -330,9 +330,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   - in production, Gin serves the built SPA from the same origin, with an SPA fallback that never swallows `/api` 404s.
 
 **Exit criteria**
-- [ ] A production-like build served by Gin renders a page with a styled native button.
-- [ ] Refreshing a deep link works.
-- [ ] Dependency guard passes.
+- [x] The existing Vite scaffold builds into the Gin production image. Playwright verified the styled native Favorite button and JSON errors on unknown API routes.
+- [x] Desktop and tablet Playwright tests refreshed the Korean sample Reader deep link and preserved the active language.
+- [x] The UI dependency guard, frozen installation, TypeScript checks and component tests passed. [Client workflow](../frontend/README.md)
 
 **Depends on:** TAO-04, TAO-08
 
@@ -349,8 +349,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Use native inputs/selects/buttons and CSS hover/pressed/disabled states; no custom overlay, focus or keyboard engine.
 
 **Exit criteria**
-- [ ] Switching themes doesn't remount a stateful test component, and there is no theme flash on load.
-- [ ] Iris shell and sample card look cohesive in light/dark on desktop and tablet; native navigation and controls work.
+- [x] A component test preserved child identity and state through a theme change. Playwright verified that the saved theme applies with the app scripts blocked on refresh.
+- [x] Reviewed the Iris shell and synthetic Library card at 1440 × 960 and 768 × 1024 in both themes. Six production browser tests covered navigation, native controls, language persistence and deep links.
 
 **Depends on:** TAO-09
 
