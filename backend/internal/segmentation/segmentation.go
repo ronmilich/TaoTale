@@ -17,7 +17,7 @@ type Key struct {
 
 var (
 	ErrUnknownStrategy = errors.New("unknown segmentation strategy")
-	ErrLineTooLong     = errors.New("Korean source line exceeds 1500 UTF-16 units")
+	ErrLineTooLong     = errors.New("source line exceeds the Korean limit of 1500 UTF-16 units")
 )
 
 func Default(languageCode string) (Key, error) {
