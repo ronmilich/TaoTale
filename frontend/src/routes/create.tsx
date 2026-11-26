@@ -1,5 +1,5 @@
-import Page from "../components/Page";
+import DraftEditor from "../features/editor/DraftEditor";
 
 export default function Create() {
-  return <Page title="New article" description="Draft editing will be available here." />;
+  return <DraftEditor />;
 }

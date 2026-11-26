@@ -1,6 +1,9 @@
 import type { components, paths } from "./schema";
 
 export type LearningLanguage = components["schemas"]["LearningLanguage"];
+export type Item = components["schemas"]["Item"];
+export type ItemCreate = components["schemas"]["ItemCreate"];
+export type ItemPatch = components["schemas"]["ItemPatch"];
 type ErrorEnvelope = components["schemas"]["ErrorEnvelope"];
 type JSONResult<Operation> = Operation extends {
   responses: { 200: { content: { "application/json": infer Payload } } };
@@ -25,17 +28,42 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiGet<P extends GetPath>(path: P, signal?: AbortSignal): Promise<Result<P>> {
-  const response = await fetch(`/api/v1${path}`, {
-    headers: { Accept: "application/json" },
-    signal,
+export function apiGet<P extends GetPath>(path: P, signal?: AbortSignal): Promise<Result<P>> {
+  return requestJSON(path, { headers: { Accept: "application/json" }, signal });
+}
+
+export function getItem(id: string, signal?: AbortSignal): Promise<Item> {
+  return requestJSON(itemPath(id), { headers: { Accept: "application/json" }, signal });
+}
+
+export function createItem(item: ItemCreate): Promise<Item> {
+  return writeItem("/items", "POST", item);
+}
+
+export function patchItem(id: string, patch: ItemPatch): Promise<Item> {
+  return writeItem(itemPath(id), "PATCH", patch);
+}
+
+function itemPath(id: string) {
+  return `/items/${encodeURIComponent(id)}`;
+}
+
+function writeItem(path: string, method: "POST" | "PATCH", body: ItemCreate | ItemPatch) {
+  return requestJSON<Item>(path, {
+    method,
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
+}
+
+async function requestJSON<T>(path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, init);
   const requestId = response.headers.get("X-Request-Id");
   let body: unknown;
   try {
     body = await response.json();
   } catch (error) {
-    if (signal?.aborted) throw error;
+    if (init.signal?.aborted) throw error;
     if (response.ok) {
       throw new ApiError(
         response.status,
@@ -55,5 +83,5 @@ export async function apiGet<P extends GetPath>(path: P, signal?: AbortSignal): 
       error?.details,
     );
   }
-  return body as Result<P>;
+  return body as T;
 }
