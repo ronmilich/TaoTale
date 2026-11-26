@@ -191,6 +191,8 @@ func TestLibraryPostgres(t *testing.T) {
 	if row := call("GET", "/items/{itemId}", koPath, "", 200); len(row["topicIds"].([]any)) != 0 {
 		t.Fatal("deleting topic did not remove its join", row)
 	}
+	// Leave a live association for the database backup and restore comparison.
+	call("PATCH", "/items/{itemId}", koPath, `{"expectedVersion":1,"topicIds":["`+contractID+`"]}`, 200)
 	call("DELETE", "/items/{itemId}", itemPath, "", 204)
 	checkError(call("GET", "/items/{itemId}", itemPath, "", 404), "ITEM_NOT_FOUND")
 	checkError(call("GET", "/items/{itemId}", "/items/"+missingID, "", 404), "ITEM_NOT_FOUND")
