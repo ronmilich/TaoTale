@@ -47,6 +47,14 @@ jobs:
       - run: staticcheck ./...
       - run: go test -race ./...
 
+  azure-worker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build --platform linux/amd64 --target speech-worker -f backend/Dockerfile .
+
   database:
     runs-on: ubuntu-24.04
     steps:

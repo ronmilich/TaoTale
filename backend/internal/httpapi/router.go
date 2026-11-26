@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"taotale/backend/internal/tts"
 )
 
 const RequestTimeout = 10 * time.Second
 
-func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA) *gin.Engine {
+func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.TTSProvider) *gin.Engine {
 	router := gin.New()
 	router.HandleMethodNotAllowed = true
 	router.RedirectTrailingSlash = false
@@ -42,6 +43,7 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 	}
 	router.GET("/api/v1/languages", listLanguages(catalog))
 	router.GET("/api/v1/topics", listTopics(catalog))
+	router.GET("/api/v1/tts/voices", listVoices(provider))
 	return router
 }
 

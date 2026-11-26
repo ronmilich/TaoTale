@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tts/voices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List available speech voices for a learning language */
+        get: operations["listTTSVoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -97,6 +114,18 @@ export interface components {
             /** @enum {string} */
             code: "zh-CN" | "ko-KR";
             displayName: string;
+        };
+        TTSVoiceList: {
+            items: components["schemas"]["TTSVoice"][];
+        };
+        TTSVoice: {
+            voiceId: string;
+            displayName: string;
+            /** @enum {string} */
+            languageCode: "zh-CN" | "ko-KR";
+            /** @enum {string} */
+            providerId: "azure" | "mock";
+            speakingRates: number[];
         };
         TopicList: {
             items: components["schemas"]["Topic"][];
@@ -249,6 +278,52 @@ export interface operations {
             413: components["responses"]["APIError"];
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
+        };
+    };
+    listTTSVoices: {
+        parameters: {
+            query: {
+                languageCode: "zh-CN" | "ko-KR";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verified voices and supported rates for the selected language. */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSVoiceList"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            /** @description The speech provider is unavailable. */
+            503: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "error": {
+                     *         "code": "TTS_UNAVAILABLE",
+                     *         "message": "Speech synthesis is unavailable.",
+                     *         "requestId": "example-request-id"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
 }

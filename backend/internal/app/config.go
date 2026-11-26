@@ -20,6 +20,8 @@ type Config struct {
 	DevOrigin    string
 	FrontendDist string
 	Database     *pgxpool.Config
+	SpeechKey    string
+	SpeechRegion string
 }
 
 func LoadConfig(ctx context.Context, listen string, getenv func(string) string) (Config, error) {
@@ -46,7 +48,10 @@ func LoadConfig(ctx context.Context, listen string, getenv func(string) string) 
 	if err != nil {
 		return Config{}, errors.New("invalid PostgreSQL configuration")
 	}
-	return Config{Listen: address, MediaRoot: filepath.Clean(mediaRoot), DevOrigin: devOrigin, FrontendDist: frontendDist, Database: db}, nil
+	return Config{
+		Listen: address, MediaRoot: filepath.Clean(mediaRoot), DevOrigin: devOrigin, FrontendDist: frontendDist, Database: db,
+		SpeechKey: getenv("AZURE_SPEECH_KEY"), SpeechRegion: getenv("AZURE_SPEECH_REGION"),
+	}, nil
 }
 
 func listenAddress(ctx context.Context, listen string) (string, error) {

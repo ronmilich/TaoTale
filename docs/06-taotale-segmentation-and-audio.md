@@ -85,6 +85,8 @@ Mandarin Reader **legacy v1** splits at `，` and `。`, and at ASCII `-` when t
 
 For **new TaoTale Chinese generation**, start with a versioned, deliberately simple phrase strategy: segment at validated Chinese sentence/phrase punctuation (candidates include `，。！？；`), preserve closing quotes with their preceding run, and respect paragraph boundaries. Determine punctuation-only and quotation edge cases with explicit tests **before freezing the version**. Do not automatically split on spaces as if Chinese were English; do not reuse language detection as segmentation. If the existing v1 policy is retained for new generations initially, use its legacy ID/version until a newly tested successor is adopted.
 
+The approved `zh-cn-phrase@1.0.0` splits on `，。！？；`. A contiguous run of delimiters and closing quotes (`” ’ 」 』 " '`) stays with the preceding phrase. CR and LF separate lines. Outer whitespace and ranges containing no letters or numbers become exact gaps. Colons, enumeration commas and hyphens stay within phrases. [Phrase vectors](../backend/internal/segmentation/testdata/phrase-v1.json)
+
 Illustrative **candidate** input: `随着科技的发展，人们的生活发生了变化。` → two timed source runs when comma/period are included. `你好。\n\n再见` → two timed runs with an exact untimed blank-paragraph gap. For hyphenated names, numbers, URLs and Latin insertions, do not blindly split on every hyphen.
 
 ### 3.2 Korean (`ko-KR`)
@@ -98,6 +100,8 @@ Korean has different spacing and punctuation behavior. Implement an **independen
 - Strip nothing from the source; avoid automatic spacing fixes, morphology/lemmatization, honorific transformations or Korean word-boundary/dictionary claims.
 
 Example candidate: `안녕하세요. 저는 한국어를 공부해요!` → two sentence runs; `오늘은 3.5시간 공부했어요.` must not break at the decimal point. These are **intended test behaviors**, not confirmed Azure boundary patterns.
+
+The approved `ko-kr-phrase@1.0.0` splits on `.?!。？！．` outside balanced brackets and includes contiguous terminal punctuation and closing quotes or brackets. Periods between decimal digits, repeated periods, the ellipsis character and the fixed ASCII abbreviation list stay in the run. CR and LF separate lines. A line without sentence endings stays whole after outer whitespace is assigned to gaps. The strategy rejects a line longer than 1,500 UTF-16 units. [Phrase vectors](../backend/internal/segmentation/testdata/phrase-v1.json)
 
 ### 3.3 Language strategy gates
 
@@ -141,6 +145,8 @@ The existing **Azure Speech** provider is retained behind a **Go adapter** (`TTS
 **Exact mapping process:**
 
 TAO-03 verified both candidate voices at 0.75, 1 and 1.25 on Linux amd64. The Go SDK returned offsets and lengths in Unicode code points of the full escaped SSML. Map both endpoints to original-source UTF-16 using the exact encoding map. Preserve the raw event text for comparison against the encoded slice. See [the feasibility results](../spikes/azure-go/README.md).
+
+The TAO-14 adapter returns the indexed SSML, raw scalar offsets and lengths, boundary kinds and raw 100 ns timings. The mock returns valid silent MP3 bytes and deterministic events indexed into the original source. The adapter bounds one Azure submission to 30 seconds, requests native cancellation on timeout or caller cancellation, and terminates the worker after up to two more seconds if the SDK hangs. TAO-15 owns source-index translation, duration measurement and READY validation.
 
 1. Keep one immutable source snapshot. Generate SSML using correct XML escaping and track how the provider indexes escaped text versus actual spoken source; account for wrappers and offsets. Never infer source ranges by string-searching repeated spoken words.
 2. Convert each provider boundary into a verified **original-source UTF-16 span**, using the provider's actual documented offset units and a tested mapping. If returned text is available, check against the recovered source span. Reject invalid spans, surrogate splitting, out-of-order offsets or unexplained provider differences.

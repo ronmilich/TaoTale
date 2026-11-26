@@ -96,6 +96,49 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+  /tts/voices:
+    get:
+      operationId: listTTSVoices
+      summary: List available speech voices for a learning language
+      parameters:
+        - name: languageCode
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [zh-CN, ko-KR]
+      responses:
+        '200':
+          description: Verified voices and supported rates for the selected language.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TTSVoiceList'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          description: The speech provider is unavailable.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: TTS_UNAVAILABLE
+                  message: Speech synthesis is unavailable.
+                  requestId: example-request-id
 components:
   headers:
     RequestId:
@@ -172,6 +215,29 @@ components:
         displayName:
           type: string
           minLength: 1
+    TTSVoiceList:
+      type: object
+      required: [items]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TTSVoice'
+    TTSVoice:
+      type: object
+      required: [voiceId, displayName, languageCode, providerId, speakingRates]
+      additionalProperties: false
+      properties:
+        voiceId: {type: string, minLength: 1}
+        displayName: {type: string, minLength: 1}
+        languageCode: {type: string, enum: [zh-CN, ko-KR]}
+        providerId: {type: string, enum: [azure, mock]}
+        speakingRates:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {type: number, exclusiveMinimum: 0}
     TopicList:
       type: object
       additionalProperties: false

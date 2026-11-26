@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http/httptest"
 	"strings"
+	"taotale/backend/internal/tts"
 	"testing"
 	"testing/fstest"
 )
@@ -18,7 +19,7 @@ func TestSPAFallback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	router := Router(nil, slog.New(slog.DiscardHandler), "", nil, spa)
+	router := Router(nil, slog.New(slog.DiscardHandler), "", nil, spa, tts.Mock{})
 	for _, test := range []struct {
 		method, url, contentType string
 		status                   int

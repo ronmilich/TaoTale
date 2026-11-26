@@ -14,6 +14,7 @@ import (
 	"taotale/backend/internal/media"
 	"taotale/backend/internal/persistence"
 	"taotale/backend/internal/persistence/queries"
+	"taotale/backend/internal/tts"
 )
 
 func Run(ctx context.Context, config Config, logger *slog.Logger) error {
@@ -60,7 +61,8 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return errors.New("cannot open HTTP listener")
 	}
 	server := &http.Server{
-		Handler:           httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa),
+		Handler: httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa,
+			tts.NewAzure(config.SpeechKey, config.SpeechRegion, "/usr/local/bin/taotale-azure", tts.DefaultTimeout)),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

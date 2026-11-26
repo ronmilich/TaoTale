@@ -1,0 +1,324 @@
+[
+  {
+    "language": "zh-CN",
+    "name": "paragraphs and exact offsets",
+    "text": " \t😀甲𠀀，乙。\r\n\r\n 再见\r尾巴  ",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 2,
+        "textEnd": 8,
+        "text": "😀甲𠀀，"
+      },
+      {
+        "index": 1,
+        "textStart": 8,
+        "textEnd": 10,
+        "text": "乙。"
+      },
+      {
+        "index": 2,
+        "textStart": 15,
+        "textEnd": 17,
+        "text": "再见"
+      },
+      {
+        "index": 3,
+        "textStart": 18,
+        "textEnd": 20,
+        "text": "尾巴"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 0,
+        "textEnd": 2,
+        "text": " \t"
+      },
+      {
+        "textStart": 10,
+        "textEnd": 15,
+        "text": "\r\n\r\n "
+      },
+      {
+        "textStart": 17,
+        "textEnd": 18,
+        "text": "\r"
+      },
+      {
+        "textStart": 20,
+        "textEnd": 22,
+        "text": "  "
+      }
+    ]
+  },
+  {
+    "language": "zh-CN",
+    "name": "closers, repeated delimiters and punctuation gaps",
+    "text": "！？ 他说「真的！？」下一句；结束。",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 3,
+        "textEnd": 11,
+        "text": "他说「真的！？」"
+      },
+      {
+        "index": 1,
+        "textStart": 11,
+        "textEnd": 15,
+        "text": "下一句；"
+      },
+      {
+        "index": 2,
+        "textStart": 15,
+        "textEnd": 18,
+        "text": "结束。"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 0,
+        "textEnd": 3,
+        "text": "！？ "
+      }
+    ]
+  },
+  {
+    "language": "zh-CN",
+    "name": "hyphens, Latin and punctuation inside phrases",
+    "text": "甲-乙：A-B 3.5、丙，末尾。",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 0,
+        "textEnd": 14,
+        "text": "甲-乙：A-B 3.5、丙，"
+      },
+      {
+        "index": 1,
+        "textStart": 14,
+        "textEnd": 17,
+        "text": "末尾。"
+      }
+    ],
+    "gaps": []
+  },
+  {
+    "language": "zh-CN",
+    "name": "shared language comparison",
+    "text": "한글，中文； 다음。 문장!",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 0,
+        "textEnd": 3,
+        "text": "한글，"
+      },
+      {
+        "index": 1,
+        "textStart": 3,
+        "textEnd": 6,
+        "text": "中文；"
+      },
+      {
+        "index": 2,
+        "textStart": 7,
+        "textEnd": 10,
+        "text": "다음。"
+      },
+      {
+        "index": 3,
+        "textStart": 11,
+        "textEnd": 14,
+        "text": "문장!"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 6,
+        "textEnd": 7,
+        "text": " "
+      },
+      {
+        "textStart": 10,
+        "textEnd": 11,
+        "text": " "
+      }
+    ]
+  },
+  {
+    "language": "ko-KR",
+    "name": "shared language comparison",
+    "text": "한글，中文； 다음。 문장!",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 0,
+        "textEnd": 10,
+        "text": "한글，中文； 다음。"
+      },
+      {
+        "index": 1,
+        "textStart": 11,
+        "textEnd": 14,
+        "text": "문장!"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 10,
+        "textEnd": 11,
+        "text": " "
+      }
+    ]
+  },
+  {
+    "language": "ko-KR",
+    "name": "decimal, fullwidth decimal and Latin abbreviations",
+    "text": "Dr. Kim은 e.g. 3.5시간, ３．５분도 읽어요. 다음!",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 0,
+        "textEnd": 31,
+        "text": "Dr. Kim은 e.g. 3.5시간, ３．５분도 읽어요."
+      },
+      {
+        "index": 1,
+        "textStart": 32,
+        "textEnd": 35,
+        "text": "다음!"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 31,
+        "textEnd": 32,
+        "text": " "
+      }
+    ]
+  },
+  {
+    "language": "ko-KR",
+    "name": "balanced brackets, quotes and fullwidth endings",
+    "text": "“안녕?!” 설명(예: 정말? [네!])을 들었어요． 다음！",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 0,
+        "textEnd": 6,
+        "text": "“안녕?!”"
+      },
+      {
+        "index": 1,
+        "textStart": 7,
+        "textEnd": 29,
+        "text": "설명(예: 정말? [네!])을 들었어요．"
+      },
+      {
+        "index": 2,
+        "textStart": 30,
+        "textEnd": 33,
+        "text": "다음！"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 6,
+        "textEnd": 7,
+        "text": " "
+      },
+      {
+        "textStart": 29,
+        "textEnd": 30,
+        "text": " "
+      }
+    ]
+  },
+  {
+    "language": "ko-KR",
+    "name": "ellipses, mismatched bracket and structural gaps",
+    "text": " 😀 … 어... 계속… 좋아요!\r\n\r\n [괜찮아요? 네.\r그대로  ",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 1,
+        "textEnd": 19,
+        "text": "😀 … 어... 계속… 좋아요!"
+      },
+      {
+        "index": 1,
+        "textStart": 24,
+        "textEnd": 30,
+        "text": "[괜찮아요?"
+      },
+      {
+        "index": 2,
+        "textStart": 31,
+        "textEnd": 33,
+        "text": "네."
+      },
+      {
+        "index": 3,
+        "textStart": 34,
+        "textEnd": 37,
+        "text": "그대로"
+      }
+    ],
+    "gaps": [
+      {
+        "textStart": 0,
+        "textEnd": 1,
+        "text": " "
+      },
+      {
+        "textStart": 19,
+        "textEnd": 24,
+        "text": "\r\n\r\n "
+      },
+      {
+        "textStart": 30,
+        "textEnd": 31,
+        "text": " "
+      },
+      {
+        "textStart": 33,
+        "textEnd": 34,
+        "text": "\r"
+      },
+      {
+        "textStart": 37,
+        "textEnd": 39,
+        "text": "  "
+      }
+    ]
+  },
+  {
+    "language": "ko-KR",
+    "name": "blank and punctuation-only gaps",
+    "text": "😀\r\n…?!\t",
+    "segments": [],
+    "gaps": [
+      {
+        "textStart": 0,
+        "textEnd": 8,
+        "text": "😀\r\n…?!\t"
+      }
+    ]
+  },
+  {
+    "language": "ko-KR",
+    "name": "whole unpunctuated line",
+    "text": "오늘은 𠀀 한글과 Latin 12 함께 읽어요",
+    "segments": [
+      {
+        "index": 0,
+        "textStart": 0,
+        "textEnd": 26,
+        "text": "오늘은 𠀀 한글과 Latin 12 함께 읽어요"
+      }
+    ],
+    "gaps": []
+  }
+]
