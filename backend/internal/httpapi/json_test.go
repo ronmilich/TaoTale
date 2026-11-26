@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"taotale/backend/internal/tts"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 )
 
 func TestDecodeJSON(t *testing.T) {
-	router := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil)
+	router := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil, tts.Mock{})
 	router.POST("/write", func(c *gin.Context) {
 		var input struct {
 			Text string `json:"text"`

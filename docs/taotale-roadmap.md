@@ -65,9 +65,9 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-09 | SolidJS client scaffold | 1 | TAO-04, TAO-08 | Done |
 | TAO-10 | App shell, routing and Iris theme | 1 | TAO-09 | Done |
 | TAO-11 | Unicode offsets and fingerprints | 2 | TAO-01, TAO-06 | Done |
-| TAO-12 | Segmentation registry and Mandarin strategies | 2 | TAO-11 | Planned |
-| TAO-13 | Korean segmentation strategy | 2 | TAO-12 | Planned |
-| TAO-14 | TTS provider adapter, voice catalog and mock provider | 2 | TAO-03, TAO-08 | Planned |
+| TAO-12 | Segmentation registry and Mandarin strategies | 2 | TAO-11 | Done |
+| TAO-13 | Korean segmentation strategy | 2 | TAO-12 | Done |
+| TAO-14 | TTS provider adapter, voice catalog and mock provider | 2 | TAO-03, TAO-08 | Done |
 | TAO-15 | MP3 measurement and alignment validation | 2 | TAO-12, TAO-13, TAO-14 | Planned |
 | TAO-16 | Library item and draft API | 3 | TAO-07, TAO-08 | Planned |
 | TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Planned |
@@ -384,7 +384,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Fixtures F1-CN and F2, including exact reconstruction of the gaps between segments.
 
 **Exit criteria**
-- [ ] Golden outputs approved; the decision is recorded in 02.
+- [x] The owner approved the v1 rules recorded in 02. Mandarin vectors and the frozen legacy fixture reconstruct the source exactly.
 
 **Depends on:** TAO-11
 
@@ -403,7 +403,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Fixtures F1-KO; owner-approved golden vectors.
 
 **Exit criteria**
-- [ ] Golden vectors approved, and the Korean rules demonstrably differ from the Chinese rules where intended.
+- [x] The owner approved the Korean v1 rules. A shared mixed-script vector verifies that Korean keeps commas and semicolons within a sentence while Mandarin splits on them.
 
 **Depends on:** TAO-12
 
@@ -419,7 +419,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - With credentials missing, generation reports `TTS_UNAVAILABLE` and reading is unaffected.
 
 **Exit criteria**
-- [ ] Contract conformance passes; mock-based tests green.
+- [x] The OpenAPI catalog conforms to the Gin route, and offline tests cover deterministic mock output, unavailable credentials, native error mapping and worker timeouts.
 
 **Depends on:** TAO-03, TAO-08
 

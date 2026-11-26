@@ -15,6 +15,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/jackc/pgx/v5/pgtype"
 	"taotale/backend/internal/persistence/queries"
+	"taotale/backend/internal/tts"
 )
 
 func TestOpenAPIConformance(t *testing.T) {
@@ -27,9 +28,9 @@ func TestOpenAPIConformance(t *testing.T) {
 	}
 	logger := slog.New(slog.DiscardHandler)
 	catalog := contractCatalog(t)
-	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog, nil)
+	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog, nil, tts.Mock{})
 	storageError := errors.New("private catalog error")
-	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError}, nil)
+	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError}, nil, tts.NewAzure("", "", "", 0))
 
 	operations := make(map[string]*routers.Route)
 	for template, item := range spec.Paths.Map() {
@@ -59,12 +60,31 @@ func TestOpenAPIConformance(t *testing.T) {
 		}
 		delete(operations, key)
 		t.Run(key, func(t *testing.T) {
-			req := httptest.NewRequest(route.Method, "http://127.0.0.1"+route.Path, nil)
+			url := "http://127.0.0.1" + route.Path
+			if contractRoute.Operation.OperationID == "listTTSVoices" {
+				url += "?languageCode=ko-KR"
+			}
+			req := httptest.NewRequest(route.Method, url, nil)
 			result := httptest.NewRecorder()
 			healthy.ServeHTTP(result, req)
 			requireContractResponse(t, req, contractRoute, result, http.StatusOK)
 
 			switch contractRoute.Operation.OperationID {
+			case "listTTSVoices":
+				if !strings.Contains(result.Body.String(), "SunHi (mock)") || strings.Contains(result.Body.String(), "zh-CN") {
+					t.Fatal("expected only a labeled Korean voice")
+				}
+				result = httptest.NewRecorder()
+				unavailable.ServeHTTP(result, req)
+				requireContractResponse(t, req, contractRoute, result, http.StatusServiceUnavailable)
+				assertAPIError(t, result, 503, string(tts.Unavailable))
+				for _, query := range []string{"", "?languageCode=ja-JP", "?languageCode=zh-CN&languageCode=ko-KR"} {
+					bad := httptest.NewRequest(route.Method, "http://127.0.0.1"+route.Path+query, nil)
+					result = httptest.NewRecorder()
+					healthy.ServeHTTP(result, bad)
+					requireContractResponse(t, bad, contractRoute, result, http.StatusBadRequest)
+					assertAPIError(t, result, 400, string(tts.Invalid))
+				}
 			case "healthReady", "listLanguages", "listTopics":
 				result = httptest.NewRecorder()
 				unavailable.ServeHTTP(result, req)

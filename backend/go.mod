@@ -3,6 +3,7 @@ module taotale/backend
 go 1.27.4
 
 require (
+	github.com/Microsoft/cognitive-services-speech-sdk-go v1.53.0
 	github.com/getkin/kin-openapi v0.153.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/jackc/pgx/v5 v5.13.0
