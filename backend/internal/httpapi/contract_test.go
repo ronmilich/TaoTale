@@ -43,7 +43,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				servers = *operation.Servers
 			}
 			for _, server := range servers {
-				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{topicId}", ":topicId").Replace(path.Join(server.URL, template))
+				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{topicId}", ":topicId", "{generationId}", ":generationId").Replace(path.Join(server.URL, template))
 				if operations[key] != nil {
 					t.Fatalf("duplicate contract route %s", key)
 				}
@@ -60,7 +60,7 @@ func TestOpenAPIConformance(t *testing.T) {
 		}
 		delete(operations, key)
 		t.Run(key, func(t *testing.T) {
-			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":topicId", contractID).Replace(route.Path)
+			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":topicId", contractID, ":generationId", contractID).Replace(route.Path)
 			operation := contractRoute.Operation.OperationID
 			var body string
 			status := http.StatusOK
@@ -70,7 +70,7 @@ func TestOpenAPIConformance(t *testing.T) {
 			case "listItems":
 				url += "?languageCode=ko-KR"
 				status = http.StatusServiceUnavailable
-			case "getItem", "deleteItem", "deleteTopic":
+			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration":
 				status = http.StatusServiceUnavailable
 			case "createItem":
 				body, status = `{"languageCode":"zh-CN"}`, http.StatusServiceUnavailable
@@ -80,6 +80,9 @@ func TestOpenAPIConformance(t *testing.T) {
 				body, status = `{"name":"Example"}`, http.StatusServiceUnavailable
 			}
 			req := httptest.NewRequest(route.Method, url, strings.NewReader(body))
+			if operation == "generateDraftAudio" {
+				req.Header.Set("Idempotency-Key", contractID)
+			}
 			if body != "" {
 				req.Header.Set("Content-Type", "application/json")
 			}

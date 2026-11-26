@@ -63,7 +63,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 	server := &http.Server{
 		Handler: httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa,
 			tts.NewAzure(config.SpeechKey, config.SpeechRegion, "/usr/local/bin/taotale-azure", tts.DefaultTimeout),
-			&persistence.Library{Pool: pool}),
+			&persistence.Library{Pool: pool, MediaRoot: config.MediaRoot, Limits: config.GenerationLimits}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

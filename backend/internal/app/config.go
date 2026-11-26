@@ -10,18 +10,20 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"taotale/backend/internal/httpapi"
+	"taotale/backend/internal/persistence"
 )
 
 const DefaultListen = "127.0.0.1:8080"
 
 type Config struct {
-	Listen       string
-	MediaRoot    string
-	DevOrigin    string
-	FrontendDist string
-	Database     *pgxpool.Config
-	SpeechKey    string
-	SpeechRegion string
+	Listen           string
+	MediaRoot        string
+	DevOrigin        string
+	FrontendDist     string
+	Database         *pgxpool.Config
+	SpeechKey        string
+	SpeechRegion     string
+	GenerationLimits persistence.GenerationLimits
 }
 
 func LoadConfig(ctx context.Context, listen string, getenv func(string) string) (Config, error) {
@@ -48,10 +50,30 @@ func LoadConfig(ctx context.Context, listen string, getenv func(string) string) 
 	if err != nil {
 		return Config{}, errors.New("invalid PostgreSQL configuration")
 	}
+	active, err := generationLimit(getenv("TTS_MAX_CONCURRENT_GENERATIONS"), persistence.DefaultActiveLimit)
+	if err != nil {
+		return Config{}, err
+	}
+	hourly, err := generationLimit(getenv("TTS_MAX_GENERATIONS_PER_HOUR"), persistence.DefaultHourlyLimit)
+	if err != nil {
+		return Config{}, err
+	}
 	return Config{
 		Listen: address, MediaRoot: filepath.Clean(mediaRoot), DevOrigin: devOrigin, FrontendDist: frontendDist, Database: db,
 		SpeechKey: getenv("AZURE_SPEECH_KEY"), SpeechRegion: getenv("AZURE_SPEECH_REGION"),
+		GenerationLimits: persistence.GenerationLimits{Active: active, Hourly: hourly},
 	}, nil
+}
+
+func generationLimit(raw string, fallback int64) (int64, error) {
+	if raw == "" {
+		return fallback, nil
+	}
+	limit, err := strconv.ParseInt(raw, 10, 32)
+	if err != nil || limit < 1 {
+		return 0, errors.New("TTS limits must be positive integers")
+	}
+	return limit, nil
 }
 
 func listenAddress(ctx context.Context, listen string) (string, error) {

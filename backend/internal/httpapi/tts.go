@@ -8,7 +8,7 @@ import (
 	"taotale/backend/internal/tts"
 )
 
-func listVoices(provider tts.TTSProvider) gin.HandlerFunc {
+func listVoices(provider tts.VoiceCatalog) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query, err := url.ParseQuery(c.Request.URL.RawQuery)
 		languages := query["languageCode"]

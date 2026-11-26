@@ -71,7 +71,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-15 | MP3 measurement and alignment validation | 2 | TAO-12, TAO-13, TAO-14 | Done |
 | TAO-16 | Library item and draft API | 3 | TAO-07, TAO-08 | Done |
 | TAO-17 | Topics API | 3 | TAO-07, TAO-08 | Done |
-| TAO-18 | Generation admission and idempotency | 3 | TAO-15, TAO-16 | Planned |
+| TAO-18 | Generation admission and idempotency | 3 | TAO-15, TAO-16 | Done |
 | TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Planned |
 | TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Planned |
 | TAO-21 | Editor: new item and drafts | 4 | TAO-10, TAO-16 | Planned |
@@ -504,8 +504,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Computed `NOT_GENERATED` and `OUTDATED` states.
 
 **Exit criteria**
-- [ ] Concurrent duplicate requests create exactly one job; cap tests pass.
-- [ ] Contract conformance passes.
+- [x] Sixteen concurrent duplicate requests resolve to one job. PostgreSQL tests cover competing targets, both admission caps, immutable snapshots, expired receipts and deletion.
+- [x] OpenAPI contract tests cover admission, replay, rejection and polling, including outdated and unavailable assets.
 
 **Depends on:** TAO-15, TAO-16
 

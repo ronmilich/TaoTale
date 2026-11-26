@@ -1,4 +1,4 @@
--- name: LockTopicOwner :one
+-- name: LockOwner :one
 SELECT u.id FROM public.users u WHERE u.singleton FOR NO KEY UPDATE;
 
 -- name: FindTopicByName :one

@@ -12,6 +12,8 @@ var silence []byte
 
 type Mock struct{}
 
+func (Mock) ProviderID() string { return "mock" }
+
 func (Mock) ListVoices(ctx context.Context, language string) ([]Voice, error) {
 	if err := contextError(ctx); err != nil {
 		return nil, err

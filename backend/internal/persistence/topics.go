@@ -23,7 +23,7 @@ func (s Library) SaveTopic(ctx context.Context, id pgtype.UUID, name *string, co
 	var result TopicRecord
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := queries.New(tx)
-		owner, err := q.LockTopicOwner(ctx)
+		owner, err := q.LockOwner(ctx)
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func (s Library) SaveTopic(ctx context.Context, id pgtype.UUID, name *string, co
 func (s Library) DeleteTopic(ctx context.Context, id pgtype.UUID) error {
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := queries.New(tx)
-		if _, err := q.LockTopicOwner(ctx); err != nil {
+		if _, err := q.LockOwner(ctx); err != nil {
 			return err
 		}
 		topic, err := q.GetTopic(ctx, id)

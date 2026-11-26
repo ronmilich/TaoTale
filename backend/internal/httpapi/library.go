@@ -40,7 +40,7 @@ type itemInput struct {
 	TopicIDs     field[[]string] `json:"topicIds"`
 }
 
-func (i itemInput) validate() (persistence.ItemPatch, string) {
+func (i itemInput) validate(providerID string) (persistence.ItemPatch, string) {
 	for _, entry := range []struct {
 		value field[string]
 		max   int
@@ -62,8 +62,8 @@ func (i itemInput) validate() (persistence.ItemPatch, string) {
 			return persistence.ItemPatch{}, "Choose a supported difficulty."
 		}
 	}
-	if i.VoiceID.Value != nil && !tts.AllowedVoice("zh-CN", "azure", *i.VoiceID.Value) &&
-		!tts.AllowedVoice("ko-KR", "azure", *i.VoiceID.Value) {
+	if i.VoiceID.Value != nil && !tts.AllowedVoice("zh-CN", providerID, *i.VoiceID.Value) &&
+		!tts.AllowedVoice("ko-KR", providerID, *i.VoiceID.Value) {
 		return persistence.ItemPatch{}, "Choose a supported voice."
 	}
 	if i.IsFavorite.Set && i.IsFavorite.Value == nil {
@@ -143,11 +143,12 @@ func itemResponse(item persistence.Item) gin.H {
 		"description": r.Description, "notes": r.Notes, "difficulty": r.Difficulty,
 		"isFavorite": r.IsFavorite, "voiceId": r.VoiceID, "speakingRate": rate,
 		"topicIds": item.TopicIDs, "version": r.Version, "status": status, "publishedAt": r.PublishedAt,
-		"createdAt": r.CreatedAt.Time.UTC(), "updatedAt": r.UpdatedAt.Time.UTC(), "audioStatus": "NOT_GENERATED",
+		"createdAt": r.CreatedAt.Time.UTC(), "updatedAt": r.UpdatedAt.Time.UTC(),
+		"audioStatus": item.Audio.Status, "audioAssetId": item.Audio.AssetID,
 	}
 }
 
-func registerLibrary(router *gin.Engine, store *persistence.Library) {
+func registerLibrary(router *gin.Engine, store *persistence.Library, providerID string) {
 	router.GET("/api/v1/items", func(c *gin.Context) {
 		query, err := url.ParseQuery(c.Request.URL.RawQuery)
 		page, pageOK := pageValue(query["page"], 1, 2147483647)
@@ -181,11 +182,11 @@ func registerLibrary(router *gin.Engine, store *persistence.Library) {
 		if !DecodeJSON(c, &input) {
 			return
 		}
-		patch, message := input.validate()
+		patch, message := input.validate(providerID)
 		if message == "" && !tts.SupportsLanguage(input.Language) {
 			message = "Choose a supported learning language."
 		}
-		if message == "" && patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(input.Language, "azure", patch.Voice.String) {
+		if message == "" && patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(input.Language, providerID, patch.Voice.String) {
 			message = "Choose a voice compatible with the learning language."
 		}
 		if message != "" {
@@ -221,7 +222,7 @@ func registerLibrary(router *gin.Engine, store *persistence.Library) {
 		if !DecodeJSON(c, &input) {
 			return
 		}
-		patch, message := input.validate()
+		patch, message := input.validate(providerID)
 		if message == "" && input.ExpectedVersion < 1 {
 			message = "Send the current expected version."
 		}

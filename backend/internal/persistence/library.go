@@ -12,7 +12,12 @@ import (
 	"taotale/backend/internal/tts"
 )
 
-type Library struct{ Pool *pgxpool.Pool }
+type Library struct {
+	Pool      *pgxpool.Pool
+	Voices    tts.VoiceCatalog
+	MediaRoot string
+	Limits    GenerationLimits
+}
 
 var (
 	ErrItemNotFound        = errors.New("item not found")
@@ -34,6 +39,7 @@ func (e *DuplicateTopic) Error() string { return "duplicate topic name" }
 type Item struct {
 	queries.LibraryItem
 	TopicIDs []pgtype.UUID
+	Audio    Candidate
 }
 
 // Write transactions serialize updates to an item and its topic associations.
@@ -51,7 +57,7 @@ func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, to
 		if err := insertItemTopics(ctx, q, row.ID, topics); err != nil {
 			return err
 		}
-		result, err = loadItem(ctx, q, row)
+		result, err = s.loadItem(ctx, q, row)
 		return err
 	})
 	return result, err
@@ -81,7 +87,7 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 			(patch.Voice != nil && *patch.Voice != row.VoiceID) || (patch.Rate != nil && *patch.Rate != row.SpeakingRate)) {
 			return ErrPublishedSource
 		}
-		if patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(row.LanguageCode, "azure", patch.Voice.String) {
+		if patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(row.LanguageCode, s.Voices.ProviderID(), patch.Voice.String) {
 			return ErrInvalidVoice
 		}
 		row, err = q.UpdateItem(ctx, queries.UpdateItemParams{
@@ -111,7 +117,7 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 				return err
 			}
 		}
-		result, err = loadItem(ctx, q, row)
+		result, err = s.loadItem(ctx, q, row)
 		return err
 	})
 	return result, err
@@ -151,7 +157,7 @@ func (s Library) GetItem(ctx context.Context, id pgtype.UUID) (Item, error) {
 		if err != nil {
 			return missing(err, ErrItemNotFound)
 		}
-		result, err = loadItem(ctx, q, row)
+		result, err = s.loadItem(ctx, q, row)
 		return err
 	})
 	return result, err
@@ -181,28 +187,28 @@ func (s Library) ListItems(ctx context.Context, params queries.PageItemsParams) 
 		if err != nil {
 			return err
 		}
-		result, err = withItemTopics(ctx, q, rows)
+		result, err = s.loadItems(ctx, q, rows)
 		return err
 	})
 	return result, total, err
 }
 
-func loadItem(ctx context.Context, q *queries.Queries, row queries.LibraryItem) (Item, error) {
-	items, err := withItemTopics(ctx, q, []queries.LibraryItem{row})
+func (s Library) loadItem(ctx context.Context, q *queries.Queries, row queries.LibraryItem) (Item, error) {
+	items, err := s.loadItems(ctx, q, []queries.LibraryItem{row})
 	if err != nil {
 		return Item{}, err
 	}
 	return items[0], nil
 }
 
-func withItemTopics(ctx context.Context, q *queries.Queries, rows []queries.LibraryItem) ([]Item, error) {
+func (s Library) loadItems(ctx context.Context, q *queries.Queries, rows []queries.LibraryItem) ([]Item, error) {
 	items := make([]Item, len(rows))
 	ids := make([]pgtype.UUID, len(rows))
 	positions := make(map[pgtype.UUID]int, len(rows))
 	for i, row := range rows {
 		ids[i] = row.ID
 		positions[row.ID] = i
-		items[i] = Item{row, []pgtype.UUID{}}
+		items[i] = Item{LibraryItem: row, TopicIDs: []pgtype.UUID{}, Audio: Candidate{Status: "NOT_GENERATED"}}
 	}
 	if len(rows) == 0 {
 		return items, nil
@@ -214,6 +220,14 @@ func withItemTopics(ctx context.Context, q *queries.Queries, rows []queries.Libr
 	for _, join := range joins {
 		i := positions[join.ItemID]
 		items[i].TopicIDs = append(items[i].TopicIDs, join.TopicID)
+	}
+	candidates, err := q.LatestDraftCandidates(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range candidates {
+		item := &items[positions[row.ItemID]]
+		item.Audio = s.projectCandidate(item.LibraryItem, row)
 	}
 	return items, nil
 }
