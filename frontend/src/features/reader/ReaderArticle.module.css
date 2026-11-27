@@ -12,7 +12,7 @@
 }
 
 .withPlayer {
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  padding-bottom: calc(148px + env(safe-area-inset-bottom));
 }
 
 .back {
@@ -83,8 +83,57 @@
   gap: var(--space-16);
 }
 
-.player audio {
+.transcript [role="button"] {
+  cursor: pointer;
+  user-select: text;
+  border-radius: 0.15em;
+  box-decoration-break: clone;
+}
+
+.transcript [data-active="true"] {
+  color: var(--color-highlight-text);
+  background: var(--color-highlight);
+}
+
+.transcript [role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+.transport {
   width: 100%;
+  display: grid;
+  gap: var(--space-8);
+}
+
+.seekBar,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.seekBar input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--color-primary);
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  flex-wrap: wrap;
+}
+
+.actions button:first-child {
+  min-width: 5rem;
+}
+
+.download {
+  margin-inline-start: auto;
+  text-underline-offset: 0.2em;
 }
 
 .player p {

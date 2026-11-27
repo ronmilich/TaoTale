@@ -79,7 +79,203 @@ for (const [language, source] of [
       await expect(transcript).toHaveCSS("word-break", "keep-all");
     }
   });
+
+  test(`synchronizes ${language} highlights and seeks within 150 ms at every playback speed`, async ({
+    page,
+    request,
+  }, testInfo) => {
+    const api = await publishedArticle(request, language, source);
+    const item = (await (await request.get(api)).json()) as Item;
+    const segments = item.transcript!.segments;
+    await page.goto(api.replace("/api/v1", ""));
+    const player = page.getByRole("region", { name: "Article audio" });
+    await expect(player.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+    const measurements = [];
+    for (const rate of [0.75, 1, 1.25, 1.5]) {
+      await player.getByLabel("Playback speed").selectOption(String(rate));
+      const report = await page.evaluate(
+        async ({ segments, rate }) => {
+          const root = document.querySelector<HTMLElement>('[aria-label="Transcript"]')!;
+          const audio = document.querySelector("audio")!;
+          const controls = document.querySelector('[aria-label="Article audio"]')!;
+          const play = controls.querySelector("button")!;
+          const parts = [...root.querySelectorAll<HTMLElement>("[data-segment-index]")];
+          const original = parts.map((part) => part.firstChild);
+          let structuralWrites = 0;
+          const observer = new MutationObserver((records) => {
+            structuralWrites += records.length;
+          });
+          observer.observe(root, { subtree: true, childList: true, characterData: true });
+          const frame = () =>
+            new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          const active = () => parts.findIndex((part) => part.dataset.active === "true");
+          const latencies = [];
+          // Alternating destinations tests both directions while paused.
+          for (const index of [1, 0]) {
+            const start = performance.now();
+            parts[index].dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+            while (active() !== index && performance.now() - start < 500) await frame();
+            if (
+              active() !== index ||
+              Math.abs(audio.currentTime * 1000 - segments[index].startMs) > 25 ||
+              !audio.paused
+            )
+              throw new Error("Paused seek did not settle at its stored start");
+            latencies.push(performance.now() - start);
+          }
+          play.click();
+          let samples = 0;
+          let previousExpected = -2;
+          let changedAt = performance.now();
+          let worst = 0;
+          const seen = new Set<number>();
+          const deadline = performance.now() + 5000;
+          while (!audio.ended && performance.now() < deadline) {
+            await frame();
+            const ms = audio.currentTime * 1000;
+            const index = segments.findIndex(
+              (segment) => segment.startMs <= ms && ms < segment.endMs,
+            );
+            const now = performance.now();
+            if (index !== previousExpected) {
+              changedAt = now;
+              previousExpected = index;
+            }
+            if (active() === index) seen.add(index);
+            else worst = Math.max(worst, now - changedAt);
+            samples++;
+          }
+          await frame();
+          observer.disconnect();
+          return {
+            rate,
+            nativeRate: audio.playbackRate,
+            latencies,
+            worst,
+            samples,
+            seen: [...seen],
+            ended: audio.ended,
+            finalActive: active(),
+            structuralWrites,
+            stable: parts.every(
+              (part, i) => root.contains(part) && part.firstChild === original[i],
+            ),
+          };
+        },
+        { segments, rate },
+      );
+      measurements.push(report);
+      expect(report.nativeRate).toBe(rate);
+      expect(Math.max(...report.latencies, report.worst)).toBeLessThanOrEqual(150);
+      expect(report.samples).toBeGreaterThan(3);
+      for (const { index } of segments) expect(report.seen).toContain(index);
+      expect(report.ended).toBe(true);
+      expect(report.finalActive).toBe(-1);
+      expect(report.structuralWrites).toBe(0);
+      expect(report.stable).toBe(true);
+    }
+    await testInfo.attach("Native clock measurements", {
+      body: JSON.stringify(measurements),
+      contentType: "application/json",
+    });
+  });
 }
+
+test("preserves selections and play state, resumes per recording and restarts after ending", async ({
+  page,
+  request,
+}) => {
+  const api = await publishedArticle(request, "ko-KR", korean);
+  const item = (await (await request.get(api)).json()) as Item;
+  const key = `taotale.playback.v1.${item.id}.${item.audioAssetId}`;
+  const route = api.replace("/api/v1", "");
+  await page.goto(route);
+  const player = page.getByRole("region", { name: "Article audio" });
+  const audio = player.locator("audio");
+  const play = player.getByRole("button", { name: "Play", exact: true });
+  const pause = player.getByRole("button", { name: "Pause", exact: true });
+  const parts = page.locator("[data-segment-index]");
+  await expect(play).toBeEnabled();
+  const second = item.transcript!.segments[1];
+  await parts.nth(1).focus();
+  await page.keyboard.press("Enter");
+  await expect(parts.nth(1)).toHaveAttribute("data-active", "true");
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.paused)).toBe(true);
+  await expect
+    .poll(() => page.evaluate((key) => Number(localStorage.getItem(key)), key))
+    .toBe(second.startMs);
+  await page.reload();
+  await expect(play).toBeEnabled();
+  await expect(parts.nth(1)).toHaveAttribute("data-active", "true");
+  const readTime = () => audio.evaluate((el: HTMLAudioElement) => el.currentTime);
+  expect(await readTime()).toBeCloseTo(second.startMs / 1000, 2);
+  const firstBounds = (await parts.first().boundingBox())!;
+  const y = firstBounds.y + firstBounds.height / 2;
+  await page.mouse.move(firstBounds.x + 1, y);
+  await page.mouse.down();
+  await page.mouse.move(firstBounds.x + firstBounds.width - 1, y, { steps: 8 });
+  await page.mouse.up();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBeTruthy();
+  expect(await readTime()).toBeCloseTo(second.startMs / 1000, 2);
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  await parts.first().dblclick();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBeTruthy();
+  // Wait past the single-click reaction budget to catch an unintended delayed seek.
+  await audio.evaluate(() => new Promise((resolve) => setTimeout(resolve, 150)));
+  expect(await readTime()).toBeCloseTo(second.startMs / 1000, 2);
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  await player.getByRole("button", { name: "Back 5 seconds" }).click();
+  expect(await readTime()).toBe(0);
+  await player.getByRole("button", { name: "Forward 5 seconds" }).click();
+  expect(await readTime()).toBeCloseTo(item.transcript!.durationMs / 1000, 1);
+  await player.getByRole("slider").focus();
+  await page.keyboard.press("Home");
+  expect(await readTime()).toBe(0);
+  await page.keyboard.press("End");
+  expect(await readTime()).toBeCloseTo(item.transcript!.durationMs / 1000, 3);
+  await page.keyboard.press("Home");
+  await play.click();
+  await parts.nth(1).click();
+  await expect
+    .poll(() =>
+      audio.evaluate(
+        (el: HTMLAudioElement, startMs) => !el.paused && el.currentTime * 1000 >= startMs - 1,
+        second.startMs,
+      ),
+    )
+    .toBe(true);
+  await expect(play).toBeEnabled();
+  await expect.poll(() => audio.evaluate((el: HTMLAudioElement) => el.ended)).toBe(true);
+  expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBeNull();
+  await play.click();
+  await expect(pause).toBeVisible();
+  expect(await readTime()).toBeLessThan(second.startMs / 1000);
+  await pause.click();
+  const link = player.getByRole("link", { name: "Download Audio" });
+  expect(await link.getAttribute("href")).toBe(
+    `${api}/audio/download?audioAssetId=${item.audioAssetId}`,
+  );
+  const oldAudio = (await audio.elementHandle())!;
+  await play.click();
+  await page.getByRole("link", { name: "Back to Library" }).click();
+  await expect(page).toHaveURL(/\/library/);
+  expect(
+    await oldAudio.evaluate(
+      (el) => (el as HTMLAudioElement).paused && !el.isConnected && !el.hasAttribute("src"),
+    ),
+  ).toBe(true);
+  // A position for another asset in the same item must never be restored.
+  await page.evaluate(
+    ({ key, id }) => {
+      localStorage.removeItem(key);
+      localStorage.setItem(`taotale.playback.v1.${id}.previous`, "450");
+    },
+    { key, id: item.id },
+  );
+  await page.goto(route);
+  await expect(play).toBeEnabled();
+  expect(await readTime()).toBe(0);
+});
 
 test("keeps the transcript readable through corrupt timing and a missing recording", async ({
   page,

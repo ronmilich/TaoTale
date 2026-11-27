@@ -6,13 +6,19 @@ export type SpeechRate = (typeof speechRates)[number];
 type SpeechPreference = { voiceId: string; speakingRate: SpeechRate };
 export const themes = ["system", "light", "dark"] as const;
 export type Theme = (typeof themes)[number];
-type Preferences = { theme: Theme; language: Language };
+export const playbackSpeeds = ["0.75", "1", "1.25", "1.5"] as const;
+type Preferences = {
+  theme: Theme;
+  language: Language;
+  playbackSpeed: (typeof playbackSpeeds)[number];
+};
 
 const prefix = "taotale.preferences.";
-const defaults: Preferences = { theme: "system", language: "zh-CN" };
+const defaults: Preferences = { theme: "system", language: "zh-CN", playbackSpeed: "1" };
 const choices: { [K in keyof Preferences]: ReadonlyArray<Preferences[K]> } = {
   theme: themes,
   language: ["zh-CN", "ko-KR"],
+  playbackSpeed: playbackSpeeds,
 };
 
 export function validatePreference<K extends keyof Preferences>(

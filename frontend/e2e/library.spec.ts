@@ -32,10 +32,10 @@ test("lists seeded drafts using one list request per page and clamps an out-of-r
   await expect(articles.first().getByRole("heading")).toHaveText(
     first.items[0].title || "Untitled draft",
   );
-  await expect(articles.first().getByRole("link", { name: "Continue Editing" })).toHaveAttribute(
-    "href",
-    `/create?draftId=${first.items[0].id}`,
-  );
+  const draft = first.items.find((item) => item.status === "draft");
+  expect(draft).toBeDefined();
+  const editLink = page.locator(`a[href="/create?draftId=${draft!.id}"]`);
+  await expect(editLink).toHaveAccessibleName("Continue Editing");
   expect(calls).toEqual(["/api/v1/items?languageCode=ko-KR&page=1&pageSize=8"]);
 
   let release!: () => void;
@@ -63,11 +63,13 @@ test("lists seeded drafts using one list request per page and clamps an out-of-r
     "/api/v1/items?languageCode=ko-KR&page=2&pageSize=8",
   ]);
 
+  await page.goBack();
+  await editLink.click();
+  await expect(page.getByRole("heading", { name: "Edit draft" })).toBeVisible();
+
   await page.goto("/library?languageCode=ko-KR&page=999");
   await expect(page).not.toHaveURL(/page=999$/);
   await expect(articles.first()).toBeVisible();
-  await articles.first().getByRole("link", { name: "Continue Editing" }).click();
-  await expect(page.getByRole("heading", { name: "Edit draft" })).toBeVisible();
 });
 
 test("shows recoverable Library errors, a true empty list, and a working published Reader link", async ({

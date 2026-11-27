@@ -79,7 +79,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Done |
 | TAO-24 | Publication | 4 | TAO-23 | Done |
 | TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Done |
-| TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Planned |
+| TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Done |
 | TAO-27 | Reader actions: Favorite, Notes, Download | 4 | TAO-26 | Planned |
 | TAO-28 | Topics UI | 5 | TAO-17, TAO-21 | Planned |
 | TAO-29 | Library search, filters, sort and Favorites | 5 | TAO-22, TAO-27, TAO-28 | Planned |
@@ -662,9 +662,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Resume position saved per `(itemId, audioAssetId)` every ~5 s and on pause. No autoplay when restoring.
 
 **Exit criteria**
-- [ ] NFR-03 met at every speed, for both `zh-CN` and `ko-KR`.
-- [ ] An instrumented test proves the transcript doesn't re-render on each tick (NFR-04).
-- [ ] Listeners and animation frames are cleaned up on navigation.
+- [x] NFR-03 met at every speed, for both `zh-CN` and `ko-KR`.
+- [x] An instrumented test proves the transcript doesn't re-render on each tick (NFR-04).
+- [x] Listeners and animation frames are cleaned up on navigation.
 
 **Depends on:** TAO-25
 
