@@ -68,8 +68,8 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 | GET | `/tts/previews/{generationId}` | Temporary generation status until claimed/expired. |
 | GET | `/tts/previews/{generationId}/audio` | Unclaimed READY preview MP3, expires by policy. |
 | GET | `/tts/previews/{generationId}/audio/download` | Download unclaimed verified preview. |
-| POST | `/storage/images` | Upload new cover **≤1,000,000 bytes** JPEG/PNG/WebP, valid dimensions; staged reference ID. |
-| GET | `/storage/images/{imageId}` | Safe image stream, ETag/304 as applicable; legacy oversized cover still readable. |
+| POST | `/storage/images` | Send raw JPEG, PNG or WebP bytes with the matching image content type. Returns a cover ID that expires after 24 hours unless attached. |
+| GET | `/storage/images/{imageId}` | Read original cover bytes, including legacy oversized covers. Revalidate with `If-None-Match` and the response's `ETag`. |
 | GET/POST | `/topics` | Shared one-user Topic catalog and create; not language-filtered. |
 | PATCH/DELETE | `/topics/{topicId}` | Rename/recolor or delete custom Topic; protect default ones. |
 | GET/POST | `/vocabulary` | **Required `languageCode` for list and creation**; server pagination and duplicate checks. |
@@ -86,7 +86,7 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 
 ## 4. Query, shape and pagination requirements
 
-- `GET /items` uses explicit `languageCode`, **literal case-insensitive title search** (escape SQL wildcard meaning), `status=draft|published|all`, optional difficulty, topics (OR), `favoritesOnly`, `sort=newest|oldest|title_asc|title_desc`, positive `page`/bounded `pageSize`. Preserve old initial **8 cards/page** unless changed by 01/03; cap pages server-side and use stable `id` ties. `publishedAt`, not audio availability, defines published status.
+- `GET /items` uses explicit `languageCode`, literal case-insensitive title search `q` (up to 120 code points), `status=draft|published|all`, `difficulty=beginner|intermediate|advanced|unspecified`, comma-separated topic IDs in `topics` (OR), `favoritesOnly=true|false`, `sort=newest|oldest|title_asc|title_desc`, positive `page` and `pageSize` (default 8, max 50). A publication timestamp defines published status.
 - `GET /vocabulary` and stats require an explicit language filter; search in display word, reading and meaning, optional status/topic filters, stable sorts, **10 rows/page** default. Avoid per-row API fan-out. Do not silently merge Chinese and Korean word statistics.
 - Item response exposes `languageCode`, `isFavorite`, `difficulty`, stable `version`, draft/published state, audio status and immutable asset ID; generated segment ranges are UTF-16 half-open offsets and milliseconds. Source text is preserved byte-for-byte where applicable, not normalized for display or hashing.
 - Published item detail can include a `transcript` with the pinned recording's duration and stored segments. Library pages omit this field. If the transcript or audio is unavailable, the detail still returns the original source.
@@ -96,7 +96,7 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 
 ## 5. Mutations, idempotency and errors
 
-The draft API accepts omitted fields as defaults at creation. A PATCH carries `expectedVersion`. Omission preserves a field, `null` clears nullable metadata, an empty string is stored as typed, and an empty `topicIds` clears associations. Use `PUT /items/{itemId}/favorite` to set or clear the favorite flag on an existing item. Page size defaults to 8 and allows up to 50. The current sort is creation timestamp descending, with descending item ID for ties.
+The draft API accepts omitted fields as defaults at creation. A PATCH carries `expectedVersion`. Omission preserves a field, `null` clears nullable metadata, an empty string is stored as typed, and an empty `topicIds` clears associations. Send `coverImageId` to attach or replace a cover on create, direct publication or PATCH. Send `coverImageId: null` on PATCH to clear it. Use `PUT /items/{itemId}/favorite` to set or clear the favorite flag on an existing item. The default sort is newest creation timestamp first, and all sorts break ties by descending item ID.
 
 Topics use `/topics` across all learning languages. Writes accept `colorPreset` and the server resolves the stored colors. New Topics default to Iris. Names are unique after Unicode whitespace trimming and case folding. `DUPLICATE_TOPIC` includes `error.details.existingId`. The `usageCount` counts linked items across languages. Default Topics can be renamed and recolored while their system keys and deletion protection persist.
 

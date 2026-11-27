@@ -172,12 +172,12 @@ type Segment struct {
 |---|---|
 | `staging/{random}.part` | Untrusted/in-progress bytes; never served. |
 | `audio/{audioAssetId}.mp3` | Immutable verified preview, candidate or published recording. |
-| `temporary/images/{imageId}.{ext}` | Unattached, expiring cover. |
-| `images/{imageId}.{ext}` | Attached item cover. |
+| `images/{random}.{ext}` | Immutable verified cover. It expires after 24 hours unless attached in PostgreSQL. |
 
 - `MEDIA_ROOT` is absolute and stable. Generate path keys server-side, reject `..`, traversal and symlinks/junction escape; safely open/stream only known asset IDs. Do not trust user filenames or expose absolute paths in API responses.
 - **New/replacement cover size must be ≤ 1,000,000 bytes**, measured from encoded bytes. Verify actual JPEG/PNG/WebP signature and decoded dimensions (inherited upper bound 4096×4096 unless 01 changes it). At exactly 1,000,000 bytes size alone is valid; 1,000,001 is rejected. Existing larger legacy covers remain readable until reviewed.
 - Bound upload bodies/streaming, validate before promotion, and never replace an old cover until save succeeds. Use atomic rename on same filesystem, explicit copy/lease when needed, and after-commit cleanup; recover from disk-full/corrupt files.
+- Uploads promote the verified file once. Attaching an image clears its expiry in the same transaction as the item save. The immutable file keeps the same storage key through attachment and replacement.
 - Audio endpoints support byte-range responses, safe download filenames and asset-pinned URLs. No cloud storage, public object URLs or image proxy service in MVP.
 - Preview access expires in PostgreSQL after 24 hours. Claiming a preview changes its database reference and reuses its immutable file. TAO-43 covers removing expired, unreferenced files from disk.
 

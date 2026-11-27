@@ -13,13 +13,13 @@ import (
 
 const addItem = `-- name: AddItem :one
 INSERT INTO public.library_items (
-    user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate
+    user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, cover_image_id
 )
 SELECT u.id, l.code, $1, $2, $3, $4,
-       $5, $6, $7, $8
+       $5, $6, $7, $8, $9
 FROM public.users u CROSS JOIN public.learning_languages l
-WHERE u.singleton AND l.enabled AND l.code = $9
-RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id
+WHERE u.singleton AND l.enabled AND l.code = $10
+RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id, cover_image_id
 `
 
 type AddItemParams struct {
@@ -31,6 +31,7 @@ type AddItemParams struct {
 	IsFavorite   bool
 	VoiceID      pgtype.Text
 	SpeakingRate pgtype.Float8
+	CoverImageID pgtype.UUID
 	LanguageCode string
 }
 
@@ -44,6 +45,7 @@ func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) (LibraryItem, 
 		arg.IsFavorite,
 		arg.VoiceID,
 		arg.SpeakingRate,
+		arg.CoverImageID,
 		arg.LanguageCode,
 	)
 	var i LibraryItem
@@ -64,6 +66,7 @@ func (q *Queries) AddItem(ctx context.Context, arg AddItemParams) (LibraryItem, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ActiveAudioAssetID,
+		&i.CoverImageID,
 	)
 	return i, err
 }
@@ -99,11 +102,37 @@ func (q *Queries) ClearItemTopics(ctx context.Context, itemID pgtype.UUID) error
 
 const countItems = `-- name: CountItems :one
 SELECT count(*) FROM public.library_items
-WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND language_code = $1
+WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+  AND language_code = $1
+  AND ($2::text = '' OR title ILIKE $2)
+  AND ($3::text = 'all' OR (published_at IS NOT NULL) = ($3 = 'published'))
+  AND ($4::text = '' OR COALESCE(difficulty, 'unspecified') = $4)
+  AND (NOT $5::boolean OR is_favorite)
+  AND (COALESCE(cardinality($6::uuid[]), 0) = 0 OR EXISTS (
+      SELECT 1 FROM public.item_topics it
+      WHERE it.item_id = library_items.id AND it.user_id = library_items.user_id
+        AND it.topic_id = ANY($6::uuid[])
+  ))
 `
 
-func (q *Queries) CountItems(ctx context.Context, languageCode string) (int64, error) {
-	row := q.db.QueryRow(ctx, countItems, languageCode)
+type CountItemsParams struct {
+	LanguageCode  string
+	TitlePattern  string
+	Status        string
+	Difficulty    string
+	FavoritesOnly bool
+	TopicIds      []pgtype.UUID
+}
+
+func (q *Queries) CountItems(ctx context.Context, arg CountItemsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countItems,
+		arg.LanguageCode,
+		arg.TitlePattern,
+		arg.Status,
+		arg.Difficulty,
+		arg.FavoritesOnly,
+		arg.TopicIds,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -123,7 +152,7 @@ func (q *Queries) DeleteItem(ctx context.Context, id pgtype.UUID) (int64, error)
 }
 
 const getItem = `-- name: GetItem :one
-SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id FROM public.library_items
+SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id, cover_image_id FROM public.library_items
 WHERE library_items.id = $1 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
 `
 
@@ -147,6 +176,7 @@ func (q *Queries) GetItem(ctx context.Context, id pgtype.UUID) (LibraryItem, err
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ActiveAudioAssetID,
+		&i.CoverImageID,
 	)
 	return i, err
 }
@@ -183,7 +213,7 @@ func (q *Queries) GetItemTopics(ctx context.Context, itemIds []pgtype.UUID) ([]G
 }
 
 const lockItem = `-- name: LockItem :one
-SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id FROM public.library_items
+SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id, cover_image_id FROM public.library_items
 WHERE library_items.id = $1 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
 FOR UPDATE
 `
@@ -208,6 +238,7 @@ func (q *Queries) LockItem(ctx context.Context, id pgtype.UUID) (LibraryItem, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ActiveAudioAssetID,
+		&i.CoverImageID,
 	)
 	return i, err
 }
@@ -241,20 +272,51 @@ func (q *Queries) LockOwnedTopics(ctx context.Context, topicIds []pgtype.UUID) (
 }
 
 const pageItems = `-- name: PageItems :many
-SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id FROM public.library_items
-WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND language_code = $1
-ORDER BY created_at DESC, id DESC
-LIMIT $3::int OFFSET $2::bigint
+SELECT id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id, cover_image_id FROM public.library_items
+WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+  AND language_code = $1
+  AND ($2::text = '' OR title ILIKE $2)
+  AND ($3::text = 'all' OR (published_at IS NOT NULL) = ($3 = 'published'))
+  AND ($4::text = '' OR COALESCE(difficulty, 'unspecified') = $4)
+  AND (NOT $5::boolean OR is_favorite)
+  AND (COALESCE(cardinality($6::uuid[]), 0) = 0 OR EXISTS (
+      SELECT 1 FROM public.item_topics it
+      WHERE it.item_id = library_items.id AND it.user_id = library_items.user_id
+        AND it.topic_id = ANY($6::uuid[])
+  ))
+ORDER BY
+    CASE WHEN $7::text = 'title_asc' THEN lower(title) END ASC NULLS LAST,
+    CASE WHEN $7 = 'title_desc' THEN lower(title) END DESC NULLS LAST,
+    CASE WHEN $7 = 'oldest' THEN created_at END ASC,
+    CASE WHEN $7 = 'newest' THEN created_at END DESC,
+    id DESC
+LIMIT $9::int OFFSET $8::bigint
 `
 
 type PageItemsParams struct {
-	LanguageCode string
-	PageOffset   int64
-	PageSize     int32
+	LanguageCode  string
+	TitlePattern  string
+	Status        string
+	Difficulty    string
+	FavoritesOnly bool
+	TopicIds      []pgtype.UUID
+	SortOrder     string
+	PageOffset    int64
+	PageSize      int32
 }
 
 func (q *Queries) PageItems(ctx context.Context, arg PageItemsParams) ([]LibraryItem, error) {
-	rows, err := q.db.Query(ctx, pageItems, arg.LanguageCode, arg.PageOffset, arg.PageSize)
+	rows, err := q.db.Query(ctx, pageItems,
+		arg.LanguageCode,
+		arg.TitlePattern,
+		arg.Status,
+		arg.Difficulty,
+		arg.FavoritesOnly,
+		arg.TopicIds,
+		arg.SortOrder,
+		arg.PageOffset,
+		arg.PageSize,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -279,6 +341,7 @@ func (q *Queries) PageItems(ctx context.Context, arg PageItemsParams) ([]Library
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ActiveAudioAssetID,
+			&i.CoverImageID,
 		); err != nil {
 			return nil, err
 		}
@@ -318,11 +381,11 @@ const updateItem = `-- name: UpdateItem :one
 UPDATE public.library_items
 SET title = $1, source_text = $2, description = $3,
     notes = $4, difficulty = $5,
-    voice_id = $6, speaking_rate = $7,
+    voice_id = $6, speaking_rate = $7, cover_image_id = $8,
     version = version + 1, updated_at = clock_timestamp()
-WHERE library_items.id = $8 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
-  AND version = $9
-RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id
+WHERE library_items.id = $9 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+  AND version = $10
+RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id, cover_image_id
 `
 
 type UpdateItemParams struct {
@@ -333,6 +396,7 @@ type UpdateItemParams struct {
 	Difficulty      pgtype.Text
 	VoiceID         pgtype.Text
 	SpeakingRate    pgtype.Float8
+	CoverImageID    pgtype.UUID
 	ID              pgtype.UUID
 	ExpectedVersion int32
 }
@@ -346,6 +410,7 @@ func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Library
 		arg.Difficulty,
 		arg.VoiceID,
 		arg.SpeakingRate,
+		arg.CoverImageID,
 		arg.ID,
 		arg.ExpectedVersion,
 	)
@@ -367,6 +432,7 @@ func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Library
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ActiveAudioAssetID,
+		&i.CoverImageID,
 	)
 	return i, err
 }

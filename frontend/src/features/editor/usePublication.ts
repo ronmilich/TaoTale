@@ -84,6 +84,7 @@ export function usePublication(options: {
               description: values.description || null,
               notes: values.notes || null,
               difficulty: values.difficulty || null,
+              topicIds: values.topicIds,
             },
           };
         }

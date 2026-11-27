@@ -124,6 +124,8 @@ The first physical migration creates the owner, learning language catalog and To
 
 Library title search and vocabulary word/reading/meaning search use literal, escaped case-insensitive search and bounded pagination; do not add trigram/full-text extensions until benchmarks justify them. Tie-break all paginated sorts by stable IDs. Use **batch SQL joins/aggregations** instead of N+1 per article/word. For a single user, avoid precomputed statistics tables unless measured need warrants them.
 
+TAO-29 ran `EXPLAIN (ANALYZE, BUFFERS)` on the generated page and count queries with 20,000 synthetic items split between the two languages. The existing `library_items_recent` index returned an eight-item newest page in 0.10 ms and a Favorites-only newest page in 0.10 ms. A combined title, status, difficulty and topic filter took 13.55 ms for the title-sorted page and 13.40 ms for the count. It used the item-topic primary key for membership checks. The measured plans supported retaining the existing indexes.
+
 ## 5. Transaction and filesystem consistency (DB-1–DB-9 adapted)
 
 | ID | Invariant enforced by Go service + SQL |

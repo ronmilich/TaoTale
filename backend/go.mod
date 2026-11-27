@@ -7,6 +7,7 @@ require (
 	github.com/getkin/kin-openapi v0.153.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/jackc/pgx/v5 v5.13.0
+	golang.org/x/image v0.42.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/text v0.41.0
 )

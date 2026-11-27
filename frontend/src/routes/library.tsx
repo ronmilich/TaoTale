@@ -1,36 +1,84 @@
 import { Title } from "@solidjs/meta";
 import { useLocation, useNavigate } from "@solidjs/router";
-import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import { listItems, type ItemPage, type LearningLanguage } from "../api/client";
 import controls from "../components/Controls.module.css";
 import LibraryItemCard from "../features/library/LibraryItemCard";
+import LibraryFilters from "../features/library/LibraryFilters";
+import { readFilters, readPage, searchLimit } from "../features/library/filters";
 import styles from "../features/library/Library.module.css";
+import TopicManager from "../features/topics/TopicManager";
+import { useTopics } from "../features/topics/topics";
 import { usePreferences } from "../preferences/Preferences";
 
 type Language = LearningLanguage["code"];
 
-function pageURL(language: Language, page = 1) {
-  return `/library?languageCode=${language}&page=${page}`;
+function pageURL(language: Language, filters: URLSearchParams, page = 1) {
+  const query = new URLSearchParams([
+    ["languageCode", language],
+    ...filters,
+    ["page", String(page)],
+  ]);
+  return `/library?${query}`;
 }
 
 export default function Library() {
   const location = useLocation();
   const navigate = useNavigate();
   const preferences = usePreferences();
+  const topics = useTopics();
   const query = createMemo(() => new URLSearchParams(location.search));
   const language = createMemo(() => {
     const available = preferences.languages();
-    const requested = query().get("languageCode");
+    const values = query().getAll("languageCode");
+    const requested = values.length === 1 ? values[0] : undefined;
     return (
       available?.find((entry) => entry.code === requested)?.code ??
       available?.find((entry) => entry.code === preferences.language())?.code
     );
   });
-  const page = createMemo(() => {
-    const values = query().getAll("page");
-    if (values.length !== 1 || !/^\d+$/.test(values[0])) return 1;
-    return Math.max(1, Math.min(Number(values[0]), 2147483647));
-  });
+  const filterKey = createMemo(() => readFilters(query()).toString());
+  const filters = createMemo(() => new URLSearchParams(filterKey()));
+  const page = createMemo(() => readPage(query()));
+  const [search, setSearch] = createSignal("");
+  let searchTimer: number | undefined;
+  const cancelSearch = () => window.clearTimeout(searchTimer);
+  onCleanup(cancelSearch);
+  createEffect(
+    () => location.search,
+    () => {
+      cancelSearch();
+      setSearch(filters().get("q") ?? "");
+    },
+  );
+
+  function changeFilters(next: URLSearchParams, replace = false) {
+    cancelSearch();
+    const code = language();
+    const canonical = readFilters(next);
+    if (code && canonical.toString() !== filterKey()) {
+      navigate(pageURL(code, canonical), { replace, scroll: false });
+    }
+  }
+
+  function changeFilter(key: string, value: string) {
+    const next = new URLSearchParams(filters());
+    next.set("q", search());
+    next.set(key, value);
+    changeFilters(next);
+  }
+
+  function searchInput(value: string) {
+    const bounded = [...value].slice(0, searchLimit).join("");
+    setSearch(bounded);
+    cancelSearch();
+    searchTimer = window.setTimeout(() => {
+      const next = new URLSearchParams(filters());
+      next.set("q", bounded);
+      changeFilters(next, true);
+    }, 300);
+    return bounded;
+  }
   const [lastPage, setLastPage] = createSignal<{ language: Language; data: ItemPage }>();
   const [refresh, setRefresh] = createSignal(0);
   const [loading, setLoading] = createSignal(true);
@@ -43,19 +91,20 @@ export default function Library() {
     Math.max(1, Math.ceil((visible()?.total ?? 0) / (visible()?.pageSize ?? 8)));
 
   createEffect(
-    () => [language(), page(), refresh()] as const,
-    ([code, number]) => {
+    () => [language(), page(), filterKey(), refresh()] as const,
+    ([code, number, key]) => {
       if (!code) return;
       if (code !== preferences.language()) preferences.changeLanguage(code);
       const controller = new AbortController();
       setLoading(true);
       setFailed(false);
-      listItems(code, number, controller.signal).then(
+      const requested = new URLSearchParams(key);
+      listItems(code, number, controller.signal, requested).then(
         (data) => {
           if (controller.signal.aborted) return;
           const last = Math.max(1, Math.ceil(data.total / data.pageSize));
           if (number > last) {
-            navigate(pageURL(code, last), { replace: true, scroll: false });
+            navigate(pageURL(code, requested, last), { replace: true, scroll: false });
             return;
           }
           setLastPage({ language: code, data });
@@ -72,10 +121,12 @@ export default function Library() {
   );
 
   createEffect(
-    () => [language(), query().getAll("page"), page()] as const,
-    ([code, values, number]) => {
-      if (code && values.length && (values.length !== 1 || values[0] !== String(number))) {
-        navigate(pageURL(code, number), { replace: true, scroll: false });
+    () => [language(), location.search, filterKey(), page()] as const,
+    ([code, search, key, number]) => {
+      if (!code || !search) return;
+      const canonical = pageURL(code, new URLSearchParams(key), number);
+      if (canonical !== `/library${search}`) {
+        navigate(canonical, { replace: true, scroll: false });
       }
     },
   );
@@ -93,6 +144,22 @@ export default function Library() {
         </a>
       </section>
       <section class={styles.library} aria-label="Saved articles">
+        <LibraryFilters
+          search={search()}
+          filters={filters()}
+          topics={topics.items()}
+          searchInput={searchInput}
+          change={changeFilter}
+        />
+        <TopicManager
+          topics={topics}
+          removed={(id) => {
+            const selected = filters().get("topics")?.split(",") ?? [];
+            if (selected.includes(id))
+              changeFilter("topics", selected.filter((topic) => topic !== id).join(","));
+            else setRefresh((value) => value + 1);
+          }}
+        />
         <Show when={preferences.languageError() || failed()}>
           <div class={styles.state}>
             <p role="alert">Could not load the Library. Your saved articles are still there.</p>
@@ -146,22 +213,57 @@ export default function Library() {
                 fallback={
                   <Show when={!loading()}>
                     <div class={styles.state}>
-                      <h2>No saved articles in this language</h2>
-                      <a class={controls.primary} href="/create">
-                        Create New Item
-                      </a>
+                      <Show
+                        when={
+                          filters().has("q") ||
+                          filters().has("status") ||
+                          filters().has("difficulty") ||
+                          filters().has("favoritesOnly") ||
+                          filters().has("topics")
+                        }
+                        fallback={
+                          <>
+                            <h2>No saved articles in this language</h2>
+                            <a class={controls.primary} href="/create">
+                              Create New Item
+                            </a>
+                          </>
+                        }
+                      >
+                        <h2>No items match your filters</h2>
+                        <button
+                          type="button"
+                          class={controls.secondary}
+                          onClick={() => changeFilters(new URLSearchParams())}
+                        >
+                          Clear filters
+                        </button>
+                      </Show>
                     </div>
                   </Show>
                 }
               >
                 <div class={styles.grid} aria-busy={loading() ? "true" : undefined}>
-                  <For each={result().items}>{(item) => <LibraryItemCard item={item} />}</For>
+                  <For each={result().items}>
+                    {(item) => (
+                      <LibraryItemCard
+                        item={item}
+                        topics={topics.items()}
+                        favoriteChanged={() => {
+                          if (filters().has("favoritesOnly")) setRefresh((value) => value + 1);
+                        }}
+                      />
+                    )}
+                  </For>
                 </div>
               </Show>
               <Show when={maxPage() > 1}>
                 <nav class={styles.paging} aria-label="Library pages">
                   <Show when={result().page > 1}>
-                    <a class={controls.secondary} href={pageURL(language()!, result().page - 1)}>
+                    <a
+                      class={controls.secondary}
+                      href={pageURL(language()!, filters(), result().page - 1)}
+                    >
                       Previous
                     </a>
                   </Show>
@@ -169,7 +271,10 @@ export default function Library() {
                     Page {result().page} of {maxPage()}
                   </span>
                   <Show when={result().page < maxPage()}>
-                    <a class={controls.secondary} href={pageURL(language()!, result().page + 1)}>
+                    <a
+                      class={controls.secondary}
+                      href={pageURL(language()!, filters(), result().page + 1)}
+                    >
                       Next
                     </a>
                   </Show>

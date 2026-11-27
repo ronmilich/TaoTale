@@ -315,6 +315,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/storage/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload validated cover bytes and return an expiring image reference */
+        post: operations["uploadCoverImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storage/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: string;
+            };
+            cookie?: never;
+        };
+        /** Stream an owned cover image */
+        get: operations["getCoverImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/topics": {
         parameters: {
             query?: never;
@@ -445,6 +481,8 @@ export interface components {
             sourceText?: string;
             description?: string | null;
             notes?: string | null;
+            /** Format: uuid */
+            coverImageId?: string | null;
             /** @enum {string|null} */
             difficulty?: "beginner" | "intermediate" | "advanced" | null;
             isFavorite?: boolean;
@@ -471,6 +509,8 @@ export interface components {
             sourceText?: string;
             description?: string | null;
             notes?: string | null;
+            /** Format: uuid */
+            coverImageId?: string | null;
             /** @enum {string|null} */
             difficulty?: "beginner" | "intermediate" | "advanced" | null;
             voiceId?: string | null;
@@ -483,6 +523,8 @@ export interface components {
             id: string;
             /** @enum {string} */
             languageCode: "zh-CN" | "ko-KR";
+            /** Format: uuid */
+            coverImageId?: string | null;
             /** @enum {string} */
             status: "draft" | "published";
             version: number;
@@ -821,6 +863,14 @@ export interface operations {
         parameters: {
             query: {
                 languageCode: components["parameters"]["ItemLanguage"];
+                /** @description Literal case-insensitive title substring. */
+                q?: string;
+                status?: "all" | "draft" | "published";
+                difficulty?: "unspecified" | "beginner" | "intermediate" | "advanced";
+                favoritesOnly?: boolean;
+                /** @description Match any of the listed topic IDs. */
+                topics?: string[];
+                sort?: "newest" | "oldest" | "title_asc" | "title_desc";
                 page?: number;
                 pageSize?: number;
             };
@@ -1290,6 +1340,87 @@ export interface operations {
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
             504: components["responses"]["APIError"];
+        };
+    };
+    uploadCoverImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            /** @description Uploaded cover metadata */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        contentType: "image/jpeg" | "image/png" | "image/webp";
+                        sizeBytes: number;
+                        width: number;
+                        height: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getCoverImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Original image bytes */
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            /** @description The requested cover matches a cached representation */
+            304: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
         };
     };
     listTopics: {

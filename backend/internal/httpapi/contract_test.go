@@ -43,7 +43,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				servers = *operation.Servers
 			}
 			for _, server := range servers {
-				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{topicId}", ":topicId", "{generationId}", ":generationId").Replace(path.Join(server.URL, template))
+				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{topicId}", ":topicId", "{generationId}", ":generationId", "{imageId}", ":imageId").Replace(path.Join(server.URL, template))
 				if operations[key] != nil {
 					t.Fatalf("duplicate contract route %s", key)
 				}
@@ -60,7 +60,7 @@ func TestOpenAPIConformance(t *testing.T) {
 		}
 		delete(operations, key)
 		t.Run(key, func(t *testing.T) {
-			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":topicId", contractID, ":generationId", contractID).Replace(route.Path)
+			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":topicId", contractID, ":generationId", contractID, ":imageId", contractID).Replace(route.Path)
 			operation := contractRoute.Operation.OperationID
 			var body string
 			status := http.StatusOK
@@ -71,8 +71,10 @@ func TestOpenAPIConformance(t *testing.T) {
 				url += "?languageCode=ko-KR"
 				status = http.StatusServiceUnavailable
 			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration",
-				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview":
+				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview", "getCoverImage":
 				status = http.StatusServiceUnavailable
+			case "uploadCoverImage":
+				body, status = "image bytes", http.StatusServiceUnavailable
 			case "streamItemAudio", "downloadItemAudio":
 				url += "?audioAssetId=" + contractID
 				status = http.StatusServiceUnavailable
@@ -97,6 +99,9 @@ func TestOpenAPIConformance(t *testing.T) {
 			}
 			if body != "" {
 				req.Header.Set("Content-Type", "application/json")
+			}
+			if operation == "uploadCoverImage" {
+				req.Header.Set("Content-Type", "image/png")
 			}
 			result := httptest.NewRecorder()
 			healthy.ServeHTTP(result, req)

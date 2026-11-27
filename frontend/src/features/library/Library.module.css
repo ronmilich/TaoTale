@@ -51,6 +51,43 @@
 .library {
   margin-top: var(--space-40);
 }
+.filters {
+  padding: var(--space-16);
+  margin-bottom: var(--space-12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+.filterRow {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
+}
+.filterRow > label,
+.filterField {
+  display: grid;
+  gap: var(--space-4);
+}
+.filterRow > label:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.filterRow .favoriteFilter {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+}
+.star {
+  margin-inline-start: auto;
+  font-size: 1.2rem;
+  min-width: 42px;
+}
+.star[aria-pressed="true"] {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr));

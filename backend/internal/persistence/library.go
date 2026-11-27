@@ -60,6 +60,9 @@ func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, to
 }
 
 func (s Library) insertDraft(ctx context.Context, q *queries.Queries, input queries.AddItemParams, topics []pgtype.UUID, previewID pgtype.UUID) (queries.LibraryItem, error) {
+	if err := s.claimCover(ctx, q, input.CoverImageID); err != nil {
+		return queries.LibraryItem{}, err
+	}
 	row, err := q.AddItem(ctx, input)
 	if err != nil {
 		return row, missing(err, ErrUnsupportedLanguage)
@@ -80,6 +83,7 @@ type ItemPatch struct {
 	SourceText                                   *string
 	Rate                                         *pgtype.Float8
 	TopicIDs                                     *[]pgtype.UUID
+	CoverImageID                                 *pgtype.UUID
 }
 
 func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch) (Item, error) {
@@ -103,12 +107,18 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 		if patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(row.LanguageCode, s.Voices.ProviderID(), patch.Voice.String) {
 			return ErrInvalidVoice
 		}
+		if patch.CoverImageID != nil && *patch.CoverImageID != row.CoverImageID {
+			if err := s.claimCover(ctx, q, *patch.CoverImageID); err != nil {
+				return err
+			}
+		}
 		row, err = q.UpdateItem(ctx, queries.UpdateItemParams{
 			ID: id, ExpectedVersion: patch.ExpectedVersion, Title: valueOr(patch.Title, row.Title),
 			SourceText: valueOr(patch.SourceText, row.SourceText), Description: valueOr(patch.Description, row.Description),
 			Notes: valueOr(patch.Notes, row.Notes), Difficulty: valueOr(patch.Difficulty, row.Difficulty),
 			VoiceID:      valueOr(patch.Voice, row.VoiceID),
 			SpeakingRate: valueOr(patch.Rate, row.SpeakingRate),
+			CoverImageID: valueOr(patch.CoverImageID, row.CoverImageID),
 		})
 		if err != nil {
 			return err
@@ -211,7 +221,10 @@ func (s Library) ListItems(ctx context.Context, params queries.PageItemsParams) 
 	err := pgx.BeginTxFunc(ctx, s.Pool, snapshot, func(tx pgx.Tx) error {
 		q := queries.New(tx)
 		var err error
-		total, err = q.CountItems(ctx, params.LanguageCode)
+		total, err = q.CountItems(ctx, queries.CountItemsParams{
+			LanguageCode: params.LanguageCode, TitlePattern: params.TitlePattern, Status: params.Status,
+			Difficulty: params.Difficulty, FavoritesOnly: params.FavoritesOnly, TopicIds: params.TopicIds,
+		})
 		if err != nil {
 			return err
 		}

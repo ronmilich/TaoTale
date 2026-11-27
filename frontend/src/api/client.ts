@@ -7,6 +7,9 @@ export type DirectPublication = components["schemas"]["DirectPublication"];
 export type ItemPatch = components["schemas"]["ItemPatch"];
 export type ItemPage = components["schemas"]["ItemPage"];
 export type Voice = components["schemas"]["TTSVoice"];
+export type Topic = components["schemas"]["Topic"];
+type TopicCreate = operations["createTopic"]["requestBody"]["content"]["application/json"];
+type TopicPatch = operations["patchTopic"]["requestBody"]["content"]["application/json"];
 export type PreviewInput = components["schemas"]["PreviewInput"];
 export type PreviewStatus = components["schemas"]["PreviewStatus"];
 export type DraftGeneration = JSONResult<operations["getDraftGeneration"]>;
@@ -44,13 +47,34 @@ export function getItem(id: string, signal?: AbortSignal): Promise<Item> {
 
 export const libraryPageSize = 8;
 
-export function listItems(language: LearningLanguage["code"], page: number, signal: AbortSignal) {
+export function listItems(
+  language: LearningLanguage["code"],
+  page: number,
+  signal: AbortSignal,
+  filters: URLSearchParams,
+) {
   const query = new URLSearchParams({
     languageCode: language,
     page: String(page),
     pageSize: String(libraryPageSize),
   });
+  filters.forEach((value, key) => query.set(key, value));
   return readJSON<ItemPage>(`/items?${query}`, signal);
+}
+
+export function createTopic(topic: TopicCreate) {
+  return writeJSON<Topic>("/topics", "POST", topic);
+}
+
+export function patchTopic(id: string, topic: TopicPatch) {
+  return writeJSON<Topic>(`/topics/${encodeURIComponent(id)}`, "PATCH", topic);
+}
+
+export function deleteTopic(id: string) {
+  return requestJSON<void>(`/topics/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    signal: AbortSignal.timeout(15_000),
+  });
 }
 
 export function listVoices(language: LearningLanguage["code"], signal: AbortSignal) {
@@ -169,7 +193,11 @@ function writeItem(
   body: ItemCreate | ItemPatch,
   signal?: AbortSignal,
 ) {
-  return requestJSON<Item>(path, {
+  return writeJSON<Item>(path, method, body, signal);
+}
+
+function writeJSON<T>(path: string, method: "POST" | "PATCH", body: object, signal?: AbortSignal) {
+  return requestJSON<T>(path, {
     method,
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -179,6 +207,7 @@ function writeItem(
 
 async function requestJSON<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`/api/v1${path}`, init);
+  if (response.status === 204) return undefined as T;
   const requestId = response.headers.get("X-Request-Id");
   let body: unknown;
   try {

@@ -1,0 +1,64 @@
+.chip {
+  display: inline-block;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-chip);
+  background: var(--topic-light-background);
+  color: var(--topic-light-text);
+  overflow-wrap: anywhere;
+}
+
+:global([data-theme="dark"]) .chip {
+  background: var(--topic-dark-background);
+  color: var(--topic-dark-text);
+}
+
+.picker,
+.editor,
+.manager {
+  min-width: 0;
+  padding: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.manager {
+  margin-bottom: var(--space-16);
+}
+
+.choices,
+.buttons,
+.swatches,
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.choices,
+.buttons,
+.editor,
+.row {
+  margin-block: var(--space-8);
+}
+
+.choices label,
+.swatches label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.editor > label {
+  display: block;
+}
+
+.swatches {
+  border: 0;
+  padding: 0;
+  margin: var(--space-12) 0;
+}
+
+.row > span:first-child {
+  margin-inline-end: auto;
+}

@@ -40,6 +40,7 @@ type itemInput struct {
 	SpeakingRate field[float64]  `json:"speakingRate"`
 	TopicIDs     field[[]string] `json:"topicIds"`
 	PreviewID    field[string]   `json:"previewGenerationId"`
+	CoverImageID field[string]   `json:"coverImageId"`
 }
 
 func (i itemInput) validate(providerID string) (persistence.ItemPatch, string) {
@@ -106,10 +107,21 @@ func (i itemInput) validate(providerID string) (persistence.ItemPatch, string) {
 			return persistence.ItemPatch{}, "Send a valid preview generation ID."
 		}
 	}
+	var cover *pgtype.UUID
+	if i.CoverImageID.Set {
+		cover = &pgtype.UUID{}
+		if raw := i.CoverImageID.Value; raw != nil {
+			id, ok := parseID(*raw)
+			if !ok {
+				return persistence.ItemPatch{}, "Send a valid cover image ID."
+			}
+			*cover = id
+		}
+	}
 	return persistence.ItemPatch{
 		Title: textField(i.Title), Description: textField(i.Description), Notes: textField(i.Notes),
 		Difficulty: textField(i.Difficulty), Voice: textField(i.VoiceID), SourceText: i.SourceText.Value,
-		Rate: rate, TopicIDs: topics, PreviewID: previewID,
+		Rate: rate, TopicIDs: topics, PreviewID: previewID, CoverImageID: cover,
 	}, ""
 }
 
@@ -155,6 +167,7 @@ func itemResponse(item persistence.Item) gin.H {
 		"topicIds": item.TopicIDs, "version": r.Version, "status": status, "publishedAt": r.PublishedAt,
 		"createdAt": r.CreatedAt.Time.UTC(), "updatedAt": r.UpdatedAt.Time.UTC(),
 		"audioStatus": item.Audio.Status, "audioAssetId": item.Audio.AssetID, "audioGenerationId": item.Audio.ID,
+		"coverImageId": r.CoverImageID,
 	}
 	if transcript := readTranscript(item.Transcript); transcript != nil {
 		response["transcript"] = transcript
@@ -168,16 +181,16 @@ func registerLibrary(router *gin.Engine, store *persistence.Library, providerID 
 		page, pageOK := pageValue(query["page"], 1, 2147483647)
 		size, sizeOK := pageValue(query["pageSize"], 8, 50)
 		languages := query["languageCode"]
-		if err != nil || len(languages) != 1 || !tts.SupportsLanguage(languages[0]) || !pageOK || !sizeOK {
-			fail(c, http.StatusBadRequest, "VALIDATION_ERROR", "Choose one learning language and valid paging values.")
+		params, filtersOK := itemFilters(query)
+		if err != nil || len(languages) != 1 || !tts.SupportsLanguage(languages[0]) || !pageOK || !sizeOK || !filtersOK {
+			fail(c, http.StatusBadRequest, "VALIDATION_ERROR", "Choose one learning language and valid filters and paging values.")
 			return
 		}
 		if !hasLibrary(c, store) {
 			return
 		}
-		items, total, err := store.ListItems(c.Request.Context(), queries.PageItemsParams{
-			LanguageCode: languages[0], PageSize: size, PageOffset: (int64(page) - 1) * int64(size),
-		})
+		params.LanguageCode, params.PageSize, params.PageOffset = languages[0], size, (int64(page)-1)*int64(size)
+		items, total, err := store.ListItems(c.Request.Context(), params)
 		if err != nil {
 			failLibrary(c, err)
 			return
@@ -289,6 +302,7 @@ func decodeNewItem(c *gin.Context, providerID string) (persistence.NewItem, bool
 		LanguageCode: input.Language, Title: defaultValue(patch.Title), SourceText: defaultValue(patch.SourceText),
 		Description: defaultValue(patch.Description), Notes: defaultValue(patch.Notes), Difficulty: defaultValue(patch.Difficulty),
 		IsFavorite: defaultValue(input.IsFavorite.Value), VoiceID: defaultValue(patch.Voice), SpeakingRate: defaultValue(patch.Rate),
+		CoverImageID: defaultValue(patch.CoverImageID),
 	}, TopicIDs: defaultValue(patch.TopicIDs), PreviewID: patch.PreviewID}, true
 }
 
@@ -351,6 +365,8 @@ func failLibrary(c *gin.Context, err error) {
 		failDetails(c, 409, "DUPLICATE_TOPIC", "A topic already has that name.", gin.H{"existingId": duplicate.ID})
 	case errors.Is(err, persistence.ErrItemNotFound):
 		fail(c, 404, "ITEM_NOT_FOUND", "Resource not found.")
+	case errors.Is(err, persistence.ErrCoverNotFound):
+		fail(c, 404, "IMAGE_NOT_FOUND", "The cover image is unavailable.")
 	case errors.Is(err, persistence.ErrPreviewNotFound):
 		fail(c, 404, "PREVIEW_NOT_FOUND", "Resource not found.")
 	case errors.Is(err, persistence.ErrPreviewMismatch):

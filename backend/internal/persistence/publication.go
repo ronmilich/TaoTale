@@ -84,7 +84,21 @@ func (input NewItem) intentHash() (string, error) {
 	// Topic membership is a set. Treat omitted/empty and permuted IDs alike.
 	input.TopicIDs = append([]pgtype.UUID{}, input.TopicIDs...)
 	slices.SortFunc(input.TopicIDs, func(a, b pgtype.UUID) int { return strings.Compare(a.String(), b.String()) })
-	body, err := json.Marshal(input)
+	// Older receipts hashed an Item object without a cover key. Keep its
+	// field order and omit the new key when the request has no cover.
+	type itemIntent struct {
+		queries.AddItemParams
+		CoverImageID *pgtype.UUID `json:",omitempty"`
+	}
+	item := itemIntent{AddItemParams: input.Item}
+	if input.Item.CoverImageID.Valid {
+		item.CoverImageID = &input.Item.CoverImageID
+	}
+	body, err := json.Marshal(struct {
+		Item      itemIntent
+		TopicIDs  []pgtype.UUID
+		PreviewID pgtype.UUID
+	}{item, input.TopicIDs, input.PreviewID})
 	if err != nil {
 		return "", err
 	}

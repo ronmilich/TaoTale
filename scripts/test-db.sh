@@ -36,6 +36,7 @@ docker run --rm --network "$test_network" -v "$root/backend:/src:ro" -w /src \
     -e 'TAOTALE_TEST_DATABASE_URL=postgres://postgres@postgres/taotale_test?sslmode=disable' \
     golang:1.27.4 sh -ec 'go test -count=1 -v ./internal/persistence -run "^TestPostgresMigrateAndSeed$"
                           go test -count=1 -v ./internal/httpapi -run "^TestLibraryPostgres$"
+                          go test -count=1 -v ./internal/httpapi -run "^TestCoverPostgres$"
                           go test -count=1 -v ./internal/httpapi -run "^TestGenerationPostgres$"
                           apt-get update -qq
                           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null
@@ -55,6 +56,7 @@ snapshot() {
             (SELECT jsonb_agg(l ORDER BY code) FROM public.learning_languages AS l),
             (SELECT jsonb_agg(t ORDER BY id) FROM public.topics AS t),
             (SELECT jsonb_agg(i ORDER BY id) FROM public.library_items AS i),
+            (SELECT jsonb_agg(i ORDER BY id) FROM public.media_images AS i),
             (SELECT jsonb_agg(it ORDER BY item_id, topic_id) FROM public.item_topics AS it),
             (SELECT jsonb_agg(g ORDER BY id) FROM public.audio_generations AS g),
             (SELECT jsonb_agg(a ORDER BY id) FROM public.audio_assets AS a),

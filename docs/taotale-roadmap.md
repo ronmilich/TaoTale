@@ -81,9 +81,9 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Done |
 | TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Done |
 | TAO-27 | Reader actions: Favorite, Notes, Download | 4 | TAO-26 | Done |
-| TAO-28 | Topics UI | 5 | TAO-17, TAO-21 | Planned |
-| TAO-29 | Library search, filters, sort and Favorites | 5 | TAO-22, TAO-27, TAO-28 | Planned |
-| TAO-30 | Cover upload pipeline | 5 | TAO-16 | Planned |
+| TAO-28 | Topics UI | 5 | TAO-17, TAO-21 | Done |
+| TAO-29 | Library search, filters, sort and Favorites | 5 | TAO-22, TAO-27, TAO-28 | Done |
+| TAO-30 | Cover upload pipeline | 5 | TAO-16 | Done |
 | TAO-31 | Cover UI | 5 | TAO-21, TAO-22, TAO-30 | Planned |
 | TAO-32 | Deletion and downloads in the Library | 5 | TAO-20, TAO-22 | Planned |
 | TAO-33 | Published metadata edit | 6 | TAO-24, TAO-28, TAO-31 | Planned |
@@ -707,8 +707,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   - a duplicate-name conflict keeps what the user typed.
 
 **Exit criteria**
-- [ ] End-to-end topic lifecycle passes.
-- [ ] The same topic works on `zh-CN` and `ko-KR` items.
+- [x] End-to-end topic lifecycle passes.
+- [x] The same topic works on `zh-CN` and `ko-KR` items.
 
 **Depends on:** TAO-17, TAO-21
 
@@ -733,8 +733,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
   - unfavoriting under Favorites-only removes the card and keeps a sensible page.
 
 **Exit criteria**
-- [ ] Acceptance journey 5 (01 §10) automated.
-- [ ] Favoriting never changes the newest-first order.
+- [x] Acceptance journey 5 (01 §10) automated.
+- [x] Favoriting never changes the newest-first order.
 
 **Depends on:** TAO-22, TAO-27, TAO-28
 
@@ -752,8 +752,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - A cover is attached or replaced through item updates, only after a successful save. Legacy oversized covers stay readable.
 
 **Exit criteria**
-- [ ] F6 fixtures pass, including 1,000,000 bytes accepted and 1,000,001 rejected.
-- [ ] Path-traversal attempts are rejected.
+- [x] F6 fixtures pass, including 1,000,000 bytes accepted and 1,000,001 rejected.
+- [x] Path-traversal attempts are rejected.
 
 **Depends on:** TAO-16
 

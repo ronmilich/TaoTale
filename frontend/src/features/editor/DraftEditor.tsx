@@ -22,6 +22,7 @@ import AudioPanel from "./AudioPanel";
 import {
   difficulties,
   draftFields,
+  draftFieldChanged,
   draftPatch,
   editableFields,
   emptyDraft,
@@ -91,7 +92,7 @@ export default function DraftEditor() {
   const dirty = createMemo(
     () =>
       synthesisInputsChanged() ||
-      editableFields.some(({ id }) => draft.values[id] !== draft.baseline[id]),
+      editableFields.some(({ id }) => draftFieldChanged(id, draft.values, draft.baseline)),
   );
   const errors = createMemo(() => {
     const result: Partial<Record<keyof DraftFields, string>> = {};
@@ -251,6 +252,7 @@ export default function DraftEditor() {
             description: values.description || null,
             notes: values.notes || null,
             difficulty: values.difficulty || null,
+            topicIds: values.topicIds,
             voiceId: speech?.voiceId ?? values.voiceId,
             speakingRate: speech?.speakingRate ?? values.speakingRate,
             previewGenerationId,
@@ -373,11 +375,12 @@ export default function DraftEditor() {
     const review = conflict();
     return review?.phase === "ready" ? draftFields(review.latest) : undefined;
   });
-  const changedFields = createMemo(() =>
-    editableFields.filter(
-      ({ id }) => reviewValues() && reviewValues()?.[id] !== draft.baseline[id],
-    ),
-  );
+  const changedFields = createMemo(() => {
+    const latest = reviewValues();
+    return latest
+      ? editableFields.filter(({ id }) => draftFieldChanged(id, latest, draft.baseline))
+      : [];
+  });
 
   return (
     <section class={styles.editor}>
@@ -621,5 +624,6 @@ function fieldText(
   if (name === "difficulty") return difficulties.find((entry) => entry.value === value)?.label;
   if (name === "speakingRate") return value ? `${value}×` : "Default";
   if (name === "voiceId") return value ?? "Default";
+  if (Array.isArray(value)) return `${value.length} selected`;
   return value || "Empty";
 }

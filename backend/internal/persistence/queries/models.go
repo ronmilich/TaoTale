@@ -94,6 +94,19 @@ type LibraryItem struct {
 	CreatedAt          pgtype.Timestamptz
 	UpdatedAt          pgtype.Timestamptz
 	ActiveAudioAssetID pgtype.UUID
+	CoverImageID       pgtype.UUID
+}
+
+type MediaImage struct {
+	ID          pgtype.UUID
+	OwnerID     pgtype.UUID
+	StorageKey  string
+	ContentType string
+	SizeBytes   int64
+	Width       int32
+	Height      int32
+	ExpiresAt   pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
 }
 
 type Topic struct {

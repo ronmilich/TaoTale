@@ -1,9 +1,9 @@
 -- name: AddItem :one
 INSERT INTO public.library_items (
-    user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate
+    user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, cover_image_id
 )
 SELECT u.id, l.code, sqlc.narg(title), sqlc.arg(source_text), sqlc.narg(description), sqlc.narg(notes),
-       sqlc.narg(difficulty), sqlc.arg(is_favorite), sqlc.narg(voice_id), sqlc.narg(speaking_rate)
+       sqlc.narg(difficulty), sqlc.arg(is_favorite), sqlc.narg(voice_id), sqlc.narg(speaking_rate), sqlc.narg(cover_image_id)
 FROM public.users u CROSS JOIN public.learning_languages l
 WHERE u.singleton AND l.enabled AND l.code = sqlc.arg(language_code)
 RETURNING *;
@@ -21,7 +21,7 @@ FOR UPDATE;
 UPDATE public.library_items
 SET title = sqlc.narg(title), source_text = sqlc.arg(source_text), description = sqlc.narg(description),
     notes = sqlc.narg(notes), difficulty = sqlc.narg(difficulty),
-    voice_id = sqlc.narg(voice_id), speaking_rate = sqlc.narg(speaking_rate),
+    voice_id = sqlc.narg(voice_id), speaking_rate = sqlc.narg(speaking_rate), cover_image_id = sqlc.narg(cover_image_id),
     version = version + 1, updated_at = clock_timestamp()
 WHERE library_items.id = sqlc.arg(id) AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
   AND version = sqlc.arg(expected_version)
@@ -39,13 +39,38 @@ WHERE library_items.id = $1 AND user_id = (SELECT u.id FROM public.users u WHERE
 
 -- name: PageItems :many
 SELECT * FROM public.library_items
-WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND language_code = sqlc.arg(language_code)
-ORDER BY created_at DESC, id DESC
+WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+  AND language_code = sqlc.arg(language_code)
+  AND (sqlc.arg(title_pattern)::text = '' OR title ILIKE sqlc.arg(title_pattern))
+  AND (sqlc.arg(status)::text = 'all' OR (published_at IS NOT NULL) = (sqlc.arg(status) = 'published'))
+  AND (sqlc.arg(difficulty)::text = '' OR COALESCE(difficulty, 'unspecified') = sqlc.arg(difficulty))
+  AND (NOT sqlc.arg(favorites_only)::boolean OR is_favorite)
+  AND (COALESCE(cardinality(sqlc.arg(topic_ids)::uuid[]), 0) = 0 OR EXISTS (
+      SELECT 1 FROM public.item_topics it
+      WHERE it.item_id = library_items.id AND it.user_id = library_items.user_id
+        AND it.topic_id = ANY(sqlc.arg(topic_ids)::uuid[])
+  ))
+ORDER BY
+    CASE WHEN sqlc.arg(sort_order)::text = 'title_asc' THEN lower(title) END ASC NULLS LAST,
+    CASE WHEN sqlc.arg(sort_order) = 'title_desc' THEN lower(title) END DESC NULLS LAST,
+    CASE WHEN sqlc.arg(sort_order) = 'oldest' THEN created_at END ASC,
+    CASE WHEN sqlc.arg(sort_order) = 'newest' THEN created_at END DESC,
+    id DESC
 LIMIT sqlc.arg(page_size)::int OFFSET sqlc.arg(page_offset)::bigint;
 
 -- name: CountItems :one
 SELECT count(*) FROM public.library_items
-WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND language_code = $1;
+WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+  AND language_code = sqlc.arg(language_code)
+  AND (sqlc.arg(title_pattern)::text = '' OR title ILIKE sqlc.arg(title_pattern))
+  AND (sqlc.arg(status)::text = 'all' OR (published_at IS NOT NULL) = (sqlc.arg(status) = 'published'))
+  AND (sqlc.arg(difficulty)::text = '' OR COALESCE(difficulty, 'unspecified') = sqlc.arg(difficulty))
+  AND (NOT sqlc.arg(favorites_only)::boolean OR is_favorite)
+  AND (COALESCE(cardinality(sqlc.arg(topic_ids)::uuid[]), 0) = 0 OR EXISTS (
+      SELECT 1 FROM public.item_topics it
+      WHERE it.item_id = library_items.id AND it.user_id = library_items.user_id
+        AND it.topic_id = ANY(sqlc.arg(topic_ids)::uuid[])
+  ));
 
 -- name: GetItemTopics :many
 SELECT item_id, topic_id FROM public.item_topics

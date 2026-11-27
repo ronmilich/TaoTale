@@ -9,6 +9,7 @@ export type DraftFields = {
   difficulty: NonNullable<Item["difficulty"]> | "";
   voiceId: string | null;
   speakingRate: Item["speakingRate"];
+  topicIds: string[];
 };
 
 export const textLimits = { title: 120, sourceText: 1500, description: 1000, notes: 5000 };
@@ -28,6 +29,7 @@ export const editableFields = [
   { id: "notes", label: "Notes" },
   { id: "voiceId", label: "Voice" },
   { id: "speakingRate", label: "Speaking rate" },
+  { id: "topicIds", label: "Topics" },
 ] as const;
 
 export function emptyDraft(languageCode: DraftFields["languageCode"]): DraftFields {
@@ -40,6 +42,7 @@ export function emptyDraft(languageCode: DraftFields["languageCode"]): DraftFiel
     difficulty: "",
     voiceId: null,
     speakingRate: null,
+    topicIds: [],
   };
 }
 
@@ -53,6 +56,7 @@ export function draftFields(item: Item): DraftFields {
     difficulty: item.difficulty ?? "",
     voiceId: item.voiceId,
     speakingRate: item.speakingRate,
+    topicIds: item.topicIds,
   };
 }
 
@@ -65,6 +69,7 @@ export function draftPatch(values: DraftFields, baseline: DraftFields, version: 
   if (values.difficulty !== baseline.difficulty) patch.difficulty = values.difficulty || null;
   if (values.voiceId !== baseline.voiceId) patch.voiceId = values.voiceId;
   if (values.speakingRate !== baseline.speakingRate) patch.speakingRate = values.speakingRate;
+  if (draftFieldChanged("topicIds", values, baseline)) patch.topicIds = values.topicIds;
   return patch;
 }
 
@@ -75,9 +80,21 @@ export function textLength(field: TextField, value: string) {
 export function rebaseDraft(mine: DraftFields, previous: DraftFields, latest: DraftFields) {
   const result = { ...latest };
   for (const { id } of editableFields) {
-    if (mine[id] !== previous[id]) Object.assign(result, { [id]: mine[id] });
+    if (draftFieldChanged(id, mine, previous)) Object.assign(result, { [id]: mine[id] });
   }
   return result;
+}
+
+export function draftFieldChanged(
+  id: keyof DraftFields,
+  values: DraftFields,
+  baseline: DraftFields,
+) {
+  if (id !== "topicIds") return values[id] !== baseline[id];
+  return (
+    values.topicIds.length !== baseline.topicIds.length ||
+    values.topicIds.some((topic) => !baseline.topicIds.includes(topic))
+  );
 }
 
 export function displayedText(text: string) {

@@ -1,6 +1,7 @@
 import { For, Show, createMemo, type ParentProps } from "solid-js";
 import type { LearningLanguage } from "../../api/client";
 import controls from "../../components/Controls.module.css";
+import TopicPicker from "../topics/TopicPicker";
 import {
   applyTextareaEdit,
   difficulties,
@@ -115,6 +116,10 @@ export function DraftForm(props: DraftFormProps) {
         </div>
         <section class={styles.details} aria-labelledby="draft-details">
           <h2 id="draft-details">Article details</h2>
+          <TopicPicker
+            selected={props.values.topicIds}
+            change={(ids) => props.update("topicIds", ids)}
+          />
           <div class={styles.field}>
             <label for="draft-difficulty">Difficulty</label>
             <select
