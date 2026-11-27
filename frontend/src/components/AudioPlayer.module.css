@@ -1,0 +1,10 @@
+.player {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-8);
+  color: var(--color-text-muted);
+}
+.player audio {
+  width: 100%;
+  min-height: 48px;
+}

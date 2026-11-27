@@ -25,6 +25,7 @@ interface LocalPreferences {
   changeLanguage: (value: Language) => void;
   languages: Accessor<LearningLanguage[] | undefined>;
   languageError: Accessor<boolean>;
+  retryLanguages: () => void;
 }
 
 const Preferences = createContext<LocalPreferences>();
@@ -34,6 +35,7 @@ export function PreferenceProvider(props: ParentProps) {
   const [preferredLanguage, setPreferredLanguage] = createSignal(readPreference("language"));
   const [languages, setLanguages] = createSignal<LearningLanguage[]>();
   const [languageError, setLanguageError] = createSignal(false);
+  const [languageAttempt, setLanguageAttempt] = createSignal(0);
   const language = createMemo(() => {
     const preferred = preferredLanguage();
     const available = languages();
@@ -45,7 +47,7 @@ export function PreferenceProvider(props: ParentProps) {
   });
 
   createEffect(theme, (mode) => applyTheme(mode));
-  onSettled(() => {
+  createEffect(languageAttempt, () => {
     const controller = new AbortController();
     apiGet("/languages", controller.signal).then(
       (result) => {
@@ -55,11 +57,13 @@ export function PreferenceProvider(props: ParentProps) {
         if (!controller.signal.aborted) setLanguageError(true);
       },
     );
+    return () => controller.abort();
+  });
+  onSettled(() => {
     const media = window.matchMedia?.(darkMedia);
     const onSystemChange = () => applyTheme(theme());
     media?.addEventListener("change", onSystemChange);
     return () => {
-      controller.abort();
       media?.removeEventListener("change", onSystemChange);
     };
   });
@@ -77,6 +81,10 @@ export function PreferenceProvider(props: ParentProps) {
     },
     languages,
     languageError,
+    retryLanguages() {
+      setLanguageError(false);
+      setLanguageAttempt((attempt) => attempt + 1);
+    },
   };
   return <Preferences value={value}>{props.children}</Preferences>;
 }

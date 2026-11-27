@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"slices"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -57,7 +58,7 @@ func (s Library) identity(item queries.LibraryItem) (fingerprint.Identity, error
 		SpeakingRate: rate, StrategyID: strategy.StrategyID, StrategyVersion: strategy.Version, ExactSourceText: item.SourceText}, nil
 }
 
-func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID) (pgtype.UUID, error) {
+func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID, expectedVersion *int32) (pgtype.UUID, error) {
 	var id pgtype.UUID
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := queries.New(tx)
@@ -67,9 +68,11 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID) (
 		if err != nil {
 			return err
 		}
-		// No client synthesis overrides: the canonical request is the operation
-		// and target UUID. The mutable draft fingerprint is a separate identity.
-		digest := sha256.Sum256([]byte(draftOperation + "/" + itemID.String()))
+		canonical := draftOperation + "/" + itemID.String()
+		if expectedVersion != nil {
+			canonical += "/" + strconv.FormatInt(int64(*expectedVersion), 10)
+		}
+		digest := sha256.Sum256([]byte(canonical))
 		intent := hex.EncodeToString(digest[:])
 		id, err = generationReceipt(ctx, q, owner, key, draftOperation, intent)
 		if err != nil || id.Valid {
@@ -81,6 +84,9 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID) (
 		}
 		if item.PublishedAt.Valid {
 			return ErrInvalidDraft
+		}
+		if expectedVersion != nil && item.Version != *expectedVersion {
+			return &VersionConflict{item.Version}
 		}
 		if err := s.checkCapacity(ctx, q, owner, itemID); err != nil {
 			return err

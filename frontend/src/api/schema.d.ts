@@ -228,7 +228,7 @@ export interface paths {
         put?: never;
         /**
          * Admit one generation of the saved draft
-         * @description A retry with the same key and target returns the original generation for 24 hours, including after edits. Expired keys remain reserved. A different active job on this draft conflicts.
+         * @description A retry with the same key and body returns the original generation for 24 hours, including after edits. An expected version protects new requests from concurrent edits. Expired keys remain reserved. A different active job on this draft conflicts.
          */
         post: operations["generateDraftAudio"];
         delete?: never;
@@ -433,6 +433,11 @@ export interface components {
             audioStatus: "NOT_GENERATED" | "PENDING" | "PROCESSING" | "READY" | "FAILED" | "OUTDATED";
             /** Format: uuid */
             audioAssetId: string | null;
+            /**
+             * Format: uuid
+             * @description Latest saved-draft generation, including claimed previews. Null when no draft generation exists.
+             */
+            audioGenerationId: string | null;
             title: string | null;
             /** @description Exact source of up to 1500 UTF-16 units. */
             sourceText: string;
@@ -1018,7 +1023,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": {
+                    expectedVersion?: number;
+                };
             };
         };
         responses: {

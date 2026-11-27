@@ -47,4 +47,14 @@ ENV LD_LIBRARY_PATH=/opt/speech/lib/x64 SERVE_FRONTEND_DIST=/opt/taotale/fronten
 USER 10001:10001
 ENTRYPOINT ["/taotale"]
 
+FROM debian:bookworm-slim AS mock-runtime
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=standard /taotale /taotale
+COPY --from=standard --chown=10001:10001 /var/lib/taotale/media/ /var/lib/taotale/media/
+COPY --from=standard /opt/taotale/frontend/ /opt/taotale/frontend/
+ENV SERVE_FRONTEND_DIST=/opt/taotale/frontend TAOTALE_TTS_PROVIDER=mock
+USER 10001:10001
+ENTRYPOINT ["/taotale"]
+
 FROM standard AS default-runtime

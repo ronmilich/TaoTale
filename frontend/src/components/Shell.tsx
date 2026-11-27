@@ -1,4 +1,4 @@
-import { useLocation } from "@solidjs/router";
+import { useLocation, useNavigate } from "@solidjs/router";
 import { For, Show, type ParentProps } from "solid-js";
 import { usePreferences } from "../preferences/Preferences";
 import { validatePreference } from "../preferences/storage";
@@ -12,6 +12,7 @@ const navigation = [
 
 export default function Shell(props: ParentProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const preferences = usePreferences();
   const current = (href: string) =>
     location.pathname === href ||
@@ -46,11 +47,12 @@ export default function Shell(props: ParentProps) {
               id="active-language"
               disabled={!preferences.languages()?.length}
               value={preferences.language()}
-              onChange={(event) =>
-                preferences.changeLanguage(
-                  validatePreference("language", event.currentTarget.value),
-                )
-              }
+              onChange={(event) => {
+                const language = validatePreference("language", event.currentTarget.value);
+                preferences.changeLanguage(language);
+                if (location.pathname === "/library")
+                  navigate(`/library?languageCode=${language}&page=1`);
+              }}
             >
               <Show
                 when={preferences.languages()?.length}

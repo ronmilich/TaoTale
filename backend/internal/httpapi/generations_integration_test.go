@@ -117,6 +117,8 @@ func TestGenerationPostgres(t *testing.T) {
 	expect(admit(a, ""), 400, "VALIDATION_ERROR")
 	expect(admit(a, "bad-key"), 400, "VALIDATION_ERROR")
 	expect(request("POST", admitRoute, a, "", key(1), `{"sourceText":"override"}`), 400, "VALIDATION_ERROR")
+	expect(request("POST", admitRoute, a, "", key(1), `{"expectedVersion":null}`), 400, "VALIDATION_ERROR")
+	expect(request("POST", admitRoute, a, "", key(1), `{"expectedVersion":2}`), 409, "VERSION_CONFLICT")
 	expect(admit(empty, key(1)), 409, "INVALID_ITEM_STATE")
 	voices.offline.Store(true)
 	expect(admit(a, key(1)), 503, "TTS_UNAVAILABLE")
@@ -214,10 +216,15 @@ func TestGenerationPostgres(t *testing.T) {
 	}
 	expect(admit(a, key(1)), 409, "IDEMPOTENCY_KEY_EXPIRED")
 	expect(request("PATCH", draftRoute, a, "", "", `{"expectedVersion":4,"sourceText":"가."}`), 200, "")
-	newID := expect(admit(a, key(4)), 202, "")["generationId"].(string)
+	newID := expect(request("POST", admitRoute, a, "", key(4), `{"expectedVersion":5}`), 202, "")["generationId"].(string)
 	if newID == id {
 		t.Fatal("explicit new attempt reused a job")
 	}
+	expect(request("PATCH", draftRoute, a, "", "", `{"expectedVersion":5,"title":"Newer title"}`), 200, "")
+	if got := expect(request("POST", admitRoute, a, "", key(4), `{"expectedVersion":5}`), 202, "")["generationId"]; got != newID {
+		t.Fatal("versioned replay changed the original receipt", got)
+	}
+	expect(request("POST", admitRoute, a, "", key(4), `{"expectedVersion":6}`), 409, "IDEMPOTENCY_KEY_REUSED")
 	if got := status(a, id, "OUTDATED")["jobStatus"]; got != "FAILED" {
 		t.Fatal("superseded job lost its outcome", got)
 	}

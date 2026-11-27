@@ -63,7 +63,12 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return errors.New("cannot open HTTP listener")
 	}
 	defer listener.Close()
-	provider := tts.NewAzure(config.SpeechKey, config.SpeechRegion, "/usr/local/bin/taotale-azure", tts.DefaultTimeout)
+	var provider tts.TTSProvider
+	if config.MockSpeech {
+		provider = tts.Mock{}
+	} else {
+		provider = tts.NewAzure(config.SpeechKey, config.SpeechRegion, "/usr/local/bin/taotale-azure", tts.DefaultTimeout)
+	}
 	worker, err := generation.Open(ctx, pool, config.MediaRoot, provider)
 	if err != nil {
 		return err

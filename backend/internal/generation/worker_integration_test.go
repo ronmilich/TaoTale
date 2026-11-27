@@ -113,7 +113,7 @@ func TestWorkerPostgres(t *testing.T) {
 	}
 	admit := func(item, key pgtype.UUID) pgtype.UUID {
 		t.Helper()
-		id, err := lib.AdmitGeneration(ctx, item, key)
+		id, err := lib.AdmitGeneration(ctx, item, key, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -23,6 +23,7 @@ type Config struct {
 	Database         *pgxpool.Config
 	SpeechKey        string
 	SpeechRegion     string
+	MockSpeech       bool
 	GenerationLimits persistence.GenerationLimits
 }
 
@@ -58,9 +59,14 @@ func LoadConfig(ctx context.Context, listen string, getenv func(string) string) 
 	if err != nil {
 		return Config{}, err
 	}
+	provider := getenv("TAOTALE_TTS_PROVIDER")
+	if provider != "" && provider != "azure" && provider != "mock" {
+		return Config{}, errors.New("TAOTALE_TTS_PROVIDER must be azure or mock")
+	}
 	return Config{
 		Listen: address, MediaRoot: filepath.Clean(mediaRoot), DevOrigin: devOrigin, FrontendDist: frontendDist, Database: db,
 		SpeechKey: getenv("AZURE_SPEECH_KEY"), SpeechRegion: getenv("AZURE_SPEECH_REGION"),
+		MockSpeech:       provider == "mock",
 		GenerationLimits: persistence.GenerationLimits{Active: active, Hourly: hourly},
 	}, nil
 }

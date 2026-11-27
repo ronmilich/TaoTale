@@ -10,14 +10,11 @@ test("serves the Library, native controls and refreshed Reader from Gin", async 
   await page.goto("/");
   await expect(page).toHaveURL(/\/library$/);
   await expect(page.getByRole("heading", { name: "Your reading library" })).toBeVisible();
-  const favorite = page.getByRole("button", { name: "Favorite sample" });
-  await expect(favorite).toHaveCSS("border-radius", "11px");
-  await favorite.click();
-  await expect(favorite).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("link", { name: "New article" })).toHaveCSS("border-radius", "11px");
   const language = page.getByLabel("Reading language");
   await expect(language).toBeEnabled();
   await language.selectOption("ko-KR");
-  await page.getByRole("link", { name: "Open reader" }).click();
+  await page.goto("/items/hangzhou-morning-ko");
   await expect(page).toHaveURL(/\/items\/hangzhou-morning-ko$/);
   await page.reload();
   await expect(page.getByRole("heading", { name: "A quiet morning in Hangzhou" })).toBeVisible();

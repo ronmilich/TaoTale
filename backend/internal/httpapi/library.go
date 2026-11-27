@@ -154,7 +154,7 @@ func itemResponse(item persistence.Item) gin.H {
 		"isFavorite": r.IsFavorite, "voiceId": r.VoiceID, "speakingRate": rate,
 		"topicIds": item.TopicIDs, "version": r.Version, "status": status, "publishedAt": r.PublishedAt,
 		"createdAt": r.CreatedAt.Time.UTC(), "updatedAt": r.UpdatedAt.Time.UTC(),
-		"audioStatus": item.Audio.Status, "audioAssetId": item.Audio.AssetID,
+		"audioStatus": item.Audio.Status, "audioAssetId": item.Audio.AssetID, "audioGenerationId": item.Audio.ID,
 	}
 }
 

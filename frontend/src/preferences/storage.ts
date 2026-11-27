@@ -1,6 +1,9 @@
 import type { LearningLanguage } from "../api/client";
 
 export type Language = LearningLanguage["code"];
+export const speechRates = [0.75, 1, 1.25] as const;
+export type SpeechRate = (typeof speechRates)[number];
+type SpeechPreference = { voiceId: string; speakingRate: SpeechRate };
 export const themes = ["system", "light", "dark"] as const;
 export type Theme = (typeof themes)[number];
 type Preferences = { theme: Theme; language: Language };
@@ -32,6 +35,25 @@ export function savePreference<K extends keyof Preferences>(key: K, value: Prefe
     window.localStorage.setItem(prefix + key, value);
   } catch {
     // The in-memory setting still works when storage is unavailable.
+  }
+}
+
+export function readSpeechPreference(language: Language): SpeechPreference | undefined {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(prefix + "speech." + language) ?? "null");
+    if (value && typeof value.voiceId === "string" && speechRates.includes(value.speakingRate)) {
+      return { voiceId: value.voiceId, speakingRate: value.speakingRate };
+    }
+  } catch {
+    // A malformed or inaccessible preference falls back to the voice catalog.
+  }
+}
+
+export function saveSpeechPreference(language: Language, value: SpeechPreference) {
+  try {
+    window.localStorage.setItem(prefix + "speech." + language, JSON.stringify(value));
+  } catch {
+    // The draft still has the selected values.
   }
 }
 

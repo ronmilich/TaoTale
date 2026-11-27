@@ -387,7 +387,7 @@ paths:
     post:
       operationId: generateDraftAudio
       summary: Admit one generation of the saved draft
-      description: A retry with the same key and target returns the original generation for 24 hours, including after edits. Expired keys remain reserved. A different active job on this draft conflicts.
+      description: A retry with the same key and body returns the original generation for 24 hours, including after edits. An expected version protects new requests from concurrent edits. Expired keys remain reserved. A different active job on this draft conflicts.
       parameters:
         - name: Idempotency-Key
           in: header
@@ -397,7 +397,11 @@ paths:
         required: false
         content:
           application/json:
-            schema: {type: object, additionalProperties: false}
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
       responses:
         '202':
           description: Durable generation receipt, identical on replay.
@@ -957,7 +961,7 @@ components:
     Item:
       type: object
       additionalProperties: false
-      required: [id, languageCode, title, sourceText, description, notes, difficulty, isFavorite, voiceId, speakingRate, topicIds, status, publishedAt, version, createdAt, updatedAt, audioStatus, audioAssetId]
+      required: [id, languageCode, title, sourceText, description, notes, difficulty, isFavorite, voiceId, speakingRate, topicIds, status, publishedAt, version, createdAt, updatedAt, audioStatus, audioAssetId, audioGenerationId]
       properties:
         id: {type: string, format: uuid}
         languageCode: {type: string, enum: [zh-CN, ko-KR]}
@@ -968,6 +972,10 @@ components:
         updatedAt: {type: string, format: date-time}
         audioStatus: {type: string, enum: [NOT_GENERATED, PENDING, PROCESSING, READY, FAILED, OUTDATED]}
         audioAssetId: {type: [string, 'null'], format: uuid}
+        audioGenerationId:
+          type: [string, 'null']
+          format: uuid
+          description: Latest saved-draft generation, including claimed previews. Null when no draft generation exists.
         title: {type: [string, 'null'], maxLength: 120}
         sourceText:
           type: string
