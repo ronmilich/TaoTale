@@ -21,13 +21,20 @@ func registerGenerations(router *gin.Engine, store *persistence.Library) {
 		if !ok {
 			return
 		}
-		if c.Request.ContentLength != 0 && !DecodeJSON(c, &struct{}{}) {
+		var input struct {
+			ExpectedVersion field[int32] `json:"expectedVersion"`
+		}
+		if c.Request.ContentLength != 0 && !DecodeJSON(c, &input) {
+			return
+		}
+		if input.ExpectedVersion.Set && (input.ExpectedVersion.Value == nil || *input.ExpectedVersion.Value < 1) {
+			fail(c, 400, "VALIDATION_ERROR", "Send a positive expected version.")
 			return
 		}
 		if !hasLibrary(c, store) {
 			return
 		}
-		id, err := store.AdmitGeneration(c.Request.Context(), item, key)
+		id, err := store.AdmitGeneration(c.Request.Context(), item, key, input.ExpectedVersion.Value)
 		if err != nil {
 			failGeneration(c, err)
 			return

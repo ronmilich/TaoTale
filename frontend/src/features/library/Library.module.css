@@ -51,84 +51,117 @@
 .library {
   margin-top: var(--space-40);
 }
-.library > h2 {
-  margin-bottom: var(--space-16);
-}
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr));
   gap: var(--space-24);
 }
-.card {
+.card,
+.skeleton,
+.state {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
+.card {
+  display: flex;
+  flex-direction: column;
+  transition: border-color 150ms ease;
+}
+.card:focus-within,
+.card:hover {
+  border-color: var(--color-periwinkle);
+}
 .cover {
-  position: relative;
   aspect-ratio: 1.82;
-  background: var(--color-orchid-soft);
-}
-.cover img {
-  display: block;
-  height: 100%;
-  width: 100%;
-  object-fit: cover;
-}
-.cover button {
-  position: absolute;
-  top: var(--space-12);
-  right: var(--space-12);
+  background:
+    radial-gradient(ellipse at 37% 68%, var(--color-surface-raised) 0%, transparent 58%),
+    radial-gradient(
+      ellipse at 81% 18%,
+      color-mix(in srgb, var(--color-periwinkle) 44%, transparent) 0%,
+      transparent 67%
+    ),
+    linear-gradient(125deg, var(--color-primary-soft), var(--color-orchid-soft));
 }
 .details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
   padding: var(--space-20);
 }
-.details h2 a {
-  color: var(--color-text);
-  text-decoration: none;
-}
-.details h2 a:hover {
-  color: var(--color-primary);
+.cardTitle,
+.excerpt {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 .excerpt {
-  margin-block: var(--space-8) var(--space-16);
   color: var(--color-text-muted);
   font-size: 0.88rem;
 }
 .tags {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-8);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
 }
-.tags span {
-  padding: 3px 9px;
+.draftBadge,
+.publishedBadge {
+  padding: 2px 9px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-chip);
-  background: var(--color-primary-soft);
   color: var(--color-text);
-  font-size: 0.75rem;
 }
-.tags span + span {
-  background: var(--color-orchid-soft);
+.publishedBadge {
+  background: var(--color-primary-soft);
 }
 .cardFooter {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-8);
+  padding-top: var(--space-8);
+  margin-top: auto;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+.skeleton::after {
+  display: block;
+  content: "";
+  width: 52%;
+  height: 16px;
+  margin: var(--space-24) var(--space-20) var(--space-48);
+  border-radius: var(--radius-chip);
+  background: var(--color-surface-soft);
+}
+.state {
+  padding: var(--space-24);
+  margin-bottom: var(--space-16);
+}
+.state :is(a, button) {
+  margin-top: var(--space-12);
+}
+.updating {
+  margin-bottom: var(--space-12);
+  color: var(--color-text-muted);
+}
+.paging {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  padding-top: var(--space-16);
-  margin-top: var(--space-16);
-  border-top: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  margin-top: var(--space-24);
 }
-.cardFooter a {
-  flex: none;
-  padding-inline: var(--space-12);
-}
-@media (max-width: 940px) {
-  .grid {
-    gap: var(--space-16);
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
   }
 }
 @media (max-width: 570px) {

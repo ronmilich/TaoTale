@@ -18,6 +18,7 @@ import {
 import { ApiError, createItem, getItem, patchItem, type Item } from "../../api/client";
 import controls from "../../components/Controls.module.css";
 import { usePreferences } from "../../preferences/Preferences";
+import AudioPanel from "./AudioPanel";
 import {
   difficulties,
   draftFields,
@@ -32,6 +33,7 @@ import {
 } from "./draft";
 import { DraftForm } from "./DraftForm";
 import styles from "./DraftEditor.module.css";
+import { useDraftAudio } from "./useDraftAudio";
 
 const invalidAddress = Symbol("invalid draft address");
 const draftUUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -81,7 +83,9 @@ export default function DraftEditor() {
   const synthesisInputsChanged = createMemo(
     () =>
       draft.values.languageCode !== draft.baseline.languageCode ||
-      draft.values.sourceText !== draft.baseline.sourceText,
+      draft.values.sourceText !== draft.baseline.sourceText ||
+      draft.values.voiceId !== draft.baseline.voiceId ||
+      draft.values.speakingRate !== draft.baseline.speakingRate,
   );
   const dirty = createMemo(
     () =>
@@ -115,10 +119,26 @@ export default function DraftEditor() {
     ...errors(),
     languageCode: showValidation() ? errors().languageCode : undefined,
   }));
+  const audio = useDraftAudio({
+    item: () => draft.item,
+    values: () => draft.values,
+    synthesisChanged: synthesisInputsChanged,
+    editingBlocked: () => saving() || Boolean(conflict()),
+    setSpeech(voiceId, speakingRate) {
+      setDraft((state) => {
+        state.values.voiceId = voiceId;
+        state.values.speakingRate = speakingRate;
+      });
+    },
+  });
 
   function setField<K extends keyof DraftFields>(name: K, value: DraftFields[K]) {
     setDraft((state) => {
       state.values[name] = value;
+      if (name === "languageCode") {
+        state.values.voiceId = null;
+        state.values.speakingRate = null;
+      }
     });
   }
 
@@ -142,6 +162,7 @@ export default function DraftEditor() {
         return;
       }
       reviewRequest?.abort();
+      audio.reset();
       if (id === null) {
         loadedId = null;
         confirmDraft(null);
@@ -182,7 +203,7 @@ export default function DraftEditor() {
   onCleanup(() => reviewRequest?.abort());
 
   async function saveDraft() {
-    if (saving() || conflict()) return false;
+    if (saving() || conflict() || audio.submitting()) return false;
     const invalidField = Object.keys(errors())[0];
     if (invalidField) {
       setShowValidation(true);
@@ -194,6 +215,8 @@ export default function DraftEditor() {
     const values = { ...draft.values };
     const languageCode = values.languageCode;
     if (languageCode === "") return false;
+    const speech = audio.inputs();
+    const previewGenerationId = item ? undefined : audio.claimablePreview();
     setSaveError("");
     setSaving(true);
 
@@ -208,10 +231,20 @@ export default function DraftEditor() {
             description: values.description || null,
             notes: values.notes || null,
             difficulty: values.difficulty || null,
+            voiceId: speech?.voiceId ?? values.voiceId,
+            speakingRate: speech?.speakingRate ?? values.speakingRate,
+            previewGenerationId,
           });
     } catch (error) {
       if (error instanceof ApiError && error.code === "VERSION_CONFLICT") {
         setConflict({ phase: "unreviewed" });
+      } else if (
+        previewGenerationId &&
+        error instanceof ApiError &&
+        ["PREVIEW_NOT_FOUND", "PREVIEW_MISMATCH", "AUDIO_UNAVAILABLE"].includes(error.code)
+      ) {
+        audio.releasePreview();
+        setSaveError("This preview is unavailable. Choose Save Draft again to save your text.");
       } else {
         setSaveError(
           error instanceof ApiError
@@ -226,6 +259,7 @@ export default function DraftEditor() {
     loadedId = saved.id;
     confirmDraft(saved);
     if (!item) {
+      audio.reset();
       canonicalPath = `/create?draftId=${encodeURIComponent(saved.id)}`;
       navigate(canonicalPath, { replace: true, scroll: false });
       canonicalPath = undefined;
@@ -311,6 +345,15 @@ export default function DraftEditor() {
   }
 
   const heading = () => (requestedId() === null ? "New article" : "Edit draft");
+  const publishReason = createMemo(() => {
+    if (!draft.item) return "Save a draft before publishing.";
+    if (!draft.values.title.trim() || !draft.values.sourceText.trim())
+      return "Add a title and source text before publishing.";
+    if (synthesisInputsChanged())
+      return "Save your text, voice, and rate changes before publishing.";
+    if (audio.status() !== "READY") return "Generate matching audio before publishing.";
+    return "Publishing will be available in a later update.";
+  });
   const canReview = () => conflict()?.phase === "ready";
   const reviewValues = createMemo(() => {
     const review = conflict();
@@ -374,6 +417,14 @@ export default function DraftEditor() {
             retryLanguages={preferences.retryLanguages}
             saved={Boolean(draft.item)}
             saving={saving()}
+            audio={
+              <AudioPanel
+                audio={audio}
+                saved={Boolean(draft.item)}
+                changed={synthesisInputsChanged()}
+                disabled={saving() || Boolean(conflict())}
+              />
+            }
             update={setField}
           />
           <Show when={saveError()}>
@@ -463,13 +514,31 @@ export default function DraftEditor() {
                 <p>Saving these text changes will make the current audio outdated.</p>
               </Show>
             </div>
-            <button
-              type="submit"
-              class={controls.primary}
-              disabled={saving() || Boolean(conflict()) || (Boolean(draft.item) && !dirty())}
-            >
-              Save Draft
-            </button>
+            <div class={styles.footerActions}>
+              <p id="publish-reason" class={styles.hint}>
+                {publishReason()}
+              </p>
+              <button
+                type="button"
+                class={controls.secondary}
+                disabled
+                aria-describedby="publish-reason"
+              >
+                Publish to Library
+              </button>
+              <button
+                type="submit"
+                class={controls.primary}
+                disabled={
+                  saving() ||
+                  audio.submitting() ||
+                  Boolean(conflict()) ||
+                  (Boolean(draft.item) && !dirty())
+                }
+              >
+                Save Draft
+              </button>
+            </div>
           </footer>
         </form>
       </Show>
@@ -508,7 +577,7 @@ export default function DraftEditor() {
           <button
             type="button"
             class={controls.primary}
-            disabled={saving() || Boolean(conflict())}
+            disabled={saving() || audio.submitting() || Boolean(conflict())}
             onClick={() => void saveAndLeave()}
           >
             Save Draft &amp; Leave
@@ -519,7 +588,12 @@ export default function DraftEditor() {
   );
 }
 
-function fieldText(name: (typeof editableFields)[number]["id"], value: string | undefined) {
+function fieldText(
+  name: (typeof editableFields)[number]["id"],
+  value: DraftFields[typeof name] | undefined,
+) {
   if (name === "difficulty") return difficulties.find((entry) => entry.value === value)?.label;
+  if (name === "speakingRate") return value ? `${value}×` : "Default";
+  if (name === "voiceId") return value ?? "Default";
   return value || "Empty";
 }

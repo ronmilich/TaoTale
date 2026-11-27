@@ -7,6 +7,8 @@ export type DraftFields = {
   description: string;
   notes: string;
   difficulty: NonNullable<Item["difficulty"]> | "";
+  voiceId: string | null;
+  speakingRate: Item["speakingRate"];
 };
 
 export const textLimits = { title: 120, sourceText: 1500, description: 1000, notes: 5000 };
@@ -24,10 +26,21 @@ export const editableFields = [
   { id: "difficulty", label: "Difficulty" },
   { id: "description", label: "Description" },
   { id: "notes", label: "Notes" },
+  { id: "voiceId", label: "Voice" },
+  { id: "speakingRate", label: "Speaking rate" },
 ] as const;
 
 export function emptyDraft(languageCode: DraftFields["languageCode"]): DraftFields {
-  return { languageCode, title: "", sourceText: "", description: "", notes: "", difficulty: "" };
+  return {
+    languageCode,
+    title: "",
+    sourceText: "",
+    description: "",
+    notes: "",
+    difficulty: "",
+    voiceId: null,
+    speakingRate: null,
+  };
 }
 
 export function draftFields(item: Item): DraftFields {
@@ -38,6 +51,8 @@ export function draftFields(item: Item): DraftFields {
     description: item.description ?? "",
     notes: item.notes ?? "",
     difficulty: item.difficulty ?? "",
+    voiceId: item.voiceId,
+    speakingRate: item.speakingRate,
   };
 }
 
@@ -48,6 +63,8 @@ export function draftPatch(values: DraftFields, baseline: DraftFields, version: 
   if (values.description !== baseline.description) patch.description = values.description || null;
   if (values.notes !== baseline.notes) patch.notes = values.notes || null;
   if (values.difficulty !== baseline.difficulty) patch.difficulty = values.difficulty || null;
+  if (values.voiceId !== baseline.voiceId) patch.voiceId = values.voiceId;
+  if (values.speakingRate !== baseline.speakingRate) patch.speakingRate = values.speakingRate;
   return patch;
 }
 

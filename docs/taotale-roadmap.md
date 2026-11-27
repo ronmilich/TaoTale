@@ -75,8 +75,8 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-19 | Generation worker, READY pipeline and job recovery | 3 | TAO-18 | Done |
 | TAO-20 | Audio streaming, downloads and temporary previews | 3 | TAO-19 | Done |
 | TAO-21 | Editor: new item and drafts | 4 | TAO-10, TAO-16 | Done |
-| TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Planned |
-| TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Planned |
+| TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Done |
+| TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Done |
 | TAO-24 | Publication | 4 | TAO-23 | Planned |
 | TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Planned |
 | TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Planned |
@@ -586,9 +586,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - States: skeleton, true empty (offering Create New Item), error with Retry, and stale data while refreshing (09 §2).
 
 **Exit criteria**
-- [ ] End-to-end test with seeded data.
-- [ ] One list request per page — no per-card requests.
-- [ ] Cards follow the Iris visual spec (08 §6.2); actions are visible and usable.
+- [x] End-to-end test with seeded data.
+- [x] One list request per page — no per-card requests.
+- [x] Cards follow the Iris visual spec (08 §6.2); actions are visible and usable.
 
 **Depends on:** TAO-10, TAO-16
 
@@ -608,9 +608,9 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Provider-unavailable and rate-limit states. A persistent explanation of why Publish is disabled.
 
 **Exit criteria**
-- [ ] End-to-end test with the mock: generate → Ready → preview.
-- [ ] A backend restart mid-job shows the interruption without a duplicate provider call.
-- [ ] Editing the source marks the audio Outdated.
+- [x] End-to-end test with the mock: generate → Ready → preview.
+- [x] A backend restart mid-job shows the interruption without a duplicate provider call.
+- [x] Editing the source marks the audio Outdated.
 
 **Depends on:** TAO-14, TAO-20, TAO-21
 

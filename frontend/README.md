@@ -8,7 +8,7 @@ Start Compose from `infra/` for PostgreSQL and the Gin API on port 8080. In `fro
 
 For local checks, run `pnpm api:check`, `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test --run` and `pnpm build`. The OpenAPI generator runs in `tools/contract/` with its pinned TypeScript 5 peer while the client uses TypeScript 7.
 
-Compose builds and serves `dist/client` from Gin on the same origin as the API. Install Chromium with `pnpm exec playwright install chromium`, then run `pnpm test:e2e` against the production build. Set `TAOTALE_E2E_URL` to its origin, or use the test default `http://127.0.0.1:18080`.
+Compose builds and serves `dist/client` from Gin on the same origin as the API. For browser tests, set `TAOTALE_BACKEND_TARGET=mock-runtime` in the Compose environment. This image includes the deterministic speech provider and FFmpeg. Run it with disposable PostgreSQL and media volumes because the tests create drafts and audio assets. Install Chromium with `pnpm exec playwright install chromium`, then run `pnpm test:e2e`. Set `TAOTALE_E2E_URL` to the test stack’s origin, or use the default `http://127.0.0.1:18080`.
 
 ## Library sample cover
 

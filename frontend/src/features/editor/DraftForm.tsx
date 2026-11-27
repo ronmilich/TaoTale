@@ -1,4 +1,4 @@
-import { For, Show, createMemo } from "solid-js";
+import { For, Show, createMemo, type ParentProps } from "solid-js";
 import type { LearningLanguage } from "../../api/client";
 import controls from "../../components/Controls.module.css";
 import {
@@ -21,6 +21,7 @@ type DraftFormProps = {
   retryLanguages: () => void;
   saved: boolean;
   saving: boolean;
+  audio: ParentProps["children"];
   update: <K extends keyof DraftFields>(name: K, value: DraftFields[K]) => void;
 };
 
@@ -36,76 +37,82 @@ export function DraftForm(props: DraftFormProps) {
   return (
     <fieldset class={styles.fields} disabled={props.saving}>
       <div class={styles.columns}>
-        <section class={styles.paper} aria-label="Article text">
-          <div class={styles.field}>
-            <label for="draft-languageCode">Item language</label>
-            <Show
-              when={!props.saved}
-              fallback={<input id="draft-languageCode" value={languageName()} readonly />}
-            >
-              <select
-                id="draft-languageCode"
-                value={props.values.languageCode}
-                disabled={!props.languages?.length}
-                aria-invalid={props.errors.languageCode ? "true" : undefined}
-                aria-describedby="draft-languageCode-message"
-                onChange={(event) =>
-                  props.update(
-                    "languageCode",
-                    event.currentTarget.value as DraftFields["languageCode"],
-                  )
-                }
+        <div class={styles.writing}>
+          <section class={styles.paper} aria-label="Article text">
+            <div class={styles.field}>
+              <label for="draft-languageCode">Item language</label>
+              <Show
+                when={!props.saved}
+                fallback={<input id="draft-languageCode" value={languageName()} readonly />}
               >
-                <option value="">Choose a language</option>
-                <For each={props.languages}>
-                  {(entry) => (
-                    <option value={entry.code} selected={entry.code === props.values.languageCode}>
-                      {entry.displayName}
-                    </option>
-                  )}
-                </For>
-              </select>
-              <p
-                id="draft-languageCode-message"
-                class={props.errors.languageCode ? styles.fieldError : styles.hint}
-              >
-                {props.errors.languageCode ??
-                  (props.languageError
-                    ? "Item languages are unavailable."
-                    : props.languages === undefined
-                      ? "Loading item languages…"
-                      : props.languages.length === 0
-                        ? "No enabled item languages."
-                        : "")}
-              </p>
-              <Show when={props.languageError}>
-                <button
-                  type="button"
-                  class={`${controls.secondary} ${styles.fieldAction}`}
-                  onClick={() => props.retryLanguages()}
+                <select
+                  id="draft-languageCode"
+                  value={props.values.languageCode}
+                  disabled={!props.languages?.length}
+                  aria-invalid={props.errors.languageCode ? "true" : undefined}
+                  aria-describedby="draft-languageCode-message"
+                  onChange={(event) =>
+                    props.update(
+                      "languageCode",
+                      event.currentTarget.value as DraftFields["languageCode"],
+                    )
+                  }
                 >
-                  Retry languages
-                </button>
+                  <option value="">Choose a language</option>
+                  <For each={props.languages}>
+                    {(entry) => (
+                      <option
+                        value={entry.code}
+                        selected={entry.code === props.values.languageCode}
+                      >
+                        {entry.displayName}
+                      </option>
+                    )}
+                  </For>
+                </select>
+                <p
+                  id="draft-languageCode-message"
+                  class={props.errors.languageCode ? styles.fieldError : styles.hint}
+                >
+                  {props.errors.languageCode ??
+                    (props.languageError
+                      ? "Item languages are unavailable."
+                      : props.languages === undefined
+                        ? "Loading item languages…"
+                        : props.languages.length === 0
+                          ? "No enabled item languages."
+                          : "")}
+                </p>
+                <Show when={props.languageError}>
+                  <button
+                    type="button"
+                    class={`${controls.secondary} ${styles.fieldAction}`}
+                    onClick={() => props.retryLanguages()}
+                  >
+                    Retry languages
+                  </button>
+                </Show>
               </Show>
-            </Show>
-          </div>
-          <DraftText
-            name="title"
-            label="Title"
-            value={props.values.title}
-            error={props.errors.title}
-            update={(value) => props.update("title", value)}
-          />
-          <DraftText
-            name="sourceText"
-            label="Source text"
-            rows={9}
-            lang={props.values.languageCode}
-            value={props.values.sourceText}
-            error={props.errors.sourceText}
-            update={(value) => props.update("sourceText", value)}
-          />
-        </section>
+            </div>
+            <DraftText
+              name="title"
+              label="Title"
+              value={props.values.title}
+              error={props.errors.title}
+              update={(value) => props.update("title", value)}
+            />
+            <DraftText
+              name="sourceText"
+              label="Source text"
+              rows={9}
+              lang={props.values.languageCode}
+              value={props.values.sourceText}
+              error={props.errors.sourceText}
+              update={(value) => props.update("sourceText", value)}
+            />
+          </section>
+          {props.audio}
+        </div>
         <section class={styles.details} aria-labelledby="draft-details">
           <h2 id="draft-details">Article details</h2>
           <div class={styles.field}>
