@@ -205,14 +205,6 @@ func (s Library) GetItem(ctx context.Context, id pgtype.UUID) (Item, error) {
 	return result, err
 }
 
-func (s Library) DeleteItem(ctx context.Context, id pgtype.UUID) error {
-	count, err := queries.New(s.Pool).DeleteItem(ctx, id)
-	if err == nil && count == 0 {
-		return ErrItemNotFound
-	}
-	return err
-}
-
 var snapshot = pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}
 
 func (s Library) ListItems(ctx context.Context, params queries.PageItemsParams) ([]Item, int64, error) {

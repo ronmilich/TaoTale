@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import type { Item } from "../src/api/client";
+import type { Item, Topic } from "../src/api/client";
 
 async function publishedArticle(
   request: APIRequestContext,
@@ -34,6 +34,132 @@ async function publishedArticle(
 
 const chinese = "  第一行𠀀。🙂\r\n\r\n第二行，保留空行。\t ";
 const korean = "  첫 줄이에요.🙂\n\n둘째 줄도 그대로예요.\r ";
+
+test("edits and reviews published metadata while preserving the pinned recording", async ({
+  page,
+  request,
+}) => {
+  const api = await publishedArticle(request, "zh-CN", chinese);
+  const reader = api.replace("/api/v1", "");
+  const favorite = await request.put(`${api}/favorite`, { data: { isFavorite: true } });
+  expect(favorite.ok()).toBe(true);
+  const before = (await (await request.get(api)).json()) as Item;
+  const download = `${api}/audio/download?audioAssetId=${before.audioAssetId}`;
+  const originalAudio = await request.get(download);
+  expect(originalAudio.ok()).toBe(true);
+  const { items: topics } = (await (await request.get("/api/v1/topics")).json()) as {
+    items: Topic[];
+  };
+  const topic = topics.find((value) => value.isDefault)!;
+
+  const patches: unknown[] = [];
+  const speechRequests: string[] = [];
+  page.on("request", (outgoing) => {
+    const { pathname } = new URL(outgoing.url());
+    if (pathname === api && outgoing.method() === "PATCH") patches.push(outgoing.postDataJSON());
+    if (pathname.startsWith("/api/v1/tts/") || pathname.includes("/audio/generate"))
+      speechRequests.push(pathname);
+  });
+
+  await page.goto(reader);
+  await page.getByRole("link", { name: "Edit article" }).click();
+  await expect(page).toHaveURL(`${reader}/edit`);
+  await expect(page.getByLabel("Source text", { exact: true })).toHaveAttribute("readonly", "");
+  await expect(page.getByLabel("Voice", { exact: true })).toHaveAttribute("readonly", "");
+  await expect(page.getByLabel("Speaking rate", { exact: true })).toHaveAttribute("readonly", "");
+  await expect(page.getByRole("button", { name: /generate|publish/i })).toHaveCount(0);
+
+  const save = page.getByRole("button", { name: "Save Changes", exact: true });
+  await expect(save).toBeDisabled();
+  const titleField = page.getByLabel("Title", { exact: true });
+  await titleField.fill("   ");
+  await save.click();
+  await expect(page.getByText("Enter a title for this article.")).toBeVisible();
+  expect(patches).toHaveLength(0);
+
+  const title = `Reviewed article ${crypto.randomUUID()}`;
+  await titleField.fill(title);
+  await page.getByLabel("Notes", { exact: true }).fill("Notes from the metadata editor");
+  await page.getByLabel("Difficulty", { exact: true }).selectOption("advanced");
+  await page.getByRole("checkbox", { name: topic.name, exact: true }).check();
+  await page
+    .getByLabel("Cover image", { exact: true })
+    .setInputFiles("src/features/library/hangzhou-tea.webp");
+  const cover = page.getByRole("img", { name: "Cover preview" });
+  await expect(cover).toBeVisible();
+  const coverId = (await cover.getAttribute("src"))!.split("/").at(-1);
+
+  const description = "Description saved in another tab";
+  const remote = await request.patch(api, {
+    data: { expectedVersion: before.version, title: "Title from another tab", description },
+  });
+  expect(remote.ok()).toBe(true);
+  const concurrent = (await remote.json()) as Item;
+  await save.click();
+  await expect(page.getByRole("heading", { name: "Review the latest article" })).toBeVisible();
+  await expect(titleField).toHaveValue(title);
+  await page.getByRole("button", { name: "Load latest version" }).click();
+  await expect(page.getByText("Title from another tab")).toBeVisible();
+  await page.getByRole("button", { name: "Keep my edits" }).click();
+  await expect(titleField).toHaveValue(title);
+  const descriptionField = page.getByLabel("Description", { exact: true });
+  await expect(descriptionField).toHaveValue(description);
+  const updatedDescription = `${description}\nReviewed in the metadata editor`;
+  await descriptionField.fill(updatedDescription);
+  await save.click();
+  await expect(page.getByText("Changes saved", { exact: true })).toBeVisible();
+
+  expect(patches).toHaveLength(2);
+  expect(patches[1]).toEqual({
+    expectedVersion: concurrent.version,
+    title,
+    description: updatedDescription,
+    notes: "Notes from the metadata editor",
+    difficulty: "advanced",
+    topicIds: [topic.id],
+    coverImageId: coverId,
+  });
+  expect(speechRequests).toEqual([]);
+  const after = (await (await request.get(api)).json()) as Item;
+  expect(after).toMatchObject({
+    title,
+    description: updatedDescription,
+    notes: "Notes from the metadata editor",
+    coverImageId: coverId,
+    audioAssetId: before.audioAssetId,
+    audioStatus: "READY",
+    publishedAt: before.publishedAt,
+    sourceText: before.sourceText,
+    voiceId: before.voiceId,
+    speakingRate: before.speakingRate,
+    isFavorite: true,
+    transcript: before.transcript,
+  });
+  const savedAudio = await request.get(download);
+  expect(savedAudio.ok()).toBe(true);
+  expect(await savedAudio.body()).toEqual(await originalAudio.body());
+
+  await page.getByRole("link", { name: "Back to Reader" }).click();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.locator("audio")).toHaveAttribute(
+    "src",
+    `${api}/audio?audioAssetId=${before.audioAssetId}`,
+  );
+  await page.goto(`/library?languageCode=zh-CN&q=${encodeURIComponent(title)}`);
+  await page
+    .getByRole("article")
+    .filter({ hasText: title })
+    .getByRole("link", { name: "Edit article" })
+    .click();
+  await titleField.fill("Unsaved title");
+  await page.getByRole("link", { name: "Edit Text & Voice" }).click();
+  const leave = page.getByRole("dialog", { name: "Leave this article?" });
+  await expect(leave).toBeVisible();
+  await leave.getByRole("button", { name: "Leave Without Saving" }).click();
+  await expect(page.getByRole("heading", { name: "Edit Text & Voice" })).toBeVisible();
+  await page.getByRole("link", { name: "Back to Edit Article" }).click();
+  await expect(titleField).toHaveValue(title);
+});
 
 for (const [language, source] of [
   ["zh-CN", chinese],

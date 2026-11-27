@@ -2,6 +2,7 @@ import { For, Show, createMemo, type ParentProps } from "solid-js";
 import type { LearningLanguage } from "../../api/client";
 import controls from "../../components/Controls.module.css";
 import TopicPicker from "../topics/TopicPicker";
+import type { useTopics } from "../topics/topics";
 import {
   applyTextareaEdit,
   difficulties,
@@ -21,8 +22,11 @@ type DraftFormProps = {
   languageError: boolean;
   retryLanguages: () => void;
   saved: boolean;
+  revisionHref?: string;
   saving: boolean;
   audio: ParentProps["children"];
+  cover: ParentProps["children"];
+  topics: ReturnType<typeof useTopics>;
   update: <K extends keyof DraftFields>(name: K, value: DraftFields[K]) => void;
 };
 
@@ -109,14 +113,45 @@ export function DraftForm(props: DraftFormProps) {
               lang={props.values.languageCode}
               value={props.values.sourceText}
               error={props.errors.sourceText}
+              readOnly={props.revisionHref !== undefined}
               update={(value) => props.update("sourceText", value)}
             />
           </section>
-          {props.audio}
+          <Show when={props.revisionHref} fallback={props.audio}>
+            {(href) => (
+              <section class={styles.paper} aria-label="Published recording">
+                <div class={styles.speechFields}>
+                  <div class={styles.field}>
+                    <label for="draft-voiceId">Voice</label>
+                    <input
+                      id="draft-voiceId"
+                      value={props.values.voiceId ?? "Unavailable"}
+                      readonly
+                    />
+                  </div>
+                  <div class={styles.field}>
+                    <label for="draft-speakingRate">Speaking rate</label>
+                    <input
+                      id="draft-speakingRate"
+                      value={
+                        props.values.speakingRate ? `${props.values.speakingRate}×` : "Unavailable"
+                      }
+                      readonly
+                    />
+                  </div>
+                </div>
+                <a class={[controls.secondary, styles.fieldAction]} href={href()}>
+                  Edit Text &amp; Voice
+                </a>
+              </section>
+            )}
+          </Show>
         </div>
         <section class={styles.details} aria-labelledby="draft-details">
           <h2 id="draft-details">Article details</h2>
+          {props.cover}
           <TopicPicker
+            topics={props.topics}
             selected={props.values.topicIds}
             change={(ids) => props.update("topicIds", ids)}
           />
@@ -167,6 +202,7 @@ function DraftText(props: {
   lang?: string;
   value: string;
   error?: string;
+  readOnly?: boolean;
   update: (value: string) => void;
 }) {
   const id = () => `draft-${props.name}`;
@@ -203,13 +239,15 @@ function DraftText(props: {
     <div class={styles.field}>
       <div class={styles.fieldHead}>
         <label for={id()}>{props.label}</label>
-        <span
-          id={countId()}
-          class={count() > textLimits[props.name] ? styles.fieldError : styles.count}
-        >
-          {count()} / {textLimits[props.name]}
-          {isSource() ? " UTF-16 units" : " characters"}
-        </span>
+        <Show when={!props.readOnly}>
+          <span
+            id={countId()}
+            class={count() > textLimits[props.name] ? styles.fieldError : styles.count}
+          >
+            {count()} / {textLimits[props.name]}
+            {isSource() ? " UTF-16 units" : " characters"}
+          </span>
+        </Show>
       </div>
       <Show
         when={props.rows}
@@ -229,10 +267,11 @@ function DraftText(props: {
           class={isSource() ? styles.source : undefined}
           rows={props.rows}
           lang={props.lang || undefined}
+          readonly={props.readOnly}
           spellcheck={isSource() ? "false" : "true"}
           value={displayedText(props.value)}
           aria-invalid={props.error ? "true" : undefined}
-          aria-describedby={descriptions()}
+          aria-describedby={props.readOnly ? undefined : descriptions()}
           onPaste={rememberPaste}
           onInput={editTextarea}
         />

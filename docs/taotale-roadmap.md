@@ -84,9 +84,9 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-28 | Topics UI | 5 | TAO-17, TAO-21 | Done |
 | TAO-29 | Library search, filters, sort and Favorites | 5 | TAO-22, TAO-27, TAO-28 | Done |
 | TAO-30 | Cover upload pipeline | 5 | TAO-16 | Done |
-| TAO-31 | Cover UI | 5 | TAO-21, TAO-22, TAO-30 | Planned |
-| TAO-32 | Deletion and downloads in the Library | 5 | TAO-20, TAO-22 | Planned |
-| TAO-33 | Published metadata edit | 6 | TAO-24, TAO-28, TAO-31 | Planned |
+| TAO-31 | Cover UI | 5 | TAO-21, TAO-22, TAO-30 | Done |
+| TAO-32 | Deletion and downloads in the Library | 5 | TAO-20, TAO-22 | Done |
+| TAO-33 | Published metadata edit | 6 | TAO-24, TAO-28, TAO-31 | Done |
 | TAO-34 | Working revisions: backend | 6 | TAO-19, TAO-24 | Planned |
 | TAO-35 | Working revisions: client | 6 | TAO-23, TAO-33, TAO-34 | Planned |
 | TAO-36 | Vocabulary data model and core API | 7 | TAO-16, TAO-17 | Planned |
@@ -769,8 +769,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Library cards load covers lazily and fall back to a placeholder when a cover fails.
 
 **Exit criteria**
-- [ ] Acceptance journey 7 automated.
-- [ ] A failed replacement never removes the existing cover.
+- [x] Acceptance journey 7 automated.
+- [x] A failed replacement never removes the existing cover.
 
 **Depends on:** TAO-21, TAO-22, TAO-30
 
@@ -786,8 +786,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Download Audio for published items, with error states for missing media; correct pagination after a delete.
 
 **Exit criteria**
-- [ ] Delete covered by an end-to-end test.
-- [ ] Media release never deletes referenced files (tested).
+- [x] Delete covered by an end-to-end test.
+- [x] Media release never deletes referenced files (tested).
 
 **Depends on:** TAO-20, TAO-22
 
@@ -803,8 +803,10 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - `/items/{id}/edit` in metadata mode: title, description, notes, difficulty, topics, cover. The synthesis inputs are locked, with an "Edit Text & Voice" button that leads into a working revision.
 - Versioned PATCH. Metadata changes never touch the active asset or its fingerprint. Review step on conflicts.
 
+The "Edit Text & Voice" entry shows an availability message until TAO-34 and TAO-35 provide the working revision workflow.
+
 **Exit criteria**
-- [ ] The metadata part of acceptance journey 4 is automated; the audio is unchanged after metadata edits.
+- [x] The metadata part of acceptance journey 4 is automated; the audio is unchanged after metadata edits.
 
 **Depends on:** TAO-24, TAO-28, TAO-31
 

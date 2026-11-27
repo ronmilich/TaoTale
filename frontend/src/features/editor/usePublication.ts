@@ -24,6 +24,7 @@ export function usePublication(options: {
   synthesisChanged: () => boolean;
   invalid: () => boolean;
   saving: () => boolean;
+  coverUploading: () => boolean;
   conflict: () => boolean;
   saved: (item: Item) => void;
   review: () => void;
@@ -38,6 +39,7 @@ export function usePublication(options: {
     if (pending()) return "Publishing…";
     if (uncertain()) return "Recover the previous publication to confirm its outcome.";
     if (options.saving()) return "Waiting for your draft to finish saving.";
+    if (options.coverUploading()) return "Waiting for the cover to finish uploading.";
     if (options.conflict()) return "Review the latest draft before publishing.";
     if (!options.values().title.trim() || !options.values().sourceText.trim())
       return "Add a title and source text before publishing.";
@@ -85,6 +87,7 @@ export function usePublication(options: {
               notes: values.notes || null,
               difficulty: values.difficulty || null,
               topicIds: values.topicIds,
+              coverImageId: values.coverImageId,
             },
           };
         }

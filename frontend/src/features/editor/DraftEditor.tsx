@@ -15,10 +15,20 @@ import {
   onCleanup,
   until,
 } from "solid-js";
-import { ApiError, createItem, getItem, patchItem, type Item } from "../../api/client";
+import {
+  ApiError,
+  coverURL,
+  createItem,
+  getItem,
+  patchItem,
+  type Item,
+  type Topic,
+} from "../../api/client";
 import controls from "../../components/Controls.module.css";
 import { usePreferences } from "../../preferences/Preferences";
+import { useTopics } from "../topics/topics";
 import AudioPanel from "./AudioPanel";
+import CoverPicker from "./CoverPicker";
 import {
   difficulties,
   draftFields,
@@ -26,6 +36,8 @@ import {
   draftPatch,
   editableFields,
   emptyDraft,
+  metadataFields,
+  metadataPatch,
   rebaseDraft,
   textFields,
   textLength,
@@ -54,17 +66,26 @@ type Conflict =
   | { phase: "error"; message: string }
   | { phase: "ready"; latest: Item };
 
-function draftReadError(error: unknown) {
+function readError(error: unknown, subject: string) {
   if (error instanceof ApiError && error.code === "ITEM_NOT_FOUND")
-    return "This draft was not found.";
-  return "Could not load this draft. Try again.";
+    return `This ${subject} was not found.`;
+  return `Could not load this ${subject}. Try again.`;
 }
 
-export default function DraftEditor() {
+export default function DraftEditor(props: { publishedId?: string }) {
   const location = useLocation();
   const navigate = useNavigate();
   const preferences = usePreferences();
-  const requestedId = createMemo(() => draftIdFrom(location.search));
+  const topics = useTopics();
+  const metadata = () => props.publishedId !== undefined;
+  const subject = () => (metadata() ? "article" : "draft");
+  const fields = () => (metadata() ? metadataFields : editableFields);
+  const expectedStatus = () => (metadata() ? "published" : "draft");
+  const requestedId = createMemo(() => {
+    const publishedId = props.publishedId;
+    if (publishedId === undefined) return draftIdFrom(location.search);
+    return draftUUID.test(publishedId) ? publishedId.toLowerCase() : invalidAddress;
+  });
   const [draft, setDraft] = createStore({
     item: null as Item | null,
     baseline: emptyDraft(""),
@@ -73,6 +94,8 @@ export default function DraftEditor() {
   const [load, setLoad] = createSignal<LoadState>({ phase: "loading" });
   const [loadAttempt, setLoadAttempt] = createSignal(0);
   const [saving, setSaving] = createSignal(false);
+  const [metadataSaved, setMetadataSaved] = createSignal(false);
+  const [coverUploading, setCoverUploading] = createSignal(false);
   const [showValidation, setShowValidation] = createSignal(false);
   const [saveError, setSaveError] = createSignal("");
   const [conflict, setConflict] = createSignal<Conflict | null>(null);
@@ -84,19 +107,21 @@ export default function DraftEditor() {
 
   const synthesisInputsChanged = createMemo(
     () =>
-      draft.values.languageCode !== draft.baseline.languageCode ||
-      draft.values.sourceText !== draft.baseline.sourceText ||
-      draft.values.voiceId !== draft.baseline.voiceId ||
-      draft.values.speakingRate !== draft.baseline.speakingRate,
+      !metadata() &&
+      (draft.values.languageCode !== draft.baseline.languageCode ||
+        draft.values.sourceText !== draft.baseline.sourceText ||
+        draft.values.voiceId !== draft.baseline.voiceId ||
+        draft.values.speakingRate !== draft.baseline.speakingRate),
   );
   const dirty = createMemo(
     () =>
       synthesisInputsChanged() ||
-      editableFields.some(({ id }) => draftFieldChanged(id, draft.values, draft.baseline)),
+      fields().some(({ id }) => draftFieldChanged(id, draft.values, draft.baseline)),
   );
   const errors = createMemo(() => {
     const result: Partial<Record<keyof DraftFields, string>> = {};
     if (
+      !metadata() &&
       !draft.item &&
       !preferences.languages()?.some((entry) => entry.code === draft.values.languageCode)
     ) {
@@ -105,6 +130,8 @@ export default function DraftEditor() {
         : "Choose an enabled language.";
     }
     for (const name of textFields) {
+      if (metadata() && (name === "sourceText" || draft.values[name] === draft.baseline[name]))
+        continue;
       const value = draft.values[name];
       if (textLength(name, value) > textLimits[name]) {
         result[name] =
@@ -115,6 +142,9 @@ export default function DraftEditor() {
         result[name] = "Remove unsupported characters.";
       }
     }
+    if (metadata() && draft.values.title !== draft.baseline.title && !draft.values.title.trim()) {
+      result.title = "Enter a title for this article.";
+    }
     return result;
   });
   const shownErrors = createMemo(() => ({
@@ -122,6 +152,7 @@ export default function DraftEditor() {
     languageCode: showValidation() ? errors().languageCode : undefined,
   }));
   const audio = useDraftAudio({
+    enabled: () => !metadata(),
     item: () => draft.item,
     values: () => draft.values,
     synthesisChanged: synthesisInputsChanged,
@@ -142,6 +173,7 @@ export default function DraftEditor() {
     synthesisChanged: synthesisInputsChanged,
     invalid: () => Object.keys(errors()).length > 0,
     saving,
+    coverUploading,
     conflict: () => Boolean(conflict()),
     saved: confirmDraft,
     review: () => setConflict({ phase: "unreviewed" }),
@@ -153,6 +185,7 @@ export default function DraftEditor() {
   });
 
   function setField<K extends keyof DraftFields>(name: K, value: DraftFields[K]) {
+    if (metadata() && !metadataFields.some(({ id }) => id === name)) return;
     setDraft((state) => {
       state.values[name] = value;
       if (name === "languageCode") {
@@ -182,6 +215,8 @@ export default function DraftEditor() {
         return;
       }
       reviewRequest?.abort();
+      setCoverUploading(false);
+      setMetadataSaved(false);
       audio.reset();
       publication.clearMessage();
       if (id === null) {
@@ -191,7 +226,7 @@ export default function DraftEditor() {
         return;
       }
       if (id === invalidAddress) {
-        setLoad({ phase: "error", message: "This draft link is invalid.", retry: false });
+        setLoad({ phase: "error", message: `This ${subject()} link is invalid.`, retry: false });
         return;
       }
 
@@ -200,10 +235,12 @@ export default function DraftEditor() {
       getItem(id, controller.signal).then(
         (item) => {
           if (controller.signal.aborted) return;
-          if (item.status !== "draft") {
+          if (item.status !== expectedStatus()) {
             setLoad({
               phase: "error",
-              message: "This article is already published.",
+              message: metadata()
+                ? "This article is a draft."
+                : "This article is already published.",
               retry: false,
             });
             return;
@@ -214,7 +251,7 @@ export default function DraftEditor() {
         },
         (error) => {
           if (!controller.signal.aborted) {
-            setLoad({ phase: "error", message: draftReadError(error), retry: true });
+            setLoad({ phase: "error", message: readError(error, subject()), retry: true });
           }
         },
       );
@@ -223,8 +260,9 @@ export default function DraftEditor() {
   );
   onCleanup(() => reviewRequest?.abort());
 
-  async function saveDraft() {
-    if (saving() || conflict() || audio.submitting() || publication.locked()) return false;
+  async function save() {
+    if (saving() || coverUploading() || conflict() || audio.submitting() || publication.locked())
+      return false;
     const invalidField = Object.keys(errors())[0];
     if (invalidField) {
       setShowValidation(true);
@@ -244,7 +282,13 @@ export default function DraftEditor() {
     let saved: Item;
     try {
       saved = item
-        ? await patchItem(item.id, draftPatch(values, draft.baseline, item.version))
+        ? await patchItem(
+            item.id,
+            metadata()
+              ? metadataPatch(values, draft.baseline, item.version)
+              : draftPatch(values, draft.baseline, item.version),
+            AbortSignal.timeout(15_000),
+          )
         : await createItem({
             languageCode,
             title: values.title || null,
@@ -253,6 +297,7 @@ export default function DraftEditor() {
             notes: values.notes || null,
             difficulty: values.difficulty || null,
             topicIds: values.topicIds,
+            coverImageId: values.coverImageId,
             voiceId: speech?.voiceId ?? values.voiceId,
             speakingRate: speech?.speakingRate ?? values.speakingRate,
             previewGenerationId,
@@ -271,7 +316,9 @@ export default function DraftEditor() {
         setSaveError(
           error instanceof ApiError
             ? error.message
-            : "Could not confirm the draft was saved. Your edits are still here.",
+            : metadata()
+              ? "Could not confirm the changes were saved. Your edits are still here."
+              : "Could not confirm the draft was saved. Your edits are still here.",
         );
       }
       setSaving(false);
@@ -280,6 +327,7 @@ export default function DraftEditor() {
 
     loadedId = saved.id;
     confirmDraft(saved);
+    if (metadata()) setMetadataSaved(true);
     if (!item) {
       audio.reset();
       canonicalPath = `/create?draftId=${encodeURIComponent(saved.id)}`;
@@ -301,14 +349,17 @@ export default function DraftEditor() {
     try {
       const latest = await getItem(item.id, controller.signal);
       if (controller.signal.aborted) return;
-      if (latest.status !== "draft") {
-        setConflict({ phase: "error", message: "This article is already published." });
+      if (latest.status !== expectedStatus()) {
+        setConflict({
+          phase: "error",
+          message: metadata() ? "This article is a draft." : "This article is already published.",
+        });
         return;
       }
       setConflict({ phase: "ready", latest });
     } catch (error) {
       if (!controller.signal.aborted) {
-        setConflict({ phase: "error", message: draftReadError(error) });
+        setConflict({ phase: "error", message: readError(error, subject()) });
       }
     }
   }
@@ -317,7 +368,7 @@ export default function DraftEditor() {
     const review = conflict();
     if (review?.phase !== "ready") return;
     const values = keepEdits
-      ? rebaseDraft(draft.values, draft.baseline, draftFields(review.latest))
+      ? rebaseDraft(draft.values, draft.baseline, draftFields(review.latest), fields())
       : undefined;
     confirmDraft(review.latest, values);
   }
@@ -327,7 +378,11 @@ export default function DraftEditor() {
     if (typeof event.to === "string") {
       if (event.to === canonicalPath) return;
       const destination = new URL(event.to, "http://editor.local");
-      if (destination.pathname === "/create" && draftIdFrom(destination.search) === requestedId()) {
+      if (
+        !metadata() &&
+        destination.pathname === "/create" &&
+        draftIdFrom(destination.search) === requestedId()
+      ) {
         return;
       }
     }
@@ -356,7 +411,7 @@ export default function DraftEditor() {
   async function saveAndLeave() {
     const request = leaveRequest();
     if (!request || saving()) return;
-    const saved = await saveDraft();
+    const saved = await save();
     setLeaveRequest(undefined);
     if (saved) request.retry(true);
   }
@@ -369,7 +424,11 @@ export default function DraftEditor() {
     request.retry(true);
   }
 
-  const heading = () => (requestedId() === null ? "New article" : "Edit draft");
+  const heading = () =>
+    metadata() ? "Edit article" : requestedId() === null ? "New article" : "Edit draft";
+  const readerURL = () => `/items/${encodeURIComponent(props.publishedId ?? "")}`;
+  const saveLabel = () => (metadata() ? "Save Changes" : "Save Draft");
+  const savingLabel = () => (metadata() ? "Saving changes…" : "Saving draft…");
   const canReview = () => conflict()?.phase === "ready";
   const reviewValues = createMemo(() => {
     const review = conflict();
@@ -377,9 +436,7 @@ export default function DraftEditor() {
   });
   const changedFields = createMemo(() => {
     const latest = reviewValues();
-    return latest
-      ? editableFields.filter(({ id }) => draftFieldChanged(id, latest, draft.baseline))
-      : [];
+    return latest ? fields().filter(({ id }) => draftFieldChanged(id, latest, draft.baseline)) : [];
   });
 
   return (
@@ -387,13 +444,22 @@ export default function DraftEditor() {
       <Title>{heading()} · TaoTale</Title>
       <header class={styles.header}>
         <h1>{heading()}</h1>
-        <a href="/library" class={controls.secondary}>
-          Back to Library
-        </a>
+        <Show
+          when={metadata() && requestedId() !== invalidAddress}
+          fallback={
+            <a href="/library" class={controls.secondary}>
+              Back to Library
+            </a>
+          }
+        >
+          <a href={readerURL()} class={controls.secondary}>
+            Back to Reader
+          </a>
+        </Show>
       </header>
       <Show when={load().phase === "loading"}>
         <p role="status" class={styles.message}>
-          Loading draft…
+          Loading {subject()}…
         </p>
       </Show>
       <Show
@@ -423,7 +489,7 @@ export default function DraftEditor() {
           novalidate
           onSubmit={(event) => {
             event.preventDefault();
-            void saveDraft();
+            void save();
           }}
         >
           <DraftForm
@@ -433,7 +499,17 @@ export default function DraftEditor() {
             languageError={preferences.languageError()}
             retryLanguages={preferences.retryLanguages}
             saved={Boolean(draft.item)}
+            revisionHref={metadata() ? `${readerURL()}/edit?mode=revision` : undefined}
+            topics={topics}
             saving={saving() || publication.locked()}
+            cover={
+              <CoverPicker
+                imageId={draft.values.coverImageId}
+                uploading={coverUploading()}
+                setUploading={setCoverUploading}
+                change={(id) => setField("coverImageId", id)}
+              />
+            }
             audio={
               <AudioPanel
                 audio={audio}
@@ -456,8 +532,10 @@ export default function DraftEditor() {
           </Show>
           <Show when={conflict()}>
             <section class={styles.review} aria-labelledby="draft-review">
-              <h2 id="draft-review">Review the latest draft</h2>
-              <p role="alert">This draft changed since you opened it. Your edits are still here.</p>
+              <h2 id="draft-review">Review the latest {subject()}</h2>
+              <p role="alert">
+                This {subject()} changed since you opened it. Your edits are still here.
+              </p>
               <Show
                 when={canReview()}
                 fallback={
@@ -494,11 +572,11 @@ export default function DraftEditor() {
                         <dl>
                           <div>
                             <dt>Latest saved</dt>
-                            <dd>{fieldText(id, reviewValues()?.[id])}</dd>
+                            <dd>{fieldText(id, reviewValues()?.[id], topics.items())}</dd>
                           </div>
                           <div>
-                            <dt>Your draft</dt>
-                            <dd>{fieldText(id, draft.values[id])}</dd>
+                            <dt>{metadata() ? "Your edits" : "Your draft"}</dt>
+                            <dd>{fieldText(id, draft.values[id], topics.items())}</dd>
                           </div>
                         </dl>
                       </div>
@@ -512,11 +590,17 @@ export default function DraftEditor() {
                   <button
                     type="button"
                     class={controls.secondary}
+                    disabled={coverUploading()}
                     onClick={() => applyReview(false)}
                   >
                     Use latest version
                   </button>
-                  <button type="button" class={controls.primary} onClick={() => applyReview(true)}>
+                  <button
+                    type="button"
+                    class={controls.primary}
+                    disabled={coverUploading()}
+                    onClick={() => applyReview(true)}
+                  >
                     Keep my edits
                   </button>
                 </div>
@@ -526,46 +610,53 @@ export default function DraftEditor() {
           <footer class={styles.footer}>
             <div aria-live="polite" class={styles.saveStatus}>
               {saving()
-                ? "Saving draft…"
+                ? savingLabel()
                 : dirty()
                   ? "Unsaved changes"
-                  : draft.item
-                    ? "Draft saved"
-                    : ""}
+                  : metadata()
+                    ? metadataSaved()
+                      ? "Changes saved"
+                      : ""
+                    : draft.item
+                      ? "Draft saved"
+                      : ""}
               <Show when={synthesisInputsChanged() && draft.item?.audioStatus === "READY"}>
                 <p>Saving these text changes will make the current audio outdated.</p>
               </Show>
             </div>
             <div class={styles.footerActions}>
-              <Show when={publication.reason()}>
-                <p id="publish-reason" class={styles.hint}>
-                  {publication.reason()}
-                </p>
+              <Show when={!metadata()}>
+                <Show when={publication.reason()}>
+                  <p id="publish-reason" class={styles.hint}>
+                    {publication.reason()}
+                  </p>
+                </Show>
+                <button
+                  type="button"
+                  class={controls.secondary}
+                  disabled={
+                    publication.pending() ||
+                    (Boolean(publication.reason()) && !publication.uncertain())
+                  }
+                  aria-describedby={publication.reason() ? "publish-reason" : undefined}
+                  onClick={() => void publication.submit()}
+                >
+                  {publication.uncertain() ? "Recover publication" : "Publish to Library"}
+                </button>
               </Show>
-              <button
-                type="button"
-                class={controls.secondary}
-                disabled={
-                  publication.pending() ||
-                  (Boolean(publication.reason()) && !publication.uncertain())
-                }
-                aria-describedby={publication.reason() ? "publish-reason" : undefined}
-                onClick={() => void publication.submit()}
-              >
-                {publication.uncertain() ? "Recover publication" : "Publish to Library"}
-              </button>
               <button
                 type="submit"
                 class={controls.primary}
                 disabled={
                   saving() ||
+                  coverUploading() ||
                   publication.locked() ||
                   audio.submitting() ||
                   Boolean(conflict()) ||
                   (Boolean(draft.item) && !dirty())
                 }
               >
-                Save Draft
+                {saveLabel()}
               </button>
             </div>
           </footer>
@@ -581,9 +672,9 @@ export default function DraftEditor() {
           if (!saving()) setLeaveRequest(undefined);
         }}
       >
-        <h2 id="draft-leave-heading">Leave this draft?</h2>
+        <h2 id="draft-leave-heading">Leave this {subject()}?</h2>
         <p id="draft-leave-description">
-          {saving() ? "Saving draft…" : "Your changes have not been saved."}
+          {saving() ? savingLabel() : "Your changes have not been saved."}
         </p>
         <div class={styles.actions}>
           <button
@@ -606,10 +697,10 @@ export default function DraftEditor() {
           <button
             type="button"
             class={controls.primary}
-            disabled={saving() || audio.submitting() || Boolean(conflict())}
+            disabled={saving() || coverUploading() || audio.submitting() || Boolean(conflict())}
             onClick={() => void saveAndLeave()}
           >
-            Save Draft &amp; Leave
+            {saveLabel()} &amp; Leave
           </button>
         </div>
       </dialog>
@@ -620,10 +711,24 @@ export default function DraftEditor() {
 function fieldText(
   name: (typeof editableFields)[number]["id"],
   value: DraftFields[typeof name] | undefined,
+  topics?: Topic[],
 ) {
   if (name === "difficulty") return difficulties.find((entry) => entry.value === value)?.label;
   if (name === "speakingRate") return value ? `${value}×` : "Default";
   if (name === "voiceId") return value ?? "Default";
-  if (Array.isArray(value)) return `${value.length} selected`;
+  if (name === "coverImageId") {
+    return typeof value === "string" ? (
+      <img class={styles.coverComparison} src={coverURL(value)} alt="Cover preview" />
+    ) : (
+      "No cover"
+    );
+  }
+  if (Array.isArray(value)) {
+    return (
+      value
+        .map((id) => topics?.find((topic) => topic.id === id)?.name ?? "Unavailable topic")
+        .join(", ") || "None"
+    );
+  }
   return value || "Empty";
 }

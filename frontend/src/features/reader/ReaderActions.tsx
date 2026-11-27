@@ -27,6 +27,9 @@ export default function ReaderActions(props: { item: Item; download?: string }) 
   return (
     <>
       <div class={styles.readerActions}>
+        <a class={controls.secondary} href={`/items/${encodeURIComponent(props.item.id)}/edit`}>
+          Edit article
+        </a>
         <button
           type="button"
           class={controls.secondary}

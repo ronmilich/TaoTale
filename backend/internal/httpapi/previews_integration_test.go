@@ -53,8 +53,8 @@ func TestPreviewAudioPostgres(t *testing.T) {
 		}
 		worker.Close()
 	})
-	api := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil, provider,
-		&persistence.Library{Pool: pool, MediaRoot: root, Limits: persistence.GenerationLimits{Active: 2, Hourly: 1000}})
+	store := &persistence.Library{Pool: pool, MediaRoot: root, Limits: persistence.GenerationLimits{Active: 2, Hourly: 1000}}
+	api := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil, provider, store)
 
 	call := func(method, endpoint, key, body string, ranges ...string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, "http://localhost/api/v1"+endpoint, strings.NewReader(body))
@@ -288,7 +288,7 @@ func TestPreviewAudioPostgres(t *testing.T) {
 	}
 
 	expired := admit(expiryKey, firstBody)
-	ready(expired)
+	expiredAsset := ready(expired)
 	var expiresIn24Hours bool
 	err = pool.QueryRow(t.Context(), "SELECT expires_at - created_at = interval '24 hours' FROM audio_generations WHERE id=$1", expired).Scan(&expiresIn24Hours)
 	if err != nil || !expiresIn24Hours {
@@ -340,5 +340,51 @@ func TestPreviewAudioPostgres(t *testing.T) {
 		if object(direct(publishKey, body), 201)["itemId"] != first["itemId"] || itemCount() != startCount+1 {
 			t.Fatal("replay after deletion created an item")
 		}
+	})
+
+	t.Run("item deletion releases only media with no remaining references", func(t *testing.T) {
+		cover, err := store.CreateCover(t.Context(), bytes.NewReader(paddedPNG(t, 200)), "image/png")
+		if err != nil {
+			t.Fatal(err)
+		}
+		sibling := object(call("POST", "/items", "", fmt.Sprintf(`{"languageCode":"zh-CN","title":"Shared recording","coverImageId":%q}`, cover.ID.String())), 201)
+		siblingID := sibling["id"].(string)
+		sqlExec("UPDATE library_items SET cover_image_id=$2 WHERE id=$1", itemID, cover.ID)
+		sqlExec(`UPDATE library_items SET active_audio_asset_id=$2, source_text='你好。',
+			voice_id='zh-CN-mock', speaking_rate=1, published_at=now() WHERE id=$1`, siblingID, firstAsset)
+		audioKey := func(id string) string {
+			t.Helper()
+			var key string
+			if err := pool.QueryRow(t.Context(), "SELECT storage_key FROM audio_assets WHERE id=$1", id).Scan(&key); err != nil {
+				t.Fatal(err)
+			}
+			return key
+		}
+		shared, exclusive := audioKey(firstAsset), audioKey(secondAsset)
+		unrelated := audioKey(expiredAsset)
+		assertFile := func(key string, present bool) {
+			t.Helper()
+			_, err := os.Stat(filepath.Join(root, key))
+			if (present && err != nil) || (!present && !os.IsNotExist(err)) {
+				t.Fatalf("file %s, expected present=%t: %v", key, present, err)
+			}
+		}
+		if res := call("DELETE", itemPath, "", ""); res.Code != 204 {
+			t.Fatalf("delete returned %d: %s", res.Code, res.Body)
+		}
+		assertFile(exclusive, false)
+		assertFile(shared, true)
+		assertFile(cover.StorageKey, true)
+		if res := call("GET", "/items/"+siblingID+"/audio/download?audioAssetId="+firstAsset, "", ""); res.Code != 200 {
+			t.Fatalf("shared download returned %d: %s", res.Code, res.Body)
+		}
+		assertAPIError(t, call("GET", itemPath, "", ""), 404, "ITEM_NOT_FOUND")
+		if res := call("DELETE", "/items/"+siblingID, "", ""); res.Code != 204 {
+			t.Fatalf("delete returned %d: %s", res.Code, res.Body)
+		}
+		assertFile(shared, false)
+		assertFile(cover.StorageKey, false)
+		assertFile(unrelated, true)
+		assertAPIError(t, call("GET", "/storage/images/"+cover.ID.String(), "", ""), 404, "IMAGE_NOT_FOUND")
 	})
 }

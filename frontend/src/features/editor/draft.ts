@@ -10,6 +10,7 @@ export type DraftFields = {
   voiceId: string | null;
   speakingRate: Item["speakingRate"];
   topicIds: string[];
+  coverImageId: string | null;
 };
 
 export const textLimits = { title: 120, sourceText: 1500, description: 1000, notes: 5000 };
@@ -21,15 +22,19 @@ export const difficulties = [
   { value: "intermediate", label: "Intermediate" },
   { value: "advanced", label: "Advanced" },
 ] as const;
-export const editableFields = [
+export const metadataFields = [
   { id: "title", label: "Title" },
-  { id: "sourceText", label: "Source text" },
   { id: "difficulty", label: "Difficulty" },
   { id: "description", label: "Description" },
   { id: "notes", label: "Notes" },
+  { id: "topicIds", label: "Topics" },
+  { id: "coverImageId", label: "Cover image" },
+] as const;
+export const editableFields = [
+  ...metadataFields,
+  { id: "sourceText", label: "Source text" },
   { id: "voiceId", label: "Voice" },
   { id: "speakingRate", label: "Speaking rate" },
-  { id: "topicIds", label: "Topics" },
 ] as const;
 
 export function emptyDraft(languageCode: DraftFields["languageCode"]): DraftFields {
@@ -43,6 +48,7 @@ export function emptyDraft(languageCode: DraftFields["languageCode"]): DraftFiel
     voiceId: null,
     speakingRate: null,
     topicIds: [],
+    coverImageId: null,
   };
 }
 
@@ -57,19 +63,32 @@ export function draftFields(item: Item): DraftFields {
     voiceId: item.voiceId,
     speakingRate: item.speakingRate,
     topicIds: item.topicIds,
+    coverImageId: item.coverImageId ?? null,
   };
 }
 
-export function draftPatch(values: DraftFields, baseline: DraftFields, version: number): ItemPatch {
-  const patch: ItemPatch = { expectedVersion: version };
+type MetadataPatch = Pick<ItemPatch, "expectedVersion" | (typeof metadataFields)[number]["id"]>;
+
+export function metadataPatch(
+  values: DraftFields,
+  baseline: DraftFields,
+  version: number,
+): MetadataPatch {
+  const patch: MetadataPatch = { expectedVersion: version };
   if (values.title !== baseline.title) patch.title = values.title || null;
-  if (values.sourceText !== baseline.sourceText) patch.sourceText = values.sourceText;
   if (values.description !== baseline.description) patch.description = values.description || null;
   if (values.notes !== baseline.notes) patch.notes = values.notes || null;
   if (values.difficulty !== baseline.difficulty) patch.difficulty = values.difficulty || null;
+  if (draftFieldChanged("topicIds", values, baseline)) patch.topicIds = values.topicIds;
+  if (values.coverImageId !== baseline.coverImageId) patch.coverImageId = values.coverImageId;
+  return patch;
+}
+
+export function draftPatch(values: DraftFields, baseline: DraftFields, version: number): ItemPatch {
+  const patch: ItemPatch = metadataPatch(values, baseline, version);
+  if (values.sourceText !== baseline.sourceText) patch.sourceText = values.sourceText;
   if (values.voiceId !== baseline.voiceId) patch.voiceId = values.voiceId;
   if (values.speakingRate !== baseline.speakingRate) patch.speakingRate = values.speakingRate;
-  if (draftFieldChanged("topicIds", values, baseline)) patch.topicIds = values.topicIds;
   return patch;
 }
 
@@ -77,9 +96,14 @@ export function textLength(field: TextField, value: string) {
   return field === "sourceText" ? value.length : Array.from(value).length;
 }
 
-export function rebaseDraft(mine: DraftFields, previous: DraftFields, latest: DraftFields) {
+export function rebaseDraft(
+  mine: DraftFields,
+  previous: DraftFields,
+  latest: DraftFields,
+  fields: readonly (typeof editableFields)[number][] = editableFields,
+) {
   const result = { ...latest };
-  for (const { id } of editableFields) {
+  for (const { id } of fields) {
     if (draftFieldChanged(id, mine, previous)) Object.assign(result, { [id]: mine[id] });
   }
   return result;

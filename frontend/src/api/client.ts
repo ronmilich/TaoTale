@@ -113,6 +113,16 @@ export function draftAudioURLs(itemId: string, assetId: string) {
   return { src: path + pin, download: path + "/download" + pin };
 }
 
+export async function downloadItemAudio(itemId: string, assetId: string) {
+  const signal = AbortSignal.timeout(15_000);
+  const response = await fetch(draftAudioURLs(itemId, assetId).download, { signal });
+  if (!response.ok) throw await responseError(response, signal);
+  if (response.headers.get("Content-Type") !== "audio/mpeg") {
+    throw new Error("TaoTale returned an invalid recording.");
+  }
+  return response.blob();
+}
+
 export function previewAudioURLs(id: string) {
   const src = `/api/v1${previewPath(id)}/audio`;
   return { src, download: src + "/download" };
@@ -124,6 +134,32 @@ export function createItem(item: ItemCreate): Promise<Item> {
 
 export function patchItem(id: string, patch: ItemPatch, signal?: AbortSignal): Promise<Item> {
   return writeItem(itemPath(id), "PATCH", patch, signal);
+}
+
+export function deleteItem(id: string) {
+  return requestJSON<void>(itemPath(id), {
+    method: "DELETE",
+    signal: AbortSignal.timeout(15_000),
+  });
+}
+
+type CoverUpload = operations["uploadCoverImage"]["responses"][201]["content"]["application/json"];
+
+export function uploadCover(
+  file: File,
+  contentType: CoverUpload["contentType"],
+  signal: AbortSignal,
+) {
+  return requestJSON<CoverUpload>("/storage/images", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": contentType },
+    body: file,
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
+  });
+}
+
+export function coverURL(id: string) {
+  return `/api/v1/storage/images/${encodeURIComponent(id)}`;
 }
 
 type FavoriteReceipt = JSONResult<operations["setItemFavorite"]>;
@@ -208,30 +244,34 @@ function writeJSON<T>(path: string, method: "POST" | "PATCH", body: object, sign
 async function requestJSON<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`/api/v1${path}`, init);
   if (response.status === 204) return undefined as T;
-  const requestId = response.headers.get("X-Request-Id");
-  let body: unknown;
+  if (!response.ok) throw await responseError(response, init.signal);
   try {
-    body = await response.json();
+    return (await response.json()) as T;
   } catch (error) {
     if (init.signal?.aborted) throw error;
-    if (response.ok) {
-      throw new ApiError(
-        response.status,
-        "INVALID_RESPONSE",
-        "TaoTale returned unreadable data.",
-        requestId,
-      );
-    }
-  }
-  if (!response.ok) {
-    const error = (body as ErrorEnvelope | null | undefined)?.error;
     throw new ApiError(
       response.status,
-      error?.code ?? "REQUEST_FAILED",
-      error?.message ?? "TaoTale could not complete the request.",
-      requestId ?? error?.requestId ?? null,
-      error?.details,
+      "INVALID_RESPONSE",
+      "TaoTale returned unreadable data.",
+      response.headers.get("X-Request-Id"),
     );
   }
-  return body as T;
+}
+
+async function responseError(response: Response, signal?: AbortSignal | null) {
+  let envelope: ErrorEnvelope | null = null;
+  try {
+    envelope = (await response.json()) as ErrorEnvelope;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    // The proxy can return an error without a JSON body.
+  }
+  const error = envelope?.error;
+  return new ApiError(
+    response.status,
+    error?.code ?? "REQUEST_FAILED",
+    error?.message ?? "TaoTale could not complete the request.",
+    response.headers.get("X-Request-Id") ?? error?.requestId ?? null,
+    error?.details,
+  );
 }

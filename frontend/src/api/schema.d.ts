@@ -125,7 +125,7 @@ export interface paths {
         get: operations["getItem"];
         put?: never;
         post?: never;
-        /** Delete an owned item and its topic associations */
+        /** Delete an owned item and release unreferenced media */
         delete: operations["deleteItem"];
         options?: never;
         head?: never;

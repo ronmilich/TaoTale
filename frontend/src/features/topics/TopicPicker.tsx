@@ -3,28 +3,28 @@ import controls from "../../components/Controls.module.css";
 import TopicChoices from "./TopicChoices";
 import TopicEditor from "./TopicEditor";
 import styles from "./Topics.module.css";
-import { useTopics } from "./topics";
+import type { useTopics } from "./topics";
 
 export default function TopicPicker(props: {
+  topics: ReturnType<typeof useTopics>;
   selected: readonly string[];
   change: (ids: string[]) => void;
 }) {
-  const topics = useTopics();
   const [creating, setCreating] = createSignal(false);
   return (
     <fieldset class={styles.picker}>
       <legend>Topics</legend>
-      <Show when={topics.failed()}>
+      <Show when={props.topics.failed()}>
         <p role="alert">Could not load topics.</p>
-        <button type="button" onClick={() => void topics.reload()}>
+        <button type="button" onClick={() => void props.topics.reload()}>
           Retry topics
         </button>
       </Show>
-      <Show when={!topics.items() && !topics.failed()}>
+      <Show when={!props.topics.items() && !props.topics.failed()}>
         <p role="status">Loading topics…</p>
       </Show>
       <TopicChoices
-        topics={topics.items()}
+        topics={props.topics.items()}
         selected={props.selected}
         change={props.change}
         limit={10}
@@ -36,7 +36,7 @@ export default function TopicPicker(props: {
           <button
             type="button"
             class={controls.secondary}
-            disabled={!topics.items() || props.selected.length >= 10}
+            disabled={!props.topics.items() || props.selected.length >= 10}
             onClick={() => setCreating(true)}
           >
             Create topic
@@ -46,7 +46,7 @@ export default function TopicPicker(props: {
         <TopicEditor
           cancel={() => setCreating(false)}
           saved={(topic) => {
-            topics.save(topic);
+            props.topics.save(topic);
             if (props.selected.length < 10) props.change([...props.selected, topic.id]);
             setCreating(false);
           }}

@@ -90,6 +90,22 @@ export default function Library() {
   const maxPage = () =>
     Math.max(1, Math.ceil((visible()?.total ?? 0) / (visible()?.pageSize ?? 8)));
 
+  function itemDeleted(id: string) {
+    setLastPage((current) => {
+      if (!current?.data.items.some((item) => item.id === id)) return current;
+      return {
+        language: current.language,
+        data: {
+          ...current.data,
+          items: current.data.items.filter((item) => item.id !== id),
+          total: current.data.total - 1,
+        },
+      };
+    });
+    setRefresh((value) => value + 1);
+    void topics.reload();
+  }
+
   createEffect(
     () => [language(), page(), filterKey(), refresh()] as const,
     ([code, number, key]) => {
@@ -249,6 +265,7 @@ export default function Library() {
                       <LibraryItemCard
                         item={item}
                         topics={topics.items()}
+                        deleted={itemDeleted}
                         favoriteChanged={() => {
                           if (filters().has("favoritesOnly")) setRefresh((value) => value + 1);
                         }}

@@ -58,6 +58,7 @@ function matches(left: PreviewInput | undefined, right: PreviewInput) {
 }
 
 export function useDraftAudio(options: {
+  enabled: Accessor<boolean>;
   item: Accessor<Item | null>;
   values: Accessor<DraftFields>;
   synthesisChanged: Accessor<boolean>;
@@ -70,7 +71,7 @@ export function useDraftAudio(options: {
   }>();
   const [voiceError, setVoiceError] = createSignal("");
   const [voiceAttempt, setVoiceAttempt] = createSignal(0);
-  const language = () => options.values().languageCode;
+  const language = () => (options.enabled() ? options.values().languageCode : "");
   const voices = createMemo(() => {
     const available = catalog();
     return available?.language === language() ? available.items : undefined;
@@ -155,6 +156,7 @@ export function useDraftAudio(options: {
   let request: AbortController | undefined;
 
   const job = createMemo<Job | undefined>(() => {
+    if (!options.enabled()) return;
     const item = options.item();
     const local = accepted();
     if (!item) return local?.kind === "preview" ? local : undefined;

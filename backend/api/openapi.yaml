@@ -286,7 +286,7 @@ paths:
           $ref: '#/components/responses/APIError'
     delete:
       operationId: deleteItem
-      summary: Delete an owned item and its topic associations
+      summary: Delete an owned item and release unreferenced media
       responses:
         '204':
           $ref: '#/components/responses/Deleted'
