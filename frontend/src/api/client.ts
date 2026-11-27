@@ -98,8 +98,19 @@ export function createItem(item: ItemCreate): Promise<Item> {
   return writeItem("/items", "POST", item);
 }
 
-export function patchItem(id: string, patch: ItemPatch): Promise<Item> {
-  return writeItem(itemPath(id), "PATCH", patch);
+export function patchItem(id: string, patch: ItemPatch, signal?: AbortSignal): Promise<Item> {
+  return writeItem(itemPath(id), "PATCH", patch, signal);
+}
+
+type FavoriteReceipt = JSONResult<operations["setItemFavorite"]>;
+
+export function setItemFavorite(id: string, isFavorite: boolean) {
+  return requestJSON<FavoriteReceipt>(`${itemPath(id)}/favorite`, {
+    method: "PUT",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ isFavorite }),
+    signal: AbortSignal.timeout(15_000),
+  });
 }
 
 type PublicationReceipt = JSONResult<operations["publishDraft"]>;
@@ -152,11 +163,17 @@ function postGeneration(
   });
 }
 
-function writeItem(path: string, method: "POST" | "PATCH", body: ItemCreate | ItemPatch) {
+function writeItem(
+  path: string,
+  method: "POST" | "PATCH",
+  body: ItemCreate | ItemPatch,
+  signal?: AbortSignal,
+) {
   return requestJSON<Item>(path, {
     method,
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
 }
 

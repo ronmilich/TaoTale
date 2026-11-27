@@ -133,6 +133,25 @@ export interface paths {
         patch: operations["patchItem"];
         trace?: never;
     };
+    "/items/{itemId}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Set an item's favorite flag independently of its content version */
+        put: operations["setItemFavorite"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}/audio": {
         parameters: {
             query: {
@@ -454,7 +473,6 @@ export interface components {
             notes?: string | null;
             /** @enum {string|null} */
             difficulty?: "beginner" | "intermediate" | "advanced" | null;
-            isFavorite?: boolean;
             voiceId?: string | null;
             /** @enum {number|null} */
             speakingRate?: 0.75 | 1 | 1.25 | null;
@@ -964,6 +982,46 @@ export interface operations {
             403: components["responses"]["APIError"];
             404: components["responses"]["APIError"];
             409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    setItemFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    isFavorite: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Confirmed favorite */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        isFavorite: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
             413: components["responses"]["APIError"];
             415: components["responses"]["APIError"];
             500: components["responses"]["APIError"];

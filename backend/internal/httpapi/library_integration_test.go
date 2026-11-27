@@ -133,8 +133,24 @@ func TestLibraryPostgres(t *testing.T) {
 	for _, query := range []string{"", "?languageCode=zh-CN&pageSize=51", "?languageCode=ko-KR&page=0"} {
 		checkError(call("GET", "/items", "/items"+query, "", 400), "VALIDATION_ERROR")
 	}
-	patched := call("PATCH", "/items/{itemId}", itemPath, `{"expectedVersion":1,"isFavorite":false,"sourceText":"","title":"","notes":null,"difficulty":null}`, 200)
-	if patched["version"] != float64(2) || patched["isFavorite"] != false || patched["sourceText"] != "" ||
+	const favoriteRoute = "/items/{itemId}/favorite"
+	for _, body := range []string{`{}`, `{"isFavorite":null}`, `{"isFavorite":"true"}`, `{"isFavorite":true,"version":1}`} {
+		checkError(call("PUT", favoriteRoute, itemPath+"/favorite", body, 400), "VALIDATION_ERROR")
+	}
+	for _, value := range []string{"false", "true", "true"} {
+		updated := call("PUT", favoriteRoute, itemPath+"/favorite", `{"isFavorite":`+value+`}`, 200)
+		if updated["id"] != itemID || updated["isFavorite"] != (value == "true") {
+			t.Fatal(updated)
+		}
+		confirmed := call("GET", "/items/{itemId}", itemPath, "", 200)
+		if confirmed["version"] != item["version"] || confirmed["updatedAt"] != item["updatedAt"] ||
+			confirmed["sourceText"] != source || confirmed["isFavorite"] != updated["isFavorite"] {
+			t.Fatal(confirmed)
+		}
+	}
+	checkError(call("PATCH", "/items/{itemId}", itemPath, `{"expectedVersion":1,"isFavorite":false,"notes":"stale"}`, 400), "VALIDATION_ERROR")
+	patched := call("PATCH", "/items/{itemId}", itemPath, `{"expectedVersion":1,"sourceText":"","title":"","notes":null,"difficulty":null}`, 200)
+	if patched["version"] != float64(2) || patched["isFavorite"] != true || patched["sourceText"] != "" ||
 		patched["description"] != "preserve me" || patched["title"] != "" || patched["notes"] != nil ||
 		patched["difficulty"] != nil || len(patched["topicIds"].([]any)) != 1 {
 		t.Fatal(patched)
@@ -150,6 +166,7 @@ func TestLibraryPostgres(t *testing.T) {
 		checkError(call("PATCH", "/items/{itemId}", itemPath, body, 400), "VALIDATION_ERROR")
 	}
 	missingID := "b757aac1-5624-4db8-a1c8-0b973900dc04"
+	checkError(call("PUT", favoriteRoute, "/items/"+missingID+"/favorite", `{"isFavorite":false}`, 404), "ITEM_NOT_FOUND")
 	checkError(call("PATCH", "/items/{itemId}", itemPath, `{"expectedVersion":2,"sourceText":"rollback","topicIds":["`+missingID+`"]}`, 404), "TOPIC_NOT_FOUND")
 	after := call("GET", "/items/{itemId}", itemPath, "", 200)
 	if after["version"] != float64(2) || after["sourceText"] != "" || len(after["topicIds"].([]any)) != 1 {

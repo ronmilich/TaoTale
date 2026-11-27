@@ -139,9 +139,6 @@ export default function ReaderPlayer(props: {
         <Show when={buffering()}>
           <span role="status">Buffering…</span>
         </Show>
-        <a class={styles.download} href={props.recording.download} download>
-          Download Audio
-        </a>
       </div>
     </div>
   );

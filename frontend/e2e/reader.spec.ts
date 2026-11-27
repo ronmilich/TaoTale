@@ -251,7 +251,7 @@ test("preserves selections and play state, resumes per recording and restarts af
   await expect(pause).toBeVisible();
   expect(await readTime()).toBeLessThan(second.startMs / 1000);
   await pause.click();
-  const link = player.getByRole("link", { name: "Download Audio" });
+  const link = page.getByRole("link", { name: "Download Audio" });
   expect(await link.getAttribute("href")).toBe(
     `${api}/audio/download?audioAssetId=${item.audioAssetId}`,
   );
@@ -305,6 +305,7 @@ test("keeps the transcript readable through corrupt timing and a missing recordi
   expect(await transcript.textContent()).toBe(chinese);
   await expect(transcript.locator("[data-segment-index]")).toHaveCount(0);
   await expect(audio).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Download Audio" })).toHaveCount(0);
   const failure = page.waitForResponse(
     (response) => response.url().includes(`${api}/audio?`) && response.status() === 404,
   );
@@ -318,6 +319,111 @@ test("keeps the transcript readable through corrupt timing and a missing recordi
     .poll(() => audio.evaluate((element: HTMLAudioElement) => element.duration))
     .toBeGreaterThan(0);
   expect(await transcript.textContent()).toBe(chinese);
+});
+
+test("keeps the recording and transcript mounted while changing favorite, notes and theme", async ({
+  page,
+  request,
+}) => {
+  const api = await publishedArticle(request, "ko-KR", "차 한 잔을 마셔요. ".repeat(95));
+  const initial = (await (await request.get(api)).json()) as Item;
+  await page.goto(api.replace("/api/v1", ""));
+  const favorite = page.getByRole("button", { name: "Favorite", exact: true });
+  const audio = page.locator("audio");
+  const transcript = page.getByRole("region", { name: "Transcript" });
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  await expect(play).toBeEnabled();
+  const originalAudio = (await audio.elementHandle())!;
+  const originalText = (await transcript.locator("[data-segment-index]").first().elementHandle())!;
+  await page.route(`**${api}/favorite`, (route) => route.fulfill({ status: 503 }), { times: 1 });
+  await favorite.click();
+  await expect(page.getByRole("alert")).toContainText("Could not update favorite");
+  await expect(favorite).toHaveAttribute("aria-pressed", "false");
+  await play.click();
+  await favorite.click();
+  const unfavorite = page.getByRole("button", { name: "Remove from Favorites" });
+  await expect(unfavorite).toHaveAttribute("aria-pressed", "true");
+  const favorited = (await (await request.get(api)).json()) as Item;
+  expect(favorited.version).toBe(initial.version);
+  expect(favorited.updatedAt).toBe(initial.updatedAt);
+  const before = await audio.evaluate((el: HTMLAudioElement) => el.currentTime);
+  await page.getByRole("button", { name: "Notes", exact: true }).click();
+  const notes = page.getByRole("region", { name: "Article notes" });
+  await notes.getByRole("button", { name: "Edit Notes" }).click();
+  await notes.getByRole("textbox").fill("<em>plain text</em>\n둘째 줄");
+  await page.getByRole("link", { name: "Back to Library" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Stay" }).click();
+  await page.emulateMedia({
+    colorScheme: test.info().project.name === "tablet" ? "light" : "dark",
+  });
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme",
+    test.info().project.name === "tablet" ? "light" : "dark",
+  );
+  await notes.getByRole("button", { name: "Save Notes", exact: true }).click();
+  await expect(notes.getByRole("status")).toHaveText("Notes saved.");
+  await expect(notes.getByText("<em>plain text</em>")).toBeVisible();
+  expect(await originalAudio.evaluate((el: HTMLAudioElement) => el.isConnected && !el.paused)).toBe(
+    true,
+  );
+  expect(await originalText.evaluate((el) => el.isConnected)).toBe(true);
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.currentTime)).toBeGreaterThan(before);
+  const saved = (await (await request.get(api)).json()) as Item;
+  expect(saved).toMatchObject({
+    notes: "<em>plain text</em>\n둘째 줄",
+    isFavorite: true,
+    audioAssetId: initial.audioAssetId,
+    version: initial.version + 1,
+  });
+  await page.reload();
+  await expect(unfavorite).toHaveAttribute("aria-pressed", "true");
+  await unfavorite.click();
+  await expect(favorite).toHaveAttribute("aria-pressed", "false");
+});
+
+test("guards unsaved notes and leaves only after the save is confirmed", async ({
+  page,
+  request,
+}) => {
+  const api = await publishedArticle(request, "zh-CN", chinese);
+  await page.goto(api.replace("/api/v1", ""));
+  await page.getByRole("button", { name: "Notes", exact: true }).click();
+  const notes = page.getByRole("region", { name: "Article notes" });
+  const edit = notes.getByRole("button", { name: "Edit Notes" });
+  await edit.click();
+  const textbox = notes.getByRole("textbox");
+  await textbox.fill("cancelled");
+  await notes.getByRole("button", { name: "Cancel" }).click();
+  await expect(notes.getByText("No notes yet.")).toBeVisible();
+  await edit.click();
+  const published = (await (await request.get(api)).json()) as Item;
+  const elsewhere = await request.patch(api, {
+    data: { expectedVersion: published.version, notes: "Changed elsewhere." },
+  });
+  expect(elsewhere.ok()).toBe(true);
+  await textbox.fill("Stale note.");
+  await notes.getByRole("button", { name: "Save Notes", exact: true }).click();
+  await expect(notes.getByRole("alert")).toContainText("This article changed elsewhere");
+  await expect(textbox).toHaveValue("Stale note.");
+  await notes.getByRole("button", { name: "Discard Edits and Load Latest" }).click();
+  await expect(notes.getByText("Changed elsewhere.")).toBeVisible();
+  await edit.click();
+  await textbox.fill("Keep this note.");
+  const back = page.getByRole("link", { name: "Back to Library" });
+  await back.click();
+  const dialog = page.getByRole("dialog", { name: "Leave with unsaved notes?" });
+  await dialog.getByRole("button", { name: "Stay" }).click();
+  await expect(textbox).toHaveValue("Keep this note.");
+  await page.route(`**${api}`, (route) => route.fulfill({ status: 503 }), { times: 1 });
+  await back.click();
+  const saveAndLeave = dialog.getByRole("button", { name: "Save Notes & Leave" });
+  await saveAndLeave.click();
+  await expect(notes.getByRole("alert")).toContainText("Could not save notes");
+  await expect(textbox).toHaveValue("Keep this note.");
+  await back.click();
+  await saveAndLeave.click();
+  await expect(page).toHaveURL(/\/library/);
+  expect(((await (await request.get(api)).json()) as Item).notes).toBe("Keep this note.");
 });
 
 test("offers editing from a draft URL and reports unknown item IDs", async ({ page, request }) => {

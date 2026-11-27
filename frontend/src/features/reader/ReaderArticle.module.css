@@ -131,9 +131,63 @@
   min-width: 5rem;
 }
 
-.download {
-  margin-inline-start: auto;
-  text-underline-offset: 0.2em;
+.readerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-16);
+}
+
+.readerActions button[aria-pressed="true"] {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.notes,
+.notesDialog {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-16);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.notes {
+  flex: 1 0 100%;
+  scroll-margin-bottom: 148px;
+}
+
+.notes form {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.notes textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.intro .noteText {
+  margin: 0 0 var(--space-12);
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+.notesDialog {
+  max-width: min(100% - 2 * var(--gutter), 560px);
+}
+
+.notesDialog::backdrop {
+  background: rgb(20 16 36 / 55%);
+}
+
+.notesDialog h2 {
+  margin-bottom: var(--space-16);
+}
+
+.intro [role="alert"] {
+  color: var(--color-danger);
 }
 
 .player p {

@@ -96,7 +96,7 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 
 ## 5. Mutations, idempotency and errors
 
-The draft API accepts omitted fields as defaults at creation. A PATCH carries `expectedVersion`. Omission preserves a field, `null` clears nullable metadata, an empty string is stored as typed, an empty `topicIds` clears associations, and `false` explicitly clears the favorite flag. Page size defaults to 8 and allows up to 50. The current sort is creation timestamp descending, with descending item ID for ties.
+The draft API accepts omitted fields as defaults at creation. A PATCH carries `expectedVersion`. Omission preserves a field, `null` clears nullable metadata, an empty string is stored as typed, and an empty `topicIds` clears associations. Use `PUT /items/{itemId}/favorite` to set or clear the favorite flag on an existing item. Page size defaults to 8 and allows up to 50. The current sort is creation timestamp descending, with descending item ID for ties.
 
 Topics use `/topics` across all learning languages. Writes accept `colorPreset` and the server resolves the stored colors. New Topics default to Iris. Names are unique after Unicode whitespace trimming and case folding. `DUPLICATE_TOPIC` includes `error.details.existingId`. The `usageCount` counts linked items across languages. Default Topics can be renamed and recolored while their system keys and deletion protection persist.
 

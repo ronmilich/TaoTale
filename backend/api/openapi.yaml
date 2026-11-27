@@ -275,6 +275,50 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+  /items/{itemId}/favorite:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+    put:
+      operationId: setItemFavorite
+      summary: Set an item's favorite flag independently of its content version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [isFavorite]
+              properties:
+                isFavorite: {type: boolean}
+      responses:
+        '200':
+          description: Confirmed favorite
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [id, isFavorite]
+                properties:
+                  id: {type: string, format: uuid}
+                  isFavorite: {type: boolean}
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
   /items/{itemId}/audio:
     parameters:
       - $ref: '#/components/parameters/ItemId'
@@ -1050,7 +1094,6 @@ components:
         description: {type: [string, 'null'], maxLength: 1000}
         notes: {type: [string, 'null'], maxLength: 5000}
         difficulty: {type: [string, 'null'], enum: [beginner, intermediate, advanced, null]}
-        isFavorite: {type: boolean}
         voiceId: {type: [string, 'null']}
         speakingRate: {type: [number, 'null'], enum: [0.75, 1, 1.25, null]}
         topicIds:

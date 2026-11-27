@@ -109,7 +109,7 @@ func (i itemInput) validate(providerID string) (persistence.ItemPatch, string) {
 	return persistence.ItemPatch{
 		Title: textField(i.Title), Description: textField(i.Description), Notes: textField(i.Notes),
 		Difficulty: textField(i.Difficulty), Voice: textField(i.VoiceID), SourceText: i.SourceText.Value,
-		Favorite: i.IsFavorite.Value, Rate: rate, TopicIDs: topics, PreviewID: previewID,
+		Rate: rate, TopicIDs: topics, PreviewID: previewID,
 	}, ""
 }
 
@@ -216,6 +216,9 @@ func registerLibrary(router *gin.Engine, store *persistence.Library, providerID 
 			return
 		}
 		patch, message := input.validate(providerID)
+		if message == "" && input.IsFavorite.Set {
+			message = "Use the favorite endpoint to change the favorite flag."
+		}
 		if message == "" && input.ExpectedVersion < 1 {
 			message = "Send the current expected version."
 		}
@@ -229,6 +232,31 @@ func registerLibrary(router *gin.Engine, store *persistence.Library, providerID 
 		patch.ExpectedVersion = input.ExpectedVersion
 		item, err := store.PatchItem(c.Request.Context(), id, patch)
 		writeItem(c, item, err, http.StatusOK)
+	})
+	router.PUT("/api/v1/items/:itemId/favorite", func(c *gin.Context) {
+		id, ok := resourceID(c, "itemId", "ITEM_NOT_FOUND")
+		if !ok {
+			return
+		}
+		var input struct {
+			IsFavorite *bool `json:"isFavorite"`
+		}
+		if !DecodeJSON(c, &input) {
+			return
+		}
+		if input.IsFavorite == nil {
+			fail(c, http.StatusBadRequest, "VALIDATION_ERROR", "Favorite must be a Boolean.")
+			return
+		}
+		if !hasLibrary(c, store) {
+			return
+		}
+		result, err := store.SetItemFavorite(c.Request.Context(), id, *input.IsFavorite)
+		if err != nil {
+			failLibrary(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"id": result.ID, "isFavorite": result.IsFavorite})
 	})
 	router.DELETE("/api/v1/items/:itemId", func(c *gin.Context) {
 		id, ok := resourceID(c, "itemId", "ITEM_NOT_FOUND")
@@ -260,7 +288,7 @@ func decodeNewItem(c *gin.Context, providerID string) (persistence.NewItem, bool
 	return persistence.NewItem{Item: queries.AddItemParams{
 		LanguageCode: input.Language, Title: defaultValue(patch.Title), SourceText: defaultValue(patch.SourceText),
 		Description: defaultValue(patch.Description), Notes: defaultValue(patch.Notes), Difficulty: defaultValue(patch.Difficulty),
-		IsFavorite: defaultValue(patch.Favorite), VoiceID: defaultValue(patch.Voice), SpeakingRate: defaultValue(patch.Rate),
+		IsFavorite: defaultValue(input.IsFavorite.Value), VoiceID: defaultValue(patch.Voice), SpeakingRate: defaultValue(patch.Rate),
 	}, TopicIDs: defaultValue(patch.TopicIDs), PreviewID: patch.PreviewID}, true
 }
 

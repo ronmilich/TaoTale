@@ -290,14 +290,38 @@ func (q *Queries) PageItems(ctx context.Context, arg PageItemsParams) ([]Library
 	return items, nil
 }
 
+const setItemFavorite = `-- name: SetItemFavorite :one
+UPDATE public.library_items
+SET is_favorite = $1
+WHERE library_items.id = $2 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+RETURNING id, is_favorite
+`
+
+type SetItemFavoriteParams struct {
+	IsFavorite bool
+	ID         pgtype.UUID
+}
+
+type SetItemFavoriteRow struct {
+	ID         pgtype.UUID
+	IsFavorite bool
+}
+
+func (q *Queries) SetItemFavorite(ctx context.Context, arg SetItemFavoriteParams) (SetItemFavoriteRow, error) {
+	row := q.db.QueryRow(ctx, setItemFavorite, arg.IsFavorite, arg.ID)
+	var i SetItemFavoriteRow
+	err := row.Scan(&i.ID, &i.IsFavorite)
+	return i, err
+}
+
 const updateItem = `-- name: UpdateItem :one
 UPDATE public.library_items
 SET title = $1, source_text = $2, description = $3,
-    notes = $4, difficulty = $5, is_favorite = $6,
-    voice_id = $7, speaking_rate = $8,
+    notes = $4, difficulty = $5,
+    voice_id = $6, speaking_rate = $7,
     version = version + 1, updated_at = clock_timestamp()
-WHERE library_items.id = $9 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
-  AND version = $10
+WHERE library_items.id = $8 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+  AND version = $9
 RETURNING id, user_id, language_code, title, source_text, description, notes, difficulty, is_favorite, voice_id, speaking_rate, version, published_at, created_at, updated_at, active_audio_asset_id
 `
 
@@ -307,7 +331,6 @@ type UpdateItemParams struct {
 	Description     pgtype.Text
 	Notes           pgtype.Text
 	Difficulty      pgtype.Text
-	IsFavorite      bool
 	VoiceID         pgtype.Text
 	SpeakingRate    pgtype.Float8
 	ID              pgtype.UUID
@@ -321,7 +344,6 @@ func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Library
 		arg.Description,
 		arg.Notes,
 		arg.Difficulty,
-		arg.IsFavorite,
 		arg.VoiceID,
 		arg.SpeakingRate,
 		arg.ID,

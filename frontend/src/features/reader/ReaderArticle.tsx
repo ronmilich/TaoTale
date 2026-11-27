@@ -4,6 +4,7 @@ import { draftAudioURLs, type Item } from "../../api/client";
 import controls from "../../components/Controls.module.css";
 import type { Language } from "../../preferences/storage";
 import styles from "./ReaderArticle.module.css";
+import ReaderActions from "./ReaderActions";
 import ReaderPlayer, { type Recording, type Seek } from "./ReaderPlayer";
 import { transcriptRuns } from "./transcript";
 
@@ -74,6 +75,9 @@ export default function ReaderArticle(props: {
           <h1>{props.title}</h1>
           <Show when={props.description}>
             <p>{props.description}</p>
+          </Show>
+          <Show when={props.item}>
+            {(item) => <ReaderActions item={item()} download={seek() && recording()?.download} />}
           </Show>
         </header>
         <div

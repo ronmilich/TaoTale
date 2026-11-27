@@ -85,7 +85,9 @@ func TestOpenAPIConformance(t *testing.T) {
 			case "publishDraft":
 				body, status = `{"expectedVersion":1}`, http.StatusServiceUnavailable
 			case "patchItem":
-				body, status = `{"expectedVersion":1,"isFavorite":false}`, http.StatusServiceUnavailable
+				body, status = `{"expectedVersion":1,"notes":"Example"}`, http.StatusServiceUnavailable
+			case "setItemFavorite":
+				body, status = `{"isFavorite":false}`, http.StatusServiceUnavailable
 			case "createTopic", "patchTopic":
 				body, status = `{"name":"Example"}`, http.StatusServiceUnavailable
 			}

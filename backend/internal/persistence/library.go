@@ -78,7 +78,6 @@ type ItemPatch struct {
 	PreviewID                                    pgtype.UUID
 	Title, Description, Notes, Difficulty, Voice *pgtype.Text
 	SourceText                                   *string
-	Favorite                                     *bool
 	Rate                                         *pgtype.Float8
 	TopicIDs                                     *[]pgtype.UUID
 }
@@ -108,7 +107,7 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 			ID: id, ExpectedVersion: patch.ExpectedVersion, Title: valueOr(patch.Title, row.Title),
 			SourceText: valueOr(patch.SourceText, row.SourceText), Description: valueOr(patch.Description, row.Description),
 			Notes: valueOr(patch.Notes, row.Notes), Difficulty: valueOr(patch.Difficulty, row.Difficulty),
-			IsFavorite: valueOr(patch.Favorite, row.IsFavorite), VoiceID: valueOr(patch.Voice, row.VoiceID),
+			VoiceID:      valueOr(patch.Voice, row.VoiceID),
 			SpeakingRate: valueOr(patch.Rate, row.SpeakingRate),
 		})
 		if err != nil {
@@ -140,6 +139,11 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 		return err
 	})
 	return result, err
+}
+
+func (s Library) SetItemFavorite(ctx context.Context, id pgtype.UUID, favorite bool) (queries.SetItemFavoriteRow, error) {
+	row, err := queries.New(s.Pool).SetItemFavorite(ctx, queries.SetItemFavoriteParams{ID: id, IsFavorite: favorite})
+	return row, missing(err, ErrItemNotFound)
 }
 
 func valueOr[T any](value *T, fallback T) T {

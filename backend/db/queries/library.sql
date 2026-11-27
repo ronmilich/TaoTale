@@ -20,12 +20,18 @@ FOR UPDATE;
 -- name: UpdateItem :one
 UPDATE public.library_items
 SET title = sqlc.narg(title), source_text = sqlc.arg(source_text), description = sqlc.narg(description),
-    notes = sqlc.narg(notes), difficulty = sqlc.narg(difficulty), is_favorite = sqlc.arg(is_favorite),
+    notes = sqlc.narg(notes), difficulty = sqlc.narg(difficulty),
     voice_id = sqlc.narg(voice_id), speaking_rate = sqlc.narg(speaking_rate),
     version = version + 1, updated_at = clock_timestamp()
 WHERE library_items.id = sqlc.arg(id) AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
   AND version = sqlc.arg(expected_version)
 RETURNING *;
+
+-- name: SetItemFavorite :one
+UPDATE public.library_items
+SET is_favorite = sqlc.arg(is_favorite)
+WHERE library_items.id = sqlc.arg(id) AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
+RETURNING id, is_favorite;
 
 -- name: DeleteItem :execrows
 DELETE FROM public.library_items
