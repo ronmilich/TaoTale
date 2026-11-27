@@ -73,6 +73,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a new item by claiming its matching READY preview
+         * @description The item, preview claim and publication receipt commit together. Replay the same key and intent to recover the original result for 24 hours.
+         */
+        post: operations["publishPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the expected draft version with its latest verified recording */
+        post: operations["publishDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}": {
         parameters: {
             query?: never;
@@ -395,6 +434,12 @@ export interface components {
             speakingRate?: 0.75 | 1 | 1.25 | null;
             topicIds?: string[];
         };
+        DirectPublication: components["schemas"]["ItemCreate"] & {
+            /** Format: uuid */
+            previewGenerationId: string;
+            title: string;
+            sourceText: string;
+        };
         ItemPatch: {
             /**
              * Format: uuid
@@ -489,6 +534,19 @@ export interface components {
         };
     };
     responses: {
+        /** @description Published item address. */
+        Publication: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    itemId: string;
+                };
+            };
+        };
         /** @description Full verified MP3. */
         AudioStream: {
             headers: {
@@ -761,6 +819,67 @@ export interface operations {
         };
         responses: {
             201: components["responses"]["Item"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    publishPreview: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectPublication"];
+            };
+        };
+        responses: {
+            201: components["responses"]["Publication"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    publishDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    /**
+                     * Format: uuid
+                     * @description If supplied, the latest eligible recording must also match this pin.
+                     */
+                    audioAssetId?: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Publication"];
             400: components["responses"]["APIError"];
             403: components["responses"]["APIError"];
             404: components["responses"]["APIError"];

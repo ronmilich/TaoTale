@@ -80,13 +80,17 @@ func TestOpenAPIConformance(t *testing.T) {
 				body, status = `{"languageCode":"zh-CN","sourceText":"你好。","voiceId":"zh-CN-mock","speakingRate":1}`, http.StatusServiceUnavailable
 			case "createItem":
 				body, status = `{"languageCode":"zh-CN"}`, http.StatusServiceUnavailable
+			case "publishPreview":
+				body, status = `{"languageCode":"zh-CN","title":"Title","sourceText":"你好。","previewGenerationId":"`+contractID+`"}`, http.StatusServiceUnavailable
+			case "publishDraft":
+				body, status = `{"expectedVersion":1}`, http.StatusServiceUnavailable
 			case "patchItem":
 				body, status = `{"expectedVersion":1,"isFavorite":false}`, http.StatusServiceUnavailable
 			case "createTopic", "patchTopic":
 				body, status = `{"name":"Example"}`, http.StatusServiceUnavailable
 			}
 			req := httptest.NewRequest(route.Method, url, strings.NewReader(body))
-			if operation == "generateDraftAudio" || operation == "createTTSPreview" {
+			if operation == "generateDraftAudio" || operation == "createTTSPreview" || operation == "publishPreview" {
 				req.Header.Set("Idempotency-Key", contractID)
 			}
 			if body != "" {

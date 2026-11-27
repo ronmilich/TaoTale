@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -212,7 +214,56 @@ func TestPreviewAudioPostgres(t *testing.T) {
 		t.Fatalf("replacement pin unavailable: %d %s", res.Code, res.Body)
 	}
 
-	sqlExec("UPDATE library_items SET published_at=now(), active_audio_asset_id=$2 WHERE id=$1", itemID, firstAsset)
+	t.Run("saved publication rechecks the version, exact source, latest pin and media", func(t *testing.T) {
+		publish := func(body string) *httptest.ResponseRecorder { return call("POST", itemPath+"/publish", "", body) }
+		assertAPIError(t, publish(`{}`), 400, "VALIDATION_ERROR")
+		assertAPIError(t, publish(`{"expectedVersion":1}`), 409, "VERSION_CONFLICT")
+		assertAPIError(t, publish(fmt.Sprintf(`{"expectedVersion":2,"audioAssetId":%q}`, firstAsset)), 409, "AUDIO_NOT_READY")
+		// An older READY asset matches this source, but the latest admission does not.
+		object(call("PATCH", itemPath, "", `{"expectedVersion":2,"sourceText":"你好。"}`), 200)
+		assertAPIError(t, publish(`{"expectedVersion":3}`), 409, "AUDIO_NOT_READY")
+		object(call("PATCH", itemPath, "", `{"expectedVersion":3,"sourceText":"再见。","title":"　"}`), 200)
+		assertAPIError(t, publish(`{"expectedVersion":4}`), 400, "VALIDATION_ERROR")
+		object(call("PATCH", itemPath, "", `{"expectedVersion":4,"title":"Saved article"}`), 200)
+
+		var storage string
+		if err := pool.QueryRow(t.Context(), "SELECT storage_key FROM audio_assets WHERE id=$1", secondAsset).Scan(&storage); err != nil {
+			t.Fatal(err)
+		}
+		file := filepath.Join(root, storage)
+		if err := os.Rename(file, file+".offline"); err != nil {
+			t.Fatal(err)
+		}
+		assertAPIError(t, publish(`{"expectedVersion":5}`), 503, "AUDIO_UNAVAILABLE")
+		if err := os.Rename(file+".offline", file); err != nil {
+			t.Fatal(err)
+		}
+		before := object(call("GET", itemPath, "", ""), 200)
+		if before["status"] != "draft" || before["version"] != float64(5) || before["audioAssetId"] != secondAsset {
+			t.Fatalf("failed publication changed draft: %v", before)
+		}
+		body := fmt.Sprintf(`{"expectedVersion":5,"audioAssetId":%q}`, secondAsset)
+		for range 2 {
+			go func() { results <- publish(body) }()
+		}
+		winner, loser := <-results, <-results
+		if winner.Code != 200 {
+			winner, loser = loser, winner
+		}
+		if object(winner, 200)["itemId"] != itemID {
+			t.Fatal("wrong published item")
+		}
+		assertAPIError(t, loser, 409, "VERSION_CONFLICT")
+		after := object(call("GET", itemPath, "", ""), 200)
+		if after["version"] != float64(6) || after["publishedAt"] == nil || after["status"] != "published" ||
+			after["audioAssetId"] != secondAsset || after["voiceId"] != "zh-CN-mock" || after["speakingRate"] != float64(1) {
+			t.Fatalf("incorrect publication: %v", after)
+		}
+		assertAPIError(t, publish(`{"expectedVersion":6}`), 409, "INVALID_ITEM_STATE")
+		assertAPIError(t, call("PATCH", itemPath, "", `{"expectedVersion":6,"title":null}`), 400, "VALIDATION_ERROR")
+	})
+
+	sqlExec("UPDATE library_items SET active_audio_asset_id=$2 WHERE id=$1", itemID, firstAsset)
 	if res := call(http.MethodGet, pinned(firstAsset), "", ""); res.Code != 200 {
 		t.Fatalf("published recording did not take precedence over draft history: %d %s", res.Code, res.Body)
 	}
@@ -237,4 +288,43 @@ func TestPreviewAudioPostgres(t *testing.T) {
 	if itemCount() != startCount+1 || provider.calls.Load() != 3 {
 		t.Fatal("an expired preview created a draft or repeated synthesis")
 	}
+
+	t.Run("direct publication atomically claims and replays the original result", func(t *testing.T) {
+		const previewKey = "aaee0000-0000-4000-b000-000000000004"
+		const publishKey = "aaee0000-0000-4000-b000-000000000005"
+		const mismatchKey = "aaee0000-0000-4000-b000-000000000006"
+		const otherKey = "aaee0000-0000-4000-b000-000000000007"
+		direct := func(key, body string) *httptest.ResponseRecorder { return call("POST", "/items/publish", key, body) }
+		id := admit(previewKey, firstBody)
+		asset := ready(id)
+		body, wrong := save(id, "你好。"), save(id, " 你好。")
+		assertAPIError(t, direct("", body), 400, "VALIDATION_ERROR")
+		assertAPIError(t, direct(previewKey, body), 409, "IDEMPOTENCY_KEY_REUSED")
+		assertAPIError(t, direct(mismatchKey, wrong), 409, "PREVIEW_MISMATCH")
+		assertAPIError(t, direct(mismatchKey, body), 409, "IDEMPOTENCY_KEY_REUSED")
+		if itemCount() != startCount+1 {
+			t.Fatal("rejected publication left a draft")
+		}
+		for range 2 {
+			go func() { results <- direct(publishKey, body) }()
+		}
+		first, replay := object(<-results, 201), object(<-results, 201)
+		if first["itemId"] != replay["itemId"] || itemCount() != startCount+2 || provider.calls.Load() != 4 {
+			t.Fatal("duplicate direct publication or synthesis")
+		}
+		assertGone(previews + "/" + id)
+		path := "/items/" + first["itemId"].(string)
+		published := object(call("GET", path, "", ""), 200)
+		if published["status"] != "published" || published["audioAssetId"] != asset {
+			t.Fatal(published)
+		}
+		assertAPIError(t, direct(otherKey, body), 404, "PREVIEW_NOT_FOUND")
+		assertAPIError(t, direct(mismatchKey, wrong), 409, "PREVIEW_MISMATCH")
+		if res := call("DELETE", path, "", ""); res.Code != 204 {
+			t.Fatal(res.Code)
+		}
+		if object(direct(publishKey, body), 201)["itemId"] != first["itemId"] || itemCount() != startCount+1 {
+			t.Fatal("replay after deletion created an item")
+		}
+	})
 }

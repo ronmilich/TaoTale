@@ -54,13 +54,15 @@ type AudioGeneration struct {
 }
 
 type IdempotencyRecord struct {
-	UserID       pgtype.UUID
-	Operation    string
-	Key          pgtype.UUID
-	RequestHash  string
-	GenerationID pgtype.UUID
-	CreatedAt    pgtype.Timestamptz
-	ExpiresAt    pgtype.Timestamptz
+	UserID           pgtype.UUID
+	Operation        string
+	Key              pgtype.UUID
+	RequestHash      string
+	GenerationID     pgtype.UUID
+	CreatedAt        pgtype.Timestamptz
+	ExpiresAt        pgtype.Timestamptz
+	PublishedItemID  pgtype.UUID
+	PublicationError pgtype.Text
 }
 
 type ItemTopic struct {

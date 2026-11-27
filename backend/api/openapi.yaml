@@ -129,6 +129,84 @@ paths:
           $ref: '#/components/responses/APIError'
         '504':
           $ref: '#/components/responses/APIError'
+  /items/publish:
+    post:
+      operationId: publishPreview
+      summary: Publish a new item by claiming its matching READY preview
+      description: The item, preview claim and publication receipt commit together. Replay the same key and intent to recover the original result for 24 hours.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DirectPublication'
+      responses:
+        '201':
+          $ref: '#/components/responses/Publication'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
+  /items/{itemId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+    post:
+      operationId: publishDraft
+      summary: Publish the expected draft version with its latest verified recording
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expectedVersion]
+              properties:
+                expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
+                audioAssetId:
+                  type: string
+                  format: uuid
+                  description: If supplied, the latest eligible recording must also match this pin.
+      responses:
+        '200':
+          $ref: '#/components/responses/Publication'
+        '400':
+          $ref: '#/components/responses/APIError'
+        '403':
+          $ref: '#/components/responses/APIError'
+        '404':
+          $ref: '#/components/responses/APIError'
+        '409':
+          $ref: '#/components/responses/APIError'
+        '413':
+          $ref: '#/components/responses/APIError'
+        '415':
+          $ref: '#/components/responses/APIError'
+        '500':
+          $ref: '#/components/responses/APIError'
+        '503':
+          $ref: '#/components/responses/APIError'
+        '504':
+          $ref: '#/components/responses/APIError'
   /items/{itemId}:
     parameters:
       - name: itemId
@@ -669,6 +747,19 @@ components:
       schema:
         type: string
   responses:
+    Publication:
+      description: Published item address.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [itemId]
+            properties:
+              itemId: {type: string, format: uuid}
     AudioStream:
       description: Full verified MP3.
       headers:
@@ -932,6 +1023,15 @@ components:
           maxItems: 10
           uniqueItems: true
           items: {type: string, format: uuid}
+    DirectPublication:
+      allOf:
+        - $ref: '#/components/schemas/ItemCreate'
+        - type: object
+          required: [title, sourceText, previewGenerationId]
+          properties:
+            previewGenerationId: {type: string, format: uuid}
+            title: {type: string, minLength: 1, pattern: '\S'}
+            sourceText: {type: string, minLength: 1, pattern: '\S'}
     ItemPatch:
       type: object
       additionalProperties: false

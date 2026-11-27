@@ -34,6 +34,7 @@ import {
 import { DraftForm } from "./DraftForm";
 import styles from "./DraftEditor.module.css";
 import { useDraftAudio } from "./useDraftAudio";
+import { usePublication } from "./usePublication";
 
 const invalidAddress = Symbol("invalid draft address");
 const draftUUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -123,12 +124,30 @@ export default function DraftEditor() {
     item: () => draft.item,
     values: () => draft.values,
     synthesisChanged: synthesisInputsChanged,
-    editingBlocked: () => saving() || Boolean(conflict()),
+    editingBlocked: (): boolean => saving() || Boolean(conflict()) || publication.locked(),
     setSpeech(voiceId, speakingRate) {
       setDraft((state) => {
         state.values.voiceId = voiceId;
         state.values.speakingRate = speakingRate;
       });
+    },
+  });
+  const publication = usePublication({
+    audio,
+    item: () => draft.item,
+    values: () => draft.values,
+    baseline: () => draft.baseline,
+    dirty,
+    synthesisChanged: synthesisInputsChanged,
+    invalid: () => Object.keys(errors()).length > 0,
+    saving,
+    conflict: () => Boolean(conflict()),
+    saved: confirmDraft,
+    review: () => setConflict({ phase: "unreviewed" }),
+    openReader(id) {
+      canonicalPath = `/items/${encodeURIComponent(id)}`;
+      navigate(canonicalPath, { replace: true });
+      canonicalPath = undefined;
     },
   });
 
@@ -163,6 +182,7 @@ export default function DraftEditor() {
       }
       reviewRequest?.abort();
       audio.reset();
+      publication.clearMessage();
       if (id === null) {
         loadedId = null;
         confirmDraft(null);
@@ -203,7 +223,7 @@ export default function DraftEditor() {
   onCleanup(() => reviewRequest?.abort());
 
   async function saveDraft() {
-    if (saving() || conflict() || audio.submitting()) return false;
+    if (saving() || conflict() || audio.submitting() || publication.locked()) return false;
     const invalidField = Object.keys(errors())[0];
     if (invalidField) {
       setShowValidation(true);
@@ -301,7 +321,7 @@ export default function DraftEditor() {
   }
 
   useBeforeLeave((event) => {
-    if (event.defaultPrevented || (!dirty() && !saving())) return;
+    if (event.defaultPrevented || (!dirty() && !saving() && !publication.locked())) return;
     if (typeof event.to === "string") {
       if (event.to === canonicalPath) return;
       const destination = new URL(event.to, "http://editor.local");
@@ -310,18 +330,21 @@ export default function DraftEditor() {
       }
     }
     event.preventDefault();
-    if (!leaveRequest() && !saving()) setLeaveRequest(event);
+    if (!leaveRequest() && !saving() && !publication.locked()) setLeaveRequest(event);
   });
 
-  createEffect(dirty, (hasEdits) => {
-    if (!hasEdits) return;
-    function warn(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = true;
-    }
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  });
+  createEffect(
+    () => dirty() || publication.locked(),
+    (hasEdits) => {
+      if (!hasEdits) return;
+      function warn(event: BeforeUnloadEvent) {
+        event.preventDefault();
+        event.returnValue = true;
+      }
+      window.addEventListener("beforeunload", warn);
+      return () => window.removeEventListener("beforeunload", warn);
+    },
+  );
 
   createEffect(leaveRequest, (request) => {
     if (request && !leaveDialog.open) leaveDialog.showModal();
@@ -345,15 +368,6 @@ export default function DraftEditor() {
   }
 
   const heading = () => (requestedId() === null ? "New article" : "Edit draft");
-  const publishReason = createMemo(() => {
-    if (!draft.item) return "Save a draft before publishing.";
-    if (!draft.values.title.trim() || !draft.values.sourceText.trim())
-      return "Add a title and source text before publishing.";
-    if (synthesisInputsChanged())
-      return "Save your text, voice, and rate changes before publishing.";
-    if (audio.status() !== "READY") return "Generate matching audio before publishing.";
-    return "Publishing will be available in a later update.";
-  });
   const canReview = () => conflict()?.phase === "ready";
   const reviewValues = createMemo(() => {
     const review = conflict();
@@ -416,13 +430,13 @@ export default function DraftEditor() {
             languageError={preferences.languageError()}
             retryLanguages={preferences.retryLanguages}
             saved={Boolean(draft.item)}
-            saving={saving()}
+            saving={saving() || publication.locked()}
             audio={
               <AudioPanel
                 audio={audio}
                 saved={Boolean(draft.item)}
                 changed={synthesisInputsChanged()}
-                disabled={saving() || Boolean(conflict())}
+                disabled={saving() || Boolean(conflict()) || publication.locked()}
               />
             }
             update={setField}
@@ -430,6 +444,11 @@ export default function DraftEditor() {
           <Show when={saveError()}>
             <p role="alert" class={styles.alert}>
               {saveError()}
+            </p>
+          </Show>
+          <Show when={publication.message()}>
+            <p role="alert" class={styles.alert}>
+              {publication.message()}
             </p>
           </Show>
           <Show when={conflict()}>
@@ -515,22 +534,29 @@ export default function DraftEditor() {
               </Show>
             </div>
             <div class={styles.footerActions}>
-              <p id="publish-reason" class={styles.hint}>
-                {publishReason()}
-              </p>
+              <Show when={publication.reason()}>
+                <p id="publish-reason" class={styles.hint}>
+                  {publication.reason()}
+                </p>
+              </Show>
               <button
                 type="button"
                 class={controls.secondary}
-                disabled
-                aria-describedby="publish-reason"
+                disabled={
+                  publication.pending() ||
+                  (Boolean(publication.reason()) && !publication.uncertain())
+                }
+                aria-describedby={publication.reason() ? "publish-reason" : undefined}
+                onClick={() => void publication.submit()}
               >
-                Publish to Library
+                {publication.uncertain() ? "Recover publication" : "Publish to Library"}
               </button>
               <button
                 type="submit"
                 class={controls.primary}
                 disabled={
                   saving() ||
+                  publication.locked() ||
                   audio.submitting() ||
                   Boolean(conflict()) ||
                   (Boolean(draft.item) && !dirty())

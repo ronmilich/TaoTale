@@ -65,28 +65,41 @@ func (q *Queries) GenerationUsage(ctx context.Context, arg GenerationUsageParams
 	return i, err
 }
 
-const getGenerationReceipt = `-- name: GetGenerationReceipt :one
-SELECT request_hash, generation_id, (expires_at > statement_timestamp())::boolean AS replayable
+const getOperationReceipt = `-- name: GetOperationReceipt :one
+SELECT operation, request_hash, generation_id, published_item_id, publication_error,
+       (expires_at > statement_timestamp())::boolean AS replayable
 FROM public.idempotency_records
-WHERE user_id = $1 AND operation = $2 AND key = $3
+WHERE user_id = $1 AND key = $2
+ORDER BY (operation = $3) DESC
+LIMIT 1
 `
 
-type GetGenerationReceiptParams struct {
+type GetOperationReceiptParams struct {
 	UserID    pgtype.UUID
-	Operation string
 	Key       pgtype.UUID
+	Operation string
 }
 
-type GetGenerationReceiptRow struct {
-	RequestHash  string
-	GenerationID pgtype.UUID
-	Replayable   bool
+type GetOperationReceiptRow struct {
+	Operation        string
+	RequestHash      string
+	GenerationID     pgtype.UUID
+	PublishedItemID  pgtype.UUID
+	PublicationError pgtype.Text
+	Replayable       bool
 }
 
-func (q *Queries) GetGenerationReceipt(ctx context.Context, arg GetGenerationReceiptParams) (GetGenerationReceiptRow, error) {
-	row := q.db.QueryRow(ctx, getGenerationReceipt, arg.UserID, arg.Operation, arg.Key)
-	var i GetGenerationReceiptRow
-	err := row.Scan(&i.RequestHash, &i.GenerationID, &i.Replayable)
+func (q *Queries) GetOperationReceipt(ctx context.Context, arg GetOperationReceiptParams) (GetOperationReceiptRow, error) {
+	row := q.db.QueryRow(ctx, getOperationReceipt, arg.UserID, arg.Key, arg.Operation)
+	var i GetOperationReceiptRow
+	err := row.Scan(
+		&i.Operation,
+		&i.RequestHash,
+		&i.GenerationID,
+		&i.PublishedItemID,
+		&i.PublicationError,
+		&i.Replayable,
+	)
 	return i, err
 }
 

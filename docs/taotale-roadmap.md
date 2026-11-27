@@ -77,7 +77,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-21 | Editor: new item and drafts | 4 | TAO-10, TAO-16 | Done |
 | TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Done |
 | TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Done |
-| TAO-24 | Publication | 4 | TAO-23 | Planned |
+| TAO-24 | Publication | 4 | TAO-23 | Done |
 | TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Planned |
 | TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Planned |
 | TAO-27 | Reader actions: Favorite, Notes, Download | 4 | TAO-26 | Planned |
@@ -625,8 +625,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Client: Publish to Library, with a persistent explanation when disabled. On success, navigate to `/items/{id}` and replace the editor entry in history. On failure, the draft and its audio stay intact.
 
 **Exit criteria**
-- [ ] A mismatched or stale candidate can't be published (NFR-05).
-- [ ] End-to-end test: create → generate → publish lands on the Reader route.
+- [x] Publication rejects stale versions, superseded or mismatched recordings, and missing audio files. PostgreSQL integration tests verify rollback and concurrent publication.
+- [x] Desktop and tablet end-to-end tests cover create → generate → publish, Reader navigation and browser history, and recovery of a direct preview publication after a lost response.
 
 **Depends on:** TAO-23
 

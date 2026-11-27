@@ -192,16 +192,21 @@ export function useDraftAudio(options: {
       ? Boolean(latest.active)
       : fallbackStatus() === "PENDING" || fallbackStatus() === "PROCESSING";
   });
-  const media = createMemo(() => {
+  const assetId = createMemo(() => {
     if (status() !== "READY") return;
     const current = job();
-    if (current?.kind === "preview") {
-      return observed()?.assetId ? previewAudioURLs(current.id) : undefined;
-    }
     const item = options.item();
-    const asset =
-      observed()?.assetId ?? (current?.id === item?.audioGenerationId ? item?.audioAssetId : null);
-    return item && asset ? draftAudioURLs(item.id, asset) : undefined;
+    return (
+      observed()?.assetId ?? (current?.id === item?.audioGenerationId ? item?.audioAssetId : null)
+    );
+  });
+  const media = createMemo(() => {
+    const asset = assetId();
+    const current = job();
+    if (!asset || !current) return;
+    return current.kind === "preview"
+      ? previewAudioURLs(current.id)
+      : draftAudioURLs(current.itemId, asset);
   });
 
   createEffect(
@@ -380,6 +385,7 @@ export function useDraftAudio(options: {
     retryVoices: () => setVoiceAttempt((count) => count + 1),
     changeSpeech,
     status,
+    assetId,
     media,
     submitting,
     actionError,

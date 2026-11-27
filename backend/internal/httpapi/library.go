@@ -185,32 +185,11 @@ func registerLibrary(router *gin.Engine, store *persistence.Library, providerID 
 		c.JSON(http.StatusOK, gin.H{"items": result, "total": total, "page": page, "pageSize": size})
 	})
 	router.POST("/api/v1/items", func(c *gin.Context) {
-		var input struct {
-			itemInput
-			Language string `json:"languageCode"`
-		}
-		if !DecodeJSON(c, &input) {
+		input, ok := decodeNewItem(c, providerID)
+		if !ok || !hasLibrary(c, store) {
 			return
 		}
-		patch, message := input.validate(providerID)
-		if message == "" && !tts.SupportsLanguage(input.Language) {
-			message = "Choose a supported learning language."
-		}
-		if message == "" && patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(input.Language, providerID, patch.Voice.String) {
-			message = "Choose a voice compatible with the learning language."
-		}
-		if message != "" {
-			fail(c, http.StatusBadRequest, "VALIDATION_ERROR", message)
-			return
-		}
-		if !hasLibrary(c, store) {
-			return
-		}
-		item, err := store.CreateItem(c.Request.Context(), queries.AddItemParams{
-			LanguageCode: input.Language, Title: defaultValue(patch.Title), SourceText: defaultValue(patch.SourceText),
-			Description: defaultValue(patch.Description), Notes: defaultValue(patch.Notes), Difficulty: defaultValue(patch.Difficulty),
-			IsFavorite: defaultValue(patch.Favorite), VoiceID: defaultValue(patch.Voice), SpeakingRate: defaultValue(patch.Rate),
-		}, defaultValue(patch.TopicIDs), patch.PreviewID)
+		item, err := store.CreateItem(c.Request.Context(), input.Item, input.TopicIDs, input.PreviewID)
 		writeItem(c, item, err, http.StatusCreated)
 	})
 	router.GET("/api/v1/items/:itemId", func(c *gin.Context) {
@@ -253,6 +232,32 @@ func registerLibrary(router *gin.Engine, store *persistence.Library, providerID 
 			writeDeletion(c, store.DeleteItem(c.Request.Context(), id))
 		}
 	})
+}
+
+func decodeNewItem(c *gin.Context, providerID string) (persistence.NewItem, bool) {
+	var input struct {
+		itemInput
+		Language string `json:"languageCode"`
+	}
+	if !DecodeJSON(c, &input) {
+		return persistence.NewItem{}, false
+	}
+	patch, message := input.validate(providerID)
+	if message == "" && !tts.SupportsLanguage(input.Language) {
+		message = "Choose a supported learning language."
+	}
+	if message == "" && patch.Voice != nil && patch.Voice.Valid && !tts.AllowedVoice(input.Language, providerID, patch.Voice.String) {
+		message = "Choose a voice compatible with the learning language."
+	}
+	if message != "" {
+		fail(c, http.StatusBadRequest, "VALIDATION_ERROR", message)
+		return persistence.NewItem{}, false
+	}
+	return persistence.NewItem{Item: queries.AddItemParams{
+		LanguageCode: input.Language, Title: defaultValue(patch.Title), SourceText: defaultValue(patch.SourceText),
+		Description: defaultValue(patch.Description), Notes: defaultValue(patch.Notes), Difficulty: defaultValue(patch.Difficulty),
+		IsFavorite: defaultValue(patch.Favorite), VoiceID: defaultValue(patch.Voice), SpeakingRate: defaultValue(patch.Rate),
+	}, TopicIDs: defaultValue(patch.TopicIDs), PreviewID: patch.PreviewID}, true
 }
 
 func defaultValue[T any](value *T) (zero T) {
@@ -319,13 +324,19 @@ func failLibrary(c *gin.Context, err error) {
 	case errors.Is(err, persistence.ErrPreviewMismatch):
 		fail(c, 409, "PREVIEW_MISMATCH", "The preview does not match the draft's speech inputs.")
 	case errors.Is(err, persistence.ErrAudioNotReady):
-		fail(c, 409, "AUDIO_NOT_READY", "The preview has no ready audio.")
+		fail(c, 409, "AUDIO_NOT_READY", "The latest recording must be ready and match the current speech inputs.")
 	case errors.Is(err, persistence.ErrAudioNotFound):
 		fail(c, 404, "AUDIO_NOT_FOUND", "The requested recording is not current or does not exist.")
 	case errors.Is(err, media.ErrAudioUnavailable):
 		fail(c, 503, "AUDIO_UNAVAILABLE", "The verified recording is unavailable.")
 	case errors.Is(err, persistence.ErrInvalidDraft):
-		fail(c, 409, "INVALID_ITEM_STATE", "Only a draft can claim a temporary preview.")
+		fail(c, 409, "INVALID_ITEM_STATE", "This action requires an unpublished draft.")
+	case errors.Is(err, persistence.ErrPublicationIncomplete):
+		fail(c, 400, "VALIDATION_ERROR", "Publication requires a title and source text.")
+	case errors.Is(err, persistence.ErrKeyReused):
+		fail(c, 409, "IDEMPOTENCY_KEY_REUSED", "This key was used for a different request.")
+	case errors.Is(err, persistence.ErrKeyExpired):
+		fail(c, 409, "IDEMPOTENCY_KEY_EXPIRED", "The original receipt has expired.")
 	case errors.Is(err, persistence.ErrTopicNotFound):
 		fail(c, 404, "TOPIC_NOT_FOUND", "Resource not found.")
 	case errors.Is(err, persistence.ErrDefaultTopic):

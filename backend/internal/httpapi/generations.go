@@ -71,10 +71,6 @@ func generationKey(c *gin.Context) (pgtype.UUID, bool) {
 
 func failGeneration(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, persistence.ErrKeyReused):
-		fail(c, 409, "IDEMPOTENCY_KEY_REUSED", "This key was used for a different operation target.")
-	case errors.Is(err, persistence.ErrKeyExpired):
-		fail(c, 409, "IDEMPOTENCY_KEY_EXPIRED", "The original generation receipt has expired.")
 	case errors.Is(err, persistence.ErrGenerationActive):
 		fail(c, 409, "GENERATION_IN_PROGRESS", "This draft already has an active generation.")
 	case errors.Is(err, persistence.ErrInvalidDraft):

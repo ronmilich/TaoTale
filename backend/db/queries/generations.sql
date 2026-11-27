@@ -1,7 +1,10 @@
--- name: GetGenerationReceipt :one
-SELECT request_hash, generation_id, (expires_at > statement_timestamp())::boolean AS replayable
+-- name: GetOperationReceipt :one
+SELECT operation, request_hash, generation_id, published_item_id, publication_error,
+       (expires_at > statement_timestamp())::boolean AS replayable
 FROM public.idempotency_records
-WHERE user_id = $1 AND operation = $2 AND key = $3;
+WHERE user_id = sqlc.arg(user_id) AND key = sqlc.arg(key)
+ORDER BY (operation = sqlc.arg(operation)) DESC
+LIMIT 1;
 
 -- name: ReserveGenerationKey :one
 INSERT INTO public.idempotency_records (user_id, operation, key, request_hash, generation_id)

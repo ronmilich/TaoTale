@@ -3,6 +3,7 @@ import type { components, operations, paths } from "./schema";
 export type LearningLanguage = components["schemas"]["LearningLanguage"];
 export type Item = components["schemas"]["Item"];
 export type ItemCreate = components["schemas"]["ItemCreate"];
+export type DirectPublication = components["schemas"]["DirectPublication"];
 export type ItemPatch = components["schemas"]["ItemPatch"];
 export type ItemPage = components["schemas"]["ItemPage"];
 export type Voice = components["schemas"]["TTSVoice"];
@@ -99,6 +100,26 @@ export function createItem(item: ItemCreate): Promise<Item> {
 
 export function patchItem(id: string, patch: ItemPatch): Promise<Item> {
   return writeItem(itemPath(id), "PATCH", patch);
+}
+
+type PublicationReceipt = JSONResult<operations["publishDraft"]>;
+
+export function publishDraft(id: string, expectedVersion: number, audioAssetId: string) {
+  return requestJSON<PublicationReceipt>(`${itemPath(id)}/publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expectedVersion, audioAssetId }),
+    signal: AbortSignal.timeout(15_000),
+  });
+}
+
+export function publishPreview(body: DirectPublication, key: string) {
+  return requestJSON<PublicationReceipt>("/items/publish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
+  });
 }
 
 function itemPath(id: string) {

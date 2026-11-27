@@ -105,20 +105,25 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID, e
 }
 
 func generationReceipt(ctx context.Context, q *queries.Queries, owner, key pgtype.UUID, operation, intent string) (pgtype.UUID, error) {
-	receipt, err := q.GetGenerationReceipt(ctx, queries.GetGenerationReceiptParams{UserID: owner, Operation: operation, Key: key})
+	receipt, err := operationReceipt(ctx, q, owner, key, operation, intent)
+	return receipt.GenerationID, err
+}
+
+func operationReceipt(ctx context.Context, q *queries.Queries, owner, key pgtype.UUID, operation, intent string) (queries.GetOperationReceiptRow, error) {
+	receipt, err := q.GetOperationReceipt(ctx, queries.GetOperationReceiptParams{UserID: owner, Operation: operation, Key: key})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return pgtype.UUID{}, nil
+		return receipt, nil
 	}
 	if err != nil {
-		return pgtype.UUID{}, err
+		return receipt, err
 	}
-	if receipt.RequestHash != intent {
-		return pgtype.UUID{}, ErrKeyReused
+	if receipt.Operation != operation || receipt.RequestHash != intent {
+		return receipt, ErrKeyReused
 	}
 	if !receipt.Replayable {
-		return pgtype.UUID{}, ErrKeyExpired
+		return receipt, ErrKeyExpired
 	}
-	return receipt.GenerationID, nil
+	return receipt, nil
 }
 
 func validateSynthesis(id fingerprint.Identity) error {

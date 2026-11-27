@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -47,25 +48,28 @@ func (s Library) CreateItem(ctx context.Context, input queries.AddItemParams, to
 	var result Item
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := queries.New(tx)
-		row, err := q.AddItem(ctx, input)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrUnsupportedLanguage
-		}
+		row, err := s.insertDraft(ctx, q, input, topics, previewID)
 		if err != nil {
 			return err
-		}
-		if err := insertItemTopics(ctx, q, row.ID, topics); err != nil {
-			return err
-		}
-		if previewID.Valid {
-			if err := s.claimPreview(ctx, q, row, previewID); err != nil {
-				return err
-			}
 		}
 		result, err = s.loadItem(ctx, q, row)
 		return err
 	})
 	return result, err
+}
+
+func (s Library) insertDraft(ctx context.Context, q *queries.Queries, input queries.AddItemParams, topics []pgtype.UUID, previewID pgtype.UUID) (queries.LibraryItem, error) {
+	row, err := q.AddItem(ctx, input)
+	if err != nil {
+		return row, missing(err, ErrUnsupportedLanguage)
+	}
+	if err := insertItemTopics(ctx, q, row.ID, topics); err != nil {
+		return row, err
+	}
+	if previewID.Valid {
+		err = s.claimPreview(ctx, q, row, previewID)
+	}
+	return row, err
 }
 
 type ItemPatch struct {
@@ -88,6 +92,9 @@ func (s Library) PatchItem(ctx context.Context, id pgtype.UUID, patch ItemPatch)
 		}
 		if row.Version != patch.ExpectedVersion {
 			return &VersionConflict{row.Version}
+		}
+		if row.PublishedAt.Valid && patch.Title != nil && strings.TrimSpace(patch.Title.String) == "" {
+			return ErrPublicationIncomplete
 		}
 		if row.PublishedAt.Valid && ((patch.SourceText != nil && *patch.SourceText != row.SourceText) ||
 			(patch.Voice != nil && *patch.Voice != row.VoiceID) || (patch.Rate != nil && *patch.Rate != row.SpeakingRate)) {
