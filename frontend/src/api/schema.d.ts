@@ -483,6 +483,8 @@ export interface components {
              * @description Latest saved-draft generation, including claimed previews. Null when no draft generation exists.
              */
             audioGenerationId: string | null;
+            /** @description Stored timing for the active recording, present on published item detail when available. */
+            transcript?: components["schemas"]["Transcript"];
             title: string | null;
             /** @description Exact source of up to 1500 UTF-16 units. */
             sourceText: string;
@@ -495,6 +497,19 @@ export interface components {
             /** @enum {number|null} */
             speakingRate: 0.75 | 1 | 1.25 | null;
             topicIds: string[];
+        };
+        Transcript: {
+            durationMs: number;
+            segments: {
+                index: number;
+                /** @description Inclusive UTF-16 offset. */
+                textStart: number;
+                /** @description Exclusive UTF-16 offset. */
+                textEnd: number;
+                text: string;
+                startMs: number;
+                endMs: number;
+            }[];
         };
         ItemPage: {
             items: components["schemas"]["Item"][];

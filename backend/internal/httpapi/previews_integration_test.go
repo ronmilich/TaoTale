@@ -259,6 +259,20 @@ func TestPreviewAudioPostgres(t *testing.T) {
 			after["audioAssetId"] != secondAsset || after["voiceId"] != "zh-CN-mock" || after["speakingRate"] != float64(1) {
 			t.Fatalf("incorrect publication: %v", after)
 		}
+		if before["transcript"] != nil {
+			t.Fatal("draft detail included a published transcript")
+		}
+		transcript, ok := after["transcript"].(map[string]any)
+		if !ok || transcript["durationMs"].(float64) <= 0 ||
+			transcript["segments"].([]any)[0].(map[string]any)["text"] != "再见。" {
+			t.Fatalf("published detail did not include the stored transcript: %v", transcript)
+		}
+		library := object(call("GET", "/items?languageCode=zh-CN", "", ""), 200)
+		for _, entry := range library["items"].([]any) {
+			if entry.(map[string]any)["transcript"] != nil {
+				t.Fatal("library page included a published transcript")
+			}
+		}
 		assertAPIError(t, publish(`{"expectedVersion":6}`), 409, "INVALID_ITEM_STATE")
 		assertAPIError(t, call("PATCH", itemPath, "", `{"expectedVersion":6,"title":null}`), 400, "VALIDATION_ERROR")
 	})

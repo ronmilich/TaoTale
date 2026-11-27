@@ -3,4 +3,5 @@
 *.sql text eol=lf
 /.githooks/* text eol=lf
 /frontend/src/** text eol=lf
+/frontend/src/**/*.woff2 binary -eol
 /frontend/scripts/** text eol=lf

@@ -18,11 +18,13 @@ test("serves the Library, native controls and refreshed Reader from Gin", async 
   await expect(page).toHaveURL(/\/items\/hangzhou-morning-ko$/);
   await page.reload();
   await expect(page.getByRole("heading", { name: "A quiet morning in Hangzhou" })).toBeVisible();
-  await expect(language).toHaveValue("ko-KR");
+  await expect(page.getByRole("navigation", { name: "Main navigation" })).toHaveCount(0);
   await expect(page.locator("main [lang='ko-KR']")).toContainText("재스민");
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
+  await page.getByRole("link", { name: "Back to Library" }).click();
+  await expect(language).toHaveValue("ko-KR");
 });
 
 test("persists appearance and initializes the theme before app scripts run", async ({ page }) => {
@@ -48,6 +50,7 @@ test("navigates to route shells and shows a client not-found", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Vocabulary" })).toBeVisible();
   await page.goto("/items/hangzhou-morning/edit");
   await expect(page.getByRole("heading", { name: "Edit article" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
   await page.goto("/generate");
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
 });

@@ -148,7 +148,7 @@ func itemResponse(item persistence.Item) gin.H {
 	if r.PublishedAt.Valid {
 		status = "published"
 	}
-	return gin.H{
+	response := gin.H{
 		"id": r.ID, "languageCode": r.LanguageCode, "title": r.Title, "sourceText": r.SourceText,
 		"description": r.Description, "notes": r.Notes, "difficulty": r.Difficulty,
 		"isFavorite": r.IsFavorite, "voiceId": r.VoiceID, "speakingRate": rate,
@@ -156,6 +156,10 @@ func itemResponse(item persistence.Item) gin.H {
 		"createdAt": r.CreatedAt.Time.UTC(), "updatedAt": r.UpdatedAt.Time.UTC(),
 		"audioStatus": item.Audio.Status, "audioAssetId": item.Audio.AssetID, "audioGenerationId": item.Audio.ID,
 	}
+	if transcript := readTranscript(item.Transcript); transcript != nil {
+		response["transcript"] = transcript
+	}
+	return response
 }
 
 func registerLibrary(router *gin.Engine, store *persistence.Library, providerID string) {

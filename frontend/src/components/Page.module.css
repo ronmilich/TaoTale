@@ -33,13 +33,3 @@
   color: var(--color-text-muted);
   font-size: 0.875rem;
 }
-.reader {
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
-  font-size: 1.375rem;
-  line-height: 1.94;
-}
-.reader:lang(ko) {
-  font-family: "Noto Serif KR", "Malgun Gothic", Batang, serif;
-}

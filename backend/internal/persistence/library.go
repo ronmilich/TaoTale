@@ -39,8 +39,9 @@ func (e *DuplicateTopic) Error() string { return "duplicate topic name" }
 
 type Item struct {
 	queries.LibraryItem
-	TopicIDs []pgtype.UUID
-	Audio    Candidate
+	TopicIDs   []pgtype.UUID
+	Audio      Candidate
+	Transcript *queries.GetTranscriptRow
 }
 
 // Write transactions serialize updates to an item and its topic associations.
@@ -176,6 +177,15 @@ func (s Library) GetItem(ctx context.Context, id pgtype.UUID) (Item, error) {
 			return missing(err, ErrItemNotFound)
 		}
 		result, err = s.loadItem(ctx, q, row)
+		if err != nil || !row.PublishedAt.Valid || !result.Audio.AssetID.Valid {
+			return err
+		}
+		transcript, err := q.GetTranscript(ctx, queries.GetTranscriptParams{
+			UserID: row.UserID, AssetID: result.Audio.AssetID,
+		})
+		if err == nil {
+			result.Transcript = &transcript
+		}
 		return err
 	})
 	return result, err

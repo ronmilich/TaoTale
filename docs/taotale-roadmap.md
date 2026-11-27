@@ -78,7 +78,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-22 | Library list (basic) | 4 | TAO-10, TAO-16 | Done |
 | TAO-23 | Editor: audio generation and preview | 4 | TAO-14, TAO-20, TAO-21 | Done |
 | TAO-24 | Publication | 4 | TAO-23 | Done |
-| TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Planned |
+| TAO-25 | Reader page and transcript rendering | 4 | TAO-24 | Done |
 | TAO-26 | Audio player and synchronized highlighting | 4 | TAO-25 | Planned |
 | TAO-27 | Reader actions: Favorite, Notes, Download | 4 | TAO-26 | Planned |
 | TAO-28 | Topics UI | 5 | TAO-17, TAO-21 | Planned |
@@ -642,8 +642,8 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - Fallback: if the alignment is corrupt or the media is missing, show readable text, disable seeking, and show an error with Retry.
 
 **Exit criteria**
-- [ ] `zh-CN` and `ko-KR` fixtures render byte-exact text.
-- [ ] Fallback covered by an end-to-end test.
+- [x] Published `zh-CN` and `ko-KR` fixtures render byte-exact text on desktop and tablet.
+- [x] Browser tests verify readable text and Retry through corrupt timing and a missing recording.
 
 **Depends on:** TAO-24
 

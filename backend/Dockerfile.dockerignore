@@ -13,6 +13,10 @@ backend/**
 frontend/**
 !frontend/src/
 !frontend/src/**
+!frontend/public/
+!frontend/public/assets/
+!frontend/public/assets/licenses/
+!frontend/public/assets/licenses/noto-serif-sc.txt
 !frontend/package.json
 !frontend/pnpm-lock.yaml
 !frontend/pnpm-workspace.yaml

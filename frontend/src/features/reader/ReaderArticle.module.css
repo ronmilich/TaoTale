@@ -1,0 +1,92 @@
+@font-face {
+  font-family: "TaoTale Noto Serif SC";
+  src: url("./fonts/noto-serif-sc-reader.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.shell {
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+.withPlayer {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: var(--space-20);
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.paper {
+  padding: clamp(24px, 5vw, 64px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-paper);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  overflow-wrap: anywhere;
+}
+
+.intro,
+.transcript {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.intro h1 {
+  font-size: clamp(1.875rem, 3vw, 2.125rem);
+}
+
+.intro p {
+  margin-top: var(--space-8);
+  color: var(--color-text-muted);
+}
+
+.transcript {
+  margin-top: var(--space-32);
+  font-size: clamp(1.3125rem, 2.1vw, 1.5rem);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.transcript:lang(zh-CN) {
+  font-family: "TaoTale Noto Serif SC", "Noto Serif SC", "Songti SC", SimSun, serif;
+}
+
+.transcript:lang(ko-KR) {
+  font-family:
+    "Noto Serif KR", Batang, "AppleMyungjo", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
+    serif;
+  word-break: keep-all;
+}
+
+.dock {
+  position: fixed;
+  z-index: 1;
+  inset: auto 0 0;
+  padding: var(--space-16) var(--gutter) calc(var(--space-16) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.player {
+  max-width: 960px;
+  min-height: 54px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+}
+
+.player audio {
+  width: 100%;
+}
+
+.player p {
+  color: var(--color-text-muted);
+}
