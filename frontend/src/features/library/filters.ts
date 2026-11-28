@@ -1,13 +1,11 @@
+import { single, trimSearch } from "../listQuery";
+
+export { readPage, searchLimit } from "../listQuery";
+
 const statuses = ["draft", "published"] as const;
 const difficulties = ["beginner", "intermediate", "advanced", "unspecified"] as const;
 const sorts = ["oldest", "title_asc", "title_desc"] as const;
 const topicID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
-
-export const searchLimit = 120;
-
-export function trimSearch(value: string) {
-  return [...value.replaceAll("\0", "")].slice(0, searchLimit).join("").trim();
-}
 
 export function readFilters(query: URLSearchParams) {
   const result = new URLSearchParams();
@@ -32,14 +30,4 @@ export function readFilters(query: URLSearchParams) {
   ].sort();
   if (topics.length) result.set("topics", topics.join(","));
   return result;
-}
-
-export function readPage(query: URLSearchParams) {
-  const value = single(query, "page");
-  return /^\d+$/.test(value) ? Math.max(1, Math.min(Number(value), 2147483647)) : 1;
-}
-
-function single(query: URLSearchParams, key: string) {
-  const values = query.getAll(key);
-  return values.length === 1 ? values[0] : "";
 }

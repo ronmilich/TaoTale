@@ -12,6 +12,15 @@ type RevisionPublication =
   operations["publishRevision"]["requestBody"]["content"]["application/json"];
 export type Voice = components["schemas"]["TTSVoice"];
 export type Topic = components["schemas"]["Topic"];
+export type VocabularyEntry = components["schemas"]["VocabularyEntry"];
+export type VocabularyDetail = components["schemas"]["VocabularyDetail"];
+export type VocabularyStatus = components["schemas"]["VocabularyStatus"];
+export type VocabularyPage = components["schemas"]["VocabularyPage"];
+export type VocabularyStats = components["schemas"]["VocabularyStats"];
+export type ItemVocabularyEntry = components["schemas"]["ItemVocabulary"]["items"][number];
+export type VocabularyCreate = components["schemas"]["VocabularyCreate"];
+export type VocabularyPatch = components["schemas"]["VocabularyPatch"];
+export type VocabularyBulk = components["schemas"]["VocabularyBulk"];
 type TopicCreate = operations["createTopic"]["requestBody"]["content"]["application/json"];
 type TopicPatch = operations["patchTopic"]["requestBody"]["content"]["application/json"];
 export type PreviewInput = components["schemas"]["PreviewInput"];
@@ -79,6 +88,84 @@ export function deleteTopic(id: string) {
     method: "DELETE",
     signal: AbortSignal.timeout(15_000),
   });
+}
+
+export function listVocabulary(
+  language: LearningLanguage["code"],
+  page: number,
+  filters: URLSearchParams,
+  signal: AbortSignal,
+) {
+  const query = new URLSearchParams(filters);
+  query.set("languageCode", language);
+  query.set("page", String(page));
+  return readJSON<VocabularyPage>(`/vocabulary?${query}`, signal);
+}
+
+export function getVocabularyStats(language: LearningLanguage["code"], signal: AbortSignal) {
+  return readJSON<VocabularyStats>(`/vocabulary/stats?languageCode=${language}`, signal);
+}
+
+export function lookupVocabulary(
+  language: LearningLanguage["code"],
+  word: string,
+  signal: AbortSignal,
+) {
+  const query = new URLSearchParams({ languageCode: language, word });
+  return readJSON<JSONResult<operations["lookupVocabulary"]>>(
+    `/vocabulary/lookup?${query}`,
+    signal,
+  );
+}
+
+export function getItemVocabulary(id: string, signal: AbortSignal) {
+  return readJSON<components["schemas"]["ItemVocabulary"]>(`${itemPath(id)}/vocabulary`, signal);
+}
+
+export function getVocabulary(id: string, signal: AbortSignal) {
+  return readJSON<VocabularyDetail>(vocabularyPath(id), signal);
+}
+
+export function createVocabulary(body: VocabularyCreate) {
+  return writeJSON<VocabularyDetail>("/vocabulary", "POST", body, AbortSignal.timeout(15_000));
+}
+
+export function patchVocabulary(id: string, body: VocabularyPatch) {
+  return writeJSON<VocabularyDetail>(
+    vocabularyPath(id),
+    "PATCH",
+    body,
+    AbortSignal.timeout(15_000),
+  );
+}
+
+export function deleteVocabulary(id: string) {
+  return requestJSON<void>(vocabularyPath(id), {
+    method: "DELETE",
+    signal: AbortSignal.timeout(15_000),
+  });
+}
+
+export function linkVocabularyReference(id: string, itemId: string) {
+  return writeJSON<components["schemas"]["VocabularyReference"]>(
+    `${vocabularyPath(id)}/references`,
+    "POST",
+    { itemId },
+    AbortSignal.timeout(15_000),
+  );
+}
+
+export function bulkVocabulary(body: VocabularyBulk) {
+  return writeJSON<JSONResult<operations["bulkVocabulary"]>>(
+    "/vocabulary/bulk",
+    "POST",
+    body,
+    AbortSignal.timeout(15_000),
+  );
+}
+
+function vocabularyPath(id: string) {
+  return `/vocabulary/${encodeURIComponent(id)}`;
 }
 
 export function listVoices(language: LearningLanguage["code"], signal: AbortSignal) {

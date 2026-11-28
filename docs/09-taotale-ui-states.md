@@ -76,6 +76,8 @@ Modes: **new unsaved**, **saved draft**, **published metadata**, **working revis
 - Native audio: play/pause, ±5s, timeline, rate, elapsed/verified total, download, buffer/error. No autoplay when reopening. Resume keyed by **item ID + audio asset ID**; a new asset resets old resume.
 - Clicking a timed phrase can seek. If the user is dragging/selecting text, suppress accidental seek. Keep the transcript selectable; do not add custom composite keyboard navigation across every segment.
 - **Add to Vocabulary** uses native text selection and a visible action/panel or native dialog; Reader language governs lookup. Existing word gets linked without overwriting metadata; new word requires explicit save. Cancel creates nothing. Manual status Learning/Acquired is reversible.
+- The Reader measures the selection against the original UTF-16 text and trims outer whitespace. Mandarin selections reject internal line breaks and `，。！？；`. Korean selections preserve the punctuation and spacing of the selected phrase.
+- Article vocabulary lists manually linked words. The Both, Learning and Acquired display choice is saved in `taotale.preferences.reader`. Confirmed status changes refresh open vocabulary views.
 - Automatic annotations only when a **verified language-specific matching strategy** exists. Do not apply Chinese substring behavior to Korean by assumption. A word panel should not modify transcript DOM offsets or reset playback.
 - Favorite reflects the same persisted item flag as Library. Notes use plain text Save/Cancel and do not change audio. Theme/notes/panels must not remount the audio element.
 

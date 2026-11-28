@@ -892,7 +892,7 @@ The "Edit Text & Voice" entry opens or resumes the working revision.
 - Lookup → link an existing word ("Already in Vocabulary", without overwriting its metadata), or open a simple inline form or native Add dialog. Cancel creates nothing; the word and its reference are created atomically.
 
 **Exit criteria**
-- [ ] The collection part of acceptance journey 8 passes for both `zh-CN` and `ko-KR`.
+- [x] The collection part of acceptance journey 8 passes for both `zh-CN` and `ko-KR`.
 
 **Depends on:** TAO-26, TAO-36
 
@@ -910,7 +910,7 @@ The "Edit Text & Voice" entry opens or resumes the working revision.
 - Bulk selection (a checkbox column with select-all) for status changes and deletion. Inline status text summarizes the result, in addition to the updated table.
 
 **Exit criteria**
-- [ ] End-to-end tests, including bulk operations, and a failed update that keeps the last confirmed status.
+- [x] End-to-end tests, including bulk operations, and a failed update that keeps the last confirmed status.
 
 **Depends on:** TAO-28, TAO-37
 
@@ -923,7 +923,7 @@ The "Edit Text & Voice" entry opens or resumes the working revision.
 - Display settings (Both / Learning / Acquired), saved in `taotale.preferences.reader`.
 
 **Exit criteria**
-- [ ] Status changes refresh the panel and the Vocabulary view without remounting the audio.
+- [x] Status changes refresh the panel and the Vocabulary view without remounting the audio.
 
 **Depends on:** TAO-38
 

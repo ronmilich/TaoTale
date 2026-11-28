@@ -7,6 +7,8 @@ type SpeechPreference = { voiceId: string; speakingRate: SpeechRate };
 export const themes = ["system", "light", "dark"] as const;
 export type Theme = (typeof themes)[number];
 export const playbackSpeeds = ["0.75", "1", "1.25", "1.5"] as const;
+export const vocabularyDisplays = ["both", "learning", "acquired"] as const;
+export type VocabularyDisplay = (typeof vocabularyDisplays)[number];
 type Preferences = {
   theme: Theme;
   language: Language;
@@ -60,6 +62,23 @@ export function saveSpeechPreference(language: Language, value: SpeechPreference
     window.localStorage.setItem(prefix + "speech." + language, JSON.stringify(value));
   } catch {
     // The draft still has the selected values.
+  }
+}
+
+export function readVocabularyDisplay(): VocabularyDisplay {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(prefix + "reader") ?? "null");
+    return vocabularyDisplays.find((option) => option === value?.vocabularyDisplay) ?? "both";
+  } catch {
+    return "both";
+  }
+}
+
+export function saveVocabularyDisplay(value: VocabularyDisplay) {
+  try {
+    window.localStorage.setItem(prefix + "reader", JSON.stringify({ vocabularyDisplay: value }));
+  } catch {
+    // The panel still uses the selected display in memory.
   }
 }
 

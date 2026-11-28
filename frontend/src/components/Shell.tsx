@@ -51,8 +51,8 @@ export default function Shell(props: ParentProps) {
                 onChange={(event) => {
                   const language = validatePreference("language", event.currentTarget.value);
                   preferences.changeLanguage(language);
-                  if (location.pathname === "/library")
-                    navigate(`/library?languageCode=${language}&page=1`);
+                  if (location.pathname === "/library" || location.pathname === "/vocabulary")
+                    navigate(`${location.pathname}?languageCode=${language}&page=1`);
                 }}
               >
                 <Show

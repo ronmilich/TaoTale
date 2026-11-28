@@ -6,7 +6,9 @@ import type { Language } from "../../preferences/storage";
 import styles from "./ReaderArticle.module.css";
 import ReaderActions from "./ReaderActions";
 import ReaderPlayer, { type Recording, type Seek } from "./ReaderPlayer";
+import ReaderVocabulary from "./ReaderVocabulary";
 import { playbackResumeKey } from "./playback";
+import { readTranscriptSelection, type TranscriptSelection } from "./selection";
 import { transcriptRuns } from "./transcript";
 
 export default function ReaderArticle(props: {
@@ -21,6 +23,8 @@ export default function ReaderArticle(props: {
   const [mediaFailed, setMediaFailed] = createSignal(false);
   const [active, setActive] = createSignal(-1);
   const [seek, setSeek] = createSignal<Seek>();
+  const [selection, setSelection] = createSignal<TranscriptSelection>();
+  let transcript!: HTMLDivElement;
   const runs = createMemo(() => transcriptRuns(props.source, props.item?.transcript));
   const recording = createMemo<Recording | undefined>(() => {
     const item = props.item;
@@ -55,6 +59,15 @@ export default function ReaderArticle(props: {
     window.addEventListener("pointerup", releasePointer, options);
     window.addEventListener("pointercancel", cancel, options);
     window.addEventListener("blur", cancel, options);
+    if (props.item) {
+      document.addEventListener(
+        "selectionchange",
+        () => {
+          setSelection(readTranscriptSelection(transcript, props.source, window.getSelection()));
+        },
+        options,
+      );
+    }
     return () => {
       cancelClick();
       listeners.abort();
@@ -78,10 +91,16 @@ export default function ReaderArticle(props: {
             <p>{props.description}</p>
           </Show>
           <Show when={props.item}>
-            {(item) => <ReaderActions item={item()} download={seek() && recording()?.download} />}
+            {(item) => (
+              <>
+                <ReaderActions item={item()} download={seek() && recording()?.download} />
+                <ReaderVocabulary item={item()} selection={selection()} />
+              </>
+            )}
           </Show>
         </header>
         <div
+          ref={transcript}
           class={styles.transcript}
           lang={props.language}
           role="region"
