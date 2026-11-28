@@ -582,6 +582,244 @@ paths:
         '500': {$ref: '#/components/responses/APIError'}
         '503': {$ref: '#/components/responses/APIError'}
         '504': {$ref: '#/components/responses/APIError'}
+  /items/{itemId}/vocabulary:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+    get:
+      operationId: getItemVocabulary
+      summary: List vocabulary linked to an item
+      responses:
+        '200':
+          description: Vocabulary and reference provenance for this item.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ItemVocabulary'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary:
+    get:
+      operationId: listVocabulary
+      summary: Browse vocabulary in one learning language
+      parameters:
+        - $ref: '#/components/parameters/VocabularyLanguage'
+        - name: q
+          in: query
+          schema: {type: string, maxLength: 120}
+          description: Literal case-insensitive search in word, reading and meaning.
+        - name: status
+          in: query
+          schema: {$ref: '#/components/schemas/VocabularyStatus'}
+        - name: topics
+          in: query
+          style: form
+          explode: false
+          description: Match any of these Topics.
+          schema: {$ref: '#/components/schemas/VocabularyTopicIds'}
+        - name: sort
+          in: query
+          schema: {type: string, enum: [newest, oldest, word_asc, word_desc], default: newest}
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 2147483647, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, const: 10, default: 10}
+      responses:
+        '200':
+          description: One vocabulary page and the filtered total.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyPage'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+    post:
+      operationId: createVocabulary
+      summary: Create a word and optionally link its source item in one transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VocabularyCreate'}
+      responses:
+        '201':
+          description: The new vocabulary entry.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyDetail'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary/lookup:
+    get:
+      operationId: lookupVocabulary
+      summary: Look up the normalized word in one learning language
+      parameters:
+        - $ref: '#/components/parameters/VocabularyLanguage'
+        - name: word
+          in: query
+          required: true
+          schema: {type: string, minLength: 1}
+          description: Up to 120 Unicode code points after outer trim.
+      responses:
+        '200':
+          description: The matched entry or null when the word has not been collected.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyLookup'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary/stats:
+    get:
+      operationId: getVocabularyStats
+      summary: Count entries and distinct referenced items in one learning language
+      parameters:
+        - $ref: '#/components/parameters/VocabularyLanguage'
+      responses:
+        '200':
+          description: Vocabulary totals scoped to the requested language.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyStats'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary/bulk:
+    post:
+      operationId: bulkVocabulary
+      summary: Change status or delete the entire selection atomically
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VocabularyBulk'}
+      responses:
+        '200':
+          description: The number of entries affected.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyBulkResult'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary/{vocabularyId}:
+    parameters:
+      - $ref: '#/components/parameters/VocabularyId'
+    get:
+      operationId: getVocabulary
+      summary: Get a vocabulary entry with item references
+      responses:
+        '200':
+          description: The entry and its item references.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyDetail'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+    patch:
+      operationId: patchVocabulary
+      summary: Update vocabulary spelling, metadata, status or Topics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VocabularyPatch'}
+      responses:
+        '200':
+          description: The updated entry.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyDetail'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+    delete:
+      operationId: deleteVocabulary
+      summary: Delete the vocabulary entry and its associations
+      responses:
+        '204': {$ref: '#/components/responses/Deleted'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary/{vocabularyId}/references:
+    parameters:
+      - $ref: '#/components/parameters/VocabularyId'
+    post:
+      operationId: linkVocabularyReference
+      summary: Manually link an item of the same language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VocabularyLink'}
+      responses:
+        '200':
+          description: The reference including its provenance.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VocabularyReference'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /vocabulary/{vocabularyId}/references/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/VocabularyId'
+      - $ref: '#/components/parameters/ItemId'
+    delete:
+      operationId: unlinkVocabularyReference
+      summary: Remove the association with this item
+      responses:
+        '204': {$ref: '#/components/responses/Deleted'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
   /tts/previews:
     post:
       operationId: createTTSPreview
@@ -1007,6 +1245,16 @@ paths:
                   requestId: example-request-id
 components:
   parameters:
+    VocabularyId:
+      name: vocabularyId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    VocabularyLanguage:
+      name: languageCode
+      in: query
+      required: true
+      schema: {$ref: '#/components/schemas/VocabularyLanguage'}
     RevisionId:
       name: revisionId
       in: path
@@ -1229,6 +1477,155 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    VocabularyLanguage:
+      type: string
+      enum: [zh-CN, ko-KR]
+    VocabularyStatus:
+      type: string
+      enum: [LEARNING, ACQUIRED]
+    VocabularyTopicIds:
+      type: array
+      maxItems: 10
+      uniqueItems: true
+      items: {type: string, format: uuid}
+    VocabularyPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        word: {type: string, minLength: 1, description: Up to 120 Unicode code points after outer trim.}
+        reading: {type: [string, 'null'], maxLength: 160}
+        readingSystem: {type: [string, 'null'], maxLength: 40}
+        meaning: {type: [string, 'null'], maxLength: 300}
+        note: {type: [string, 'null'], maxLength: 5000}
+        status: {$ref: '#/components/schemas/VocabularyStatus'}
+        topicIds: {$ref: '#/components/schemas/VocabularyTopicIds'}
+    VocabularyCreate:
+      type: object
+      additionalProperties: false
+      required: [languageCode, word]
+      properties:
+        languageCode: {$ref: '#/components/schemas/VocabularyLanguage'}
+        word: {type: string, minLength: 1, description: Up to 120 Unicode code points after outer trim.}
+        reading: {type: [string, 'null'], maxLength: 160}
+        readingSystem: {type: [string, 'null'], maxLength: 40}
+        meaning: {type: [string, 'null'], maxLength: 300}
+        note: {type: [string, 'null'], maxLength: 5000}
+        status: {$ref: '#/components/schemas/VocabularyStatus'}
+        topicIds: {$ref: '#/components/schemas/VocabularyTopicIds'}
+        itemId: {type: string, format: uuid}
+    VocabularyEntry:
+      type: object
+      required: [id, languageCode, word, reading, readingSystem, meaning, note, status, topicIds, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        languageCode: {$ref: '#/components/schemas/VocabularyLanguage'}
+        word: {type: string, minLength: 1, maxLength: 120}
+        reading: {type: [string, 'null'], maxLength: 160}
+        readingSystem: {type: [string, 'null'], maxLength: 40}
+        meaning: {type: [string, 'null'], maxLength: 300}
+        note: {type: [string, 'null'], maxLength: 5000}
+        status: {$ref: '#/components/schemas/VocabularyStatus'}
+        topicIds: {$ref: '#/components/schemas/VocabularyTopicIds'}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    VocabularyReference:
+      type: object
+      required: [itemId, addedAt, manualLinked, autoLinked]
+      properties:
+        itemId: {type: string, format: uuid}
+        addedAt: {type: string, format: date-time}
+        manualLinked: {type: boolean}
+        autoLinked: {type: boolean}
+    VocabularyReferenceDetail:
+      allOf:
+        - {$ref: '#/components/schemas/VocabularyReference'}
+        - type: object
+          required: [title]
+          properties:
+            title: {type: [string, 'null']}
+    VocabularyDetail:
+      allOf:
+        - {$ref: '#/components/schemas/VocabularyEntry'}
+        - type: object
+          required: [references]
+          properties:
+            references:
+              type: array
+              items: {$ref: '#/components/schemas/VocabularyReferenceDetail'}
+    ItemVocabulary:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            allOf:
+              - {$ref: '#/components/schemas/VocabularyEntry'}
+              - type: object
+                required: [reference]
+                properties:
+                  reference: {$ref: '#/components/schemas/VocabularyReference'}
+    VocabularyLink:
+      type: object
+      additionalProperties: false
+      required: [itemId]
+      properties:
+        itemId: {type: string, format: uuid}
+    VocabularyLookup:
+      type: object
+      additionalProperties: false
+      required: [entry]
+      properties:
+        entry:
+          anyOf:
+            - {$ref: '#/components/schemas/VocabularyEntry'}
+            - {type: 'null'}
+    VocabularyPage:
+      type: object
+      additionalProperties: false
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          maxItems: 10
+          items: {$ref: '#/components/schemas/VocabularyEntry'}
+        total: {type: integer, minimum: 0}
+        page: {type: integer, minimum: 1}
+        pageSize: {type: integer, const: 10}
+    VocabularyStats:
+      type: object
+      additionalProperties: false
+      required: [languageCode, total, learning, acquired, referencedTexts]
+      properties:
+        languageCode: {$ref: '#/components/schemas/VocabularyLanguage'}
+        total: {type: integer, minimum: 0}
+        learning: {type: integer, minimum: 0}
+        acquired: {type: integer, minimum: 0}
+        referencedTexts: {type: integer, minimum: 0}
+    VocabularyBulk:
+      type: object
+      additionalProperties: false
+      required: [languageCode, action, ids]
+      properties:
+        languageCode: {$ref: '#/components/schemas/VocabularyLanguage'}
+        action: {type: string, enum: [setStatus, delete]}
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items: {type: string, format: uuid}
+        status:
+          $ref: '#/components/schemas/VocabularyStatus'
+          description: Required for setStatus and omitted for delete.
+    VocabularyBulkResult:
+      type: object
+      additionalProperties: false
+      required: [affected]
+      properties:
+        affected: {type: integer, minimum: 1, maximum: 100}
     WorkingRevision:
       type: object
       additionalProperties: false
@@ -1517,6 +1914,7 @@ components:
           type: string
           minLength: 1
         usageCount: {type: integer, minimum: 0}
+        vocabularyUsageCount: {type: integer, minimum: 0}
         isDefault:
           type: boolean
         systemKey:

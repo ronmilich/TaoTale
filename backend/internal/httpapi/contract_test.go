@@ -43,7 +43,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				servers = *operation.Servers
 			}
 			for _, server := range servers {
-				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{revisionId}", ":revisionId", "{topicId}", ":topicId", "{generationId}", ":generationId", "{imageId}", ":imageId").Replace(path.Join(server.URL, template))
+				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{revisionId}", ":revisionId", "{topicId}", ":topicId", "{generationId}", ":generationId", "{imageId}", ":imageId", "{vocabularyId}", ":vocabularyId").Replace(path.Join(server.URL, template))
 				if operations[key] != nil {
 					t.Fatalf("duplicate contract route %s", key)
 				}
@@ -60,18 +60,30 @@ func TestOpenAPIConformance(t *testing.T) {
 		}
 		delete(operations, key)
 		t.Run(key, func(t *testing.T) {
-			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":revisionId", contractID, ":topicId", contractID, ":generationId", contractID, ":imageId", contractID).Replace(route.Path)
+			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":revisionId", contractID, ":topicId", contractID, ":generationId", contractID, ":imageId", contractID, ":vocabularyId", contractID).Replace(route.Path)
 			operation := contractRoute.Operation.OperationID
 			var body string
 			status := http.StatusOK
 			switch operation {
 			case "listTTSVoices":
 				url += "?languageCode=ko-KR"
-			case "listItems":
+			case "listItems", "listVocabulary", "getVocabularyStats":
 				url += "?languageCode=ko-KR"
 				status = http.StatusServiceUnavailable
+			case "lookupVocabulary":
+				url += "?languageCode=ko-KR&word=example"
+				status = http.StatusServiceUnavailable
+			case "createVocabulary":
+				body, status = `{"languageCode":"ko-KR","word":"example"}`, http.StatusServiceUnavailable
+			case "patchVocabulary":
+				body, status = `{"meaning":"Example"}`, http.StatusServiceUnavailable
+			case "linkVocabularyReference":
+				body, status = `{"itemId":"`+contractID+`"}`, http.StatusServiceUnavailable
+			case "bulkVocabulary":
+				body, status = `{"languageCode":"ko-KR","action":"delete","ids":["`+contractID+`"]}`, http.StatusServiceUnavailable
 			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration",
-				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview", "getCoverImage", "openRevision", "getRevision":
+				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview", "getCoverImage", "openRevision", "getRevision",
+				"getVocabulary", "deleteVocabulary", "getItemVocabulary", "unlinkVocabularyReference":
 				status = http.StatusServiceUnavailable
 			case "uploadCoverImage":
 				body, status = "image bytes", http.StatusServiceUnavailable

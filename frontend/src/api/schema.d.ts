@@ -329,6 +329,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/{itemId}/vocabulary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        /** List vocabulary linked to an item */
+        get: operations["getItemVocabulary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vocabulary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse vocabulary in one learning language */
+        get: operations["listVocabulary"];
+        put?: never;
+        /** Create a word and optionally link its source item in one transaction */
+        post: operations["createVocabulary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vocabulary/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Look up the normalized word in one learning language */
+        get: operations["lookupVocabulary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vocabulary/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Count entries and distinct referenced items in one learning language */
+        get: operations["getVocabularyStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vocabulary/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change status or delete the entire selection atomically */
+        post: operations["bulkVocabulary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vocabulary/{vocabularyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+            };
+            cookie?: never;
+        };
+        /** Get a vocabulary entry with item references */
+        get: operations["getVocabulary"];
+        put?: never;
+        post?: never;
+        /** Delete the vocabulary entry and its associations */
+        delete: operations["deleteVocabulary"];
+        options?: never;
+        head?: never;
+        /** Update vocabulary spelling, metadata, status or Topics */
+        patch: operations["patchVocabulary"];
+        trace?: never;
+    };
+    "/vocabulary/{vocabularyId}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Manually link an item of the same language */
+        post: operations["linkVocabularyReference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vocabulary/{vocabularyId}/references/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove the association with this item */
+        delete: operations["unlinkVocabularyReference"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tts/previews": {
         parameters: {
             query?: never;
@@ -543,6 +691,101 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        VocabularyLanguage: "zh-CN" | "ko-KR";
+        /** @enum {string} */
+        VocabularyStatus: "LEARNING" | "ACQUIRED";
+        VocabularyTopicIds: string[];
+        VocabularyPatch: {
+            /** @description Up to 120 Unicode code points after outer trim. */
+            word?: string;
+            reading?: string | null;
+            readingSystem?: string | null;
+            meaning?: string | null;
+            note?: string | null;
+            status?: components["schemas"]["VocabularyStatus"];
+            topicIds?: components["schemas"]["VocabularyTopicIds"];
+        };
+        VocabularyCreate: {
+            languageCode: components["schemas"]["VocabularyLanguage"];
+            /** @description Up to 120 Unicode code points after outer trim. */
+            word: string;
+            reading?: string | null;
+            readingSystem?: string | null;
+            meaning?: string | null;
+            note?: string | null;
+            status?: components["schemas"]["VocabularyStatus"];
+            topicIds?: components["schemas"]["VocabularyTopicIds"];
+            /** Format: uuid */
+            itemId?: string;
+        };
+        VocabularyEntry: {
+            /** Format: uuid */
+            id: string;
+            languageCode: components["schemas"]["VocabularyLanguage"];
+            word: string;
+            reading: string | null;
+            readingSystem: string | null;
+            meaning: string | null;
+            note: string | null;
+            status: components["schemas"]["VocabularyStatus"];
+            topicIds: components["schemas"]["VocabularyTopicIds"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        VocabularyReference: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: date-time */
+            addedAt: string;
+            manualLinked: boolean;
+            autoLinked: boolean;
+        };
+        VocabularyReferenceDetail: components["schemas"]["VocabularyReference"] & {
+            title: string | null;
+        };
+        VocabularyDetail: components["schemas"]["VocabularyEntry"] & {
+            references: components["schemas"]["VocabularyReferenceDetail"][];
+        };
+        ItemVocabulary: {
+            items: (components["schemas"]["VocabularyEntry"] & {
+                reference: components["schemas"]["VocabularyReference"];
+            })[];
+        };
+        VocabularyLink: {
+            /** Format: uuid */
+            itemId: string;
+        };
+        VocabularyLookup: {
+            entry: components["schemas"]["VocabularyEntry"] | null;
+        };
+        VocabularyPage: {
+            items: components["schemas"]["VocabularyEntry"][];
+            total: number;
+            page: number;
+            /** @constant */
+            pageSize: 10;
+        };
+        VocabularyStats: {
+            languageCode: components["schemas"]["VocabularyLanguage"];
+            total: number;
+            learning: number;
+            acquired: number;
+            referencedTexts: number;
+        };
+        VocabularyBulk: {
+            languageCode: components["schemas"]["VocabularyLanguage"];
+            /** @enum {string} */
+            action: "setStatus" | "delete";
+            ids: string[];
+            /** @description Required for setStatus and omitted for delete. */
+            status?: components["schemas"]["VocabularyStatus"];
+        };
+        VocabularyBulkResult: {
+            affected: number;
+        };
         WorkingRevision: {
             /** Format: uuid */
             id: string;
@@ -757,6 +1000,7 @@ export interface components {
             id: string;
             name: string;
             usageCount: number;
+            vocabularyUsageCount?: number;
             isDefault: boolean;
             systemKey: string | null;
             colors: {
@@ -949,6 +1193,8 @@ export interface components {
         };
     };
     parameters: {
+        VocabularyId: string;
+        VocabularyLanguage: components["schemas"]["VocabularyLanguage"];
         RevisionId: string;
         /** @description Expected asset identity. A stale or unknown recording returns 404. */
         AudioAssetPin: string;
@@ -1546,6 +1792,332 @@ export interface operations {
             409: components["responses"]["APIError"];
             413: components["responses"]["APIError"];
             415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getItemVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vocabulary and reference provenance for this item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemVocabulary"];
+                };
+            };
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    listVocabulary: {
+        parameters: {
+            query: {
+                languageCode: components["parameters"]["VocabularyLanguage"];
+                /** @description Literal case-insensitive search in word, reading and meaning. */
+                q?: string;
+                status?: components["schemas"]["VocabularyStatus"];
+                /** @description Match any of these Topics. */
+                topics?: components["schemas"]["VocabularyTopicIds"];
+                sort?: "newest" | "oldest" | "word_asc" | "word_desc";
+                page?: number;
+                pageSize?: 10;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One vocabulary page and the filtered total. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyPage"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    createVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VocabularyCreate"];
+            };
+        };
+        responses: {
+            /** @description The new vocabulary entry. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyDetail"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    lookupVocabulary: {
+        parameters: {
+            query: {
+                languageCode: components["parameters"]["VocabularyLanguage"];
+                /** @description Up to 120 Unicode code points after outer trim. */
+                word: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The matched entry or null when the word has not been collected. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyLookup"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getVocabularyStats: {
+        parameters: {
+            query: {
+                languageCode: components["parameters"]["VocabularyLanguage"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vocabulary totals scoped to the requested language. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyStats"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    bulkVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VocabularyBulk"];
+            };
+        };
+        responses: {
+            /** @description The number of entries affected. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyBulkResult"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The entry and its item references. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyDetail"];
+                };
+            };
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    deleteVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: components["responses"]["Deleted"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    patchVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VocabularyPatch"];
+            };
+        };
+        responses: {
+            /** @description The updated entry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyDetail"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    linkVocabularyReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VocabularyLink"];
+            };
+        };
+        responses: {
+            /** @description The reference including its provenance. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularyReference"];
+                };
+            };
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    unlinkVocabularyReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vocabularyId: components["parameters"]["VocabularyId"];
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: components["responses"]["Deleted"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
             504: components["responses"]["APIError"];

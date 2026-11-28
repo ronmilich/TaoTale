@@ -58,6 +58,7 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 	router.GET("/api/v1/items/:itemId/audio", itemAudio(library, false))
 	router.GET("/api/v1/items/:itemId/audio/download", itemAudio(library, true))
 	registerTopicWrites(router, library)
+	registerVocabulary(router, library)
 	registerImages(router, library)
 	return router
 }

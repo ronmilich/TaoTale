@@ -16,7 +16,7 @@ type TopicPalette struct {
 
 type TopicRecord struct {
 	queries.Topic
-	UsageCount int64
+	Usage queries.CountTopicUsageRow
 }
 
 func (s Library) SaveTopic(ctx context.Context, id pgtype.UUID, name *string, colors *TopicPalette) (TopicRecord, error) {
@@ -58,7 +58,7 @@ func (s Library) SaveTopic(ctx context.Context, id pgtype.UUID, name *string, co
 			LightText: palette.LightText, DarkBackground: palette.DarkBackground, DarkText: palette.DarkText,
 		})
 		if err == nil {
-			result.UsageCount, err = q.CountTopicItems(ctx, id)
+			result.Usage, err = q.CountTopicUsage(ctx, id)
 		}
 		return err
 	})

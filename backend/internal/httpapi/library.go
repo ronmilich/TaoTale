@@ -357,8 +357,21 @@ func writeDeletion(c *gin.Context, err error) {
 
 func failLibrary(c *gin.Context, err error) {
 	var conflict *persistence.VersionConflict
+	var word *persistence.DuplicateVocabulary
 	var duplicate *persistence.DuplicateTopic
 	switch {
+	case errors.As(err, &word):
+		var details gin.H
+		if word.ID.Valid {
+			details = gin.H{"existingId": word.ID}
+		}
+		failDetails(c, 409, "DUPLICATE_VOCABULARY", "This word is already in this language’s vocabulary.", details)
+	case errors.Is(err, persistence.ErrVocabularyNotFound):
+		fail(c, 404, "VOCABULARY_NOT_FOUND", "The vocabulary entry was not found.")
+	case errors.Is(err, persistence.ErrVocabularyLanguage):
+		fail(c, 400, "VOCABULARY_LANGUAGE_MISMATCH", "The item and vocabulary entry must use the same language.")
+	case errors.Is(err, persistence.ErrVocabularySelection):
+		fail(c, 404, "VOCABULARY_SELECTION_NOT_FOUND", "One or more selected entries are unavailable in this language.")
 	case errors.As(err, &conflict):
 		failDetails(c, 409, "VERSION_CONFLICT", "The item changed since it was loaded.", gin.H{"currentVersion": conflict.Current})
 	case errors.As(err, &duplicate):

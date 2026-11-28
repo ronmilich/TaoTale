@@ -81,8 +81,9 @@ func saveTopic(c *gin.Context, store *persistence.Library, id pgtype.UUID) {
 		status = http.StatusCreated
 	}
 	c.JSON(status, topicResponse(queries.ListTopicsRow{
-		ID: result.ID, Name: result.Name, SystemKey: result.SystemKey, UsageCount: result.UsageCount,
-		LightBackground: result.LightBackground, LightText: result.LightText,
+		ID: result.ID, Name: result.Name, SystemKey: result.SystemKey, UsageCount: result.Usage.ItemCount,
+		VocabularyUsageCount: result.Usage.WordCount,
+		LightBackground:      result.LightBackground, LightText: result.LightText,
 		DarkBackground: result.DarkBackground, DarkText: result.DarkText,
 	}))
 }

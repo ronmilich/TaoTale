@@ -41,7 +41,8 @@ ORDER BY code;
 
 -- name: ListTopics :many
 SELECT t.id, t.name, t.system_key, t.light_background, t.light_text, t.dark_background, t.dark_text,
-    (SELECT count(*) FROM public.item_topics it WHERE it.user_id = t.user_id AND it.topic_id = t.id) AS usage_count
+    (SELECT count(*) FROM public.item_topics it WHERE it.user_id = t.user_id AND it.topic_id = t.id) AS usage_count,
+    (SELECT count(*) FROM public.vocabulary_topics vt WHERE vt.user_id = t.user_id AND vt.topic_id = t.id) AS vocabulary_usage_count
 FROM public.topics t
 WHERE t.user_id = (SELECT id FROM public.users WHERE singleton)
 ORDER BY t.name_key, t.id;

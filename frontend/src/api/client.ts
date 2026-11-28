@@ -6,6 +6,10 @@ export type ItemCreate = components["schemas"]["ItemCreate"];
 export type DirectPublication = components["schemas"]["DirectPublication"];
 export type ItemPatch = components["schemas"]["ItemPatch"];
 export type ItemPage = components["schemas"]["ItemPage"];
+export type WorkingRevision = components["schemas"]["WorkingRevision"];
+type RevisionPatch = operations["patchRevision"]["requestBody"]["content"]["application/json"];
+type RevisionPublication =
+  operations["publishRevision"]["requestBody"]["content"]["application/json"];
 export type Voice = components["schemas"]["TTSVoice"];
 export type Topic = components["schemas"]["Topic"];
 type TopicCreate = operations["createTopic"]["requestBody"]["content"]["application/json"];
@@ -108,7 +112,11 @@ export function getPreview(id: string, signal: AbortSignal) {
 }
 
 export function draftAudioURLs(itemId: string, assetId: string) {
-  const path = `/api/v1${itemPath(itemId)}/audio`;
+  return pinnedAudioURLs(itemPath(itemId), assetId);
+}
+
+function pinnedAudioURLs(target: string, assetId: string) {
+  const path = `/api/v1${target}/audio`;
   const pin = `?audioAssetId=${encodeURIComponent(assetId)}`;
   return { src: path + pin, download: path + "/download" + pin };
 }
@@ -191,6 +199,65 @@ export function publishPreview(body: DirectPublication, key: string) {
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(15_000),
   });
+}
+
+export function openRevision(itemId: string, signal: AbortSignal) {
+  return requestJSON<WorkingRevision>(`${itemPath(itemId)}/revisions`, {
+    method: "POST",
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
+  });
+}
+
+export function getRevision(itemId: string, revisionId: string, signal?: AbortSignal) {
+  return readJSON<WorkingRevision>(revisionPath(itemId, revisionId), signal);
+}
+
+export function patchRevision(itemId: string, revisionId: string, body: RevisionPatch) {
+  return writeJSON<WorkingRevision>(
+    revisionPath(itemId, revisionId),
+    "PATCH",
+    body,
+    AbortSignal.timeout(15_000),
+  );
+}
+
+export function discardRevision(itemId: string, revisionId: string, version: number) {
+  return requestJSON<void>(`${revisionPath(itemId, revisionId)}?expectedVersion=${version}`, {
+    method: "DELETE",
+    signal: AbortSignal.timeout(15_000),
+  });
+}
+
+export function generateRevision(
+  itemId: string,
+  revisionId: string,
+  version: number,
+  key: string,
+  signal: AbortSignal,
+) {
+  return postGeneration(
+    `${revisionPath(itemId, revisionId)}/audio/generate`,
+    { expectedVersion: version },
+    key,
+    signal,
+  );
+}
+
+export function revisionAudioURLs(itemId: string, revisionId: string, assetId: string) {
+  return pinnedAudioURLs(revisionPath(itemId, revisionId), assetId);
+}
+
+export function publishRevision(itemId: string, revisionId: string, body: RevisionPublication) {
+  return writeJSON<PublicationReceipt>(
+    `${revisionPath(itemId, revisionId)}/publish`,
+    "POST",
+    body,
+    AbortSignal.timeout(15_000),
+  );
+}
+
+function revisionPath(itemId: string, revisionId: string) {
+  return `${itemPath(itemId)}/revisions/${encodeURIComponent(revisionId)}`;
 }
 
 function itemPath(id: string) {

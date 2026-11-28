@@ -6,6 +6,7 @@ import type { Language } from "../../preferences/storage";
 import styles from "./ReaderArticle.module.css";
 import ReaderActions from "./ReaderActions";
 import ReaderPlayer, { type Recording, type Seek } from "./ReaderPlayer";
+import { playbackResumeKey } from "./playback";
 import { transcriptRuns } from "./transcript";
 
 export default function ReaderArticle(props: {
@@ -27,7 +28,7 @@ export default function ReaderArticle(props: {
     return {
       ...draftAudioURLs(item.id, item.audioAssetId),
       transcript: item.transcript,
-      resumeKey: `taotale.playback.v1.${item.id}.${item.audioAssetId}`,
+      resumeKey: playbackResumeKey(item.id, item.audioAssetId),
     };
   });
   let origin: { x: number; y: number } | undefined;

@@ -803,7 +803,7 @@ Use the app's common Iris palette, spacing, typography, radii and surface rules 
 - `/items/{id}/edit` in metadata mode: title, description, notes, difficulty, topics, cover. The synthesis inputs are locked, with an "Edit Text & Voice" button that leads into a working revision.
 - Versioned PATCH. Metadata changes never touch the active asset or its fingerprint. Review step on conflicts.
 
-The "Edit Text & Voice" entry shows an availability message until TAO-34 and TAO-35 provide the working revision workflow.
+The "Edit Text & Voice" entry opens or resumes the working revision.
 
 **Exit criteria**
 - [x] The metadata part of acceptance journey 4 is automated; the audio is unchanged after metadata edits.
@@ -837,7 +837,7 @@ The "Edit Text & Voice" entry shows an availability message until TAO-34 and TAO
 - The Reader keeps playing the published recording the whole time. Publishing a revision clears the old resume position.
 
 **Exit criteria**
-- [ ] Acceptance journey 4 automated end to end.
+- [x] Acceptance journey 4 automated end to end.
 
 **Depends on:** TAO-23, TAO-33, TAO-34
 
@@ -859,7 +859,7 @@ The "Edit Text & Voice" entry shows an availability message until TAO-34 and TAO
 - Deleting an item removes its references but never the entries (re-test TAO-32).
 
 **Exit criteria**
-- [ ] F8 isolation tests pass: the same spelling in two languages is allowed, and a cross-language link is rejected.
+- [x] F8 isolation tests pass: the same spelling in two languages is allowed, and a cross-language link is rejected.
 
 **Depends on:** TAO-16, TAO-17
 
@@ -877,8 +877,8 @@ The "Edit Text & Voice" entry shows an availability message until TAO-34 and TAO
 - Limits for reading/reading-system, meaning and note. Review the spelling limit for Korean phrases.
 
 **Exit criteria**
-- [ ] F7-scale query plans with no N+1 queries.
-- [ ] Bulk atomicity tests pass.
+- [x] F7-scale query plans with no N+1 queries.
+- [x] Bulk atomicity tests pass.
 
 **Depends on:** TAO-36
 

@@ -255,8 +255,8 @@ Keep known Mandarin Reader input limits as an **initial implementation baseline*
 | Description / notes | ≤1,000 / ≤5,000 code points | Retain initially. |
 | Cover | **JPEG/PNG/WebP ≤1 MB (1,000,000 bytes)**, max 4096×4096 | Reject oversized **new/replacement** uploads; validate actual bytes, extension-independent type and dimensions on client and backend. Do not silently compress/truncate. Existing larger images require a documented migration policy and must not silently disappear. |
 | Topic count / name | ≤10 per item or entry; name 1–40 code points | Retain initially. |
-| Vocabulary spelling | Legacy 1–30 code points | Re-evaluate Korean phrases; never silently truncate. |
-| Reading / meaning / word note | Legacy ≤160 / ≤300 / ≤5,000 code points | Make reading language-aware, retain lengths initially. |
+| Vocabulary spelling | 1–120 code points after outer trim | Supports multi-word Korean phrases. |
+| Reading / reading system / meaning / word note | ≤160 / ≤40 / ≤300 / ≤5,000 code points | Reading fields are optional and language-aware. |
 | Difficulty | `beginner`, `intermediate`, `advanced`, or `null` | Three fixed, ordered manual levels; no HSK/TOPIK mixing. Migrate legacy `native` values deliberately, never silently. |
 | Favorite | Boolean | Defaults to `false`; toggle without audio invalidation. |
 | Synthesis rate | 0.75 / 1 / 1.25 (legacy) | Validate per voice/provider. |

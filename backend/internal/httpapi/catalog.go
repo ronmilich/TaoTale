@@ -29,12 +29,13 @@ type topicColors struct {
 }
 
 type topic struct {
-	ID         string      `json:"id"`
-	Name       string      `json:"name"`
-	IsDefault  bool        `json:"isDefault"`
-	SystemKey  *string     `json:"systemKey"`
-	Colors     topicColors `json:"colors"`
-	UsageCount int64       `json:"usageCount"`
+	ID                   string      `json:"id"`
+	Name                 string      `json:"name"`
+	IsDefault            bool        `json:"isDefault"`
+	SystemKey            *string     `json:"systemKey"`
+	Colors               topicColors `json:"colors"`
+	UsageCount           int64       `json:"usageCount"`
+	VocabularyUsageCount int64       `json:"vocabularyUsageCount"`
 }
 
 func listLanguages(catalog Catalog) gin.HandlerFunc {
@@ -74,6 +75,7 @@ func topicResponse(row queries.ListTopicsRow) topic {
 	}
 	return topic{
 		ID: row.ID.String(), Name: row.Name, IsDefault: key != nil, SystemKey: key, UsageCount: row.UsageCount,
+		VocabularyUsageCount: row.VocabularyUsageCount,
 		Colors: topicColors{
 			Light: themeColors{Background: row.LightBackground, Text: row.LightText},
 			Dark:  themeColors{Background: row.DarkBackground, Text: row.DarkText},

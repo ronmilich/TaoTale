@@ -132,6 +132,38 @@ type User struct {
 	UpdatedAt   pgtype.Timestamptz
 }
 
+type VocabularyEntry struct {
+	ID                pgtype.UUID
+	UserID            pgtype.UUID
+	LanguageCode      string
+	Word              string
+	NormalizedWordKey string
+	Reading           pgtype.Text
+	ReadingSystem     pgtype.Text
+	Meaning           pgtype.Text
+	Note              pgtype.Text
+	Status            string
+	SourceItemID      pgtype.UUID
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+}
+
+type VocabularyReference struct {
+	UserID            pgtype.UUID
+	LanguageCode      string
+	VocabularyEntryID pgtype.UUID
+	LibraryItemID     pgtype.UUID
+	AddedAt           pgtype.Timestamptz
+	ManualLinked      bool
+	AutoLinked        bool
+}
+
+type VocabularyTopic struct {
+	UserID            pgtype.UUID
+	VocabularyEntryID pgtype.UUID
+	TopicID           pgtype.UUID
+}
+
 type WorkingRevision struct {
 	ID               pgtype.UUID
 	UserID           pgtype.UUID

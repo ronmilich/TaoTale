@@ -38,6 +38,7 @@ docker run --rm --network "$test_network" -v "$root/backend:/src:ro" -w /src \
                           go test -count=1 -v ./internal/httpapi -run "^TestLibraryPostgres$"
                           go test -count=1 -v ./internal/httpapi -run "^TestCoverPostgres$"
                           go test -count=1 -v ./internal/httpapi -run "^TestGenerationPostgres$"
+                          go test -count=1 -v ./internal/httpapi -run "^TestVocabulary(Postgres|ScalePostgres)$"
                           apt-get update -qq
                           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null
                           go test -count=1 -v ./internal/httpapi -run "^TestPreviewAudioPostgres$"
@@ -60,6 +61,9 @@ snapshot() {
             (SELECT jsonb_agg(r ORDER BY id) FROM public.working_revisions AS r),
             (SELECT jsonb_agg(i ORDER BY id) FROM public.media_images AS i),
             (SELECT jsonb_agg(it ORDER BY item_id, topic_id) FROM public.item_topics AS it),
+            (SELECT jsonb_agg(v ORDER BY id) FROM public.vocabulary_entries AS v),
+            (SELECT jsonb_agg(vr ORDER BY vocabulary_entry_id, library_item_id) FROM public.vocabulary_references AS vr),
+            (SELECT jsonb_agg(vt ORDER BY vocabulary_entry_id, topic_id) FROM public.vocabulary_topics AS vt),
             (SELECT jsonb_agg(g ORDER BY id) FROM public.audio_generations AS g),
             (SELECT jsonb_agg(a ORDER BY id) FROM public.audio_assets AS a),
             (SELECT jsonb_agg(r ORDER BY user_id, operation, key) FROM public.idempotency_records AS r),
@@ -69,4 +73,4 @@ snapshot() {
 original=$(snapshot "$source_db")
 restored=$(snapshot "$restored_db")
 [[ "$original" == "$restored" ]]
-echo 'Restored catalog, items, working revisions, topic associations, audio generations, assets, receipts and migration history match the source database.'
+echo 'Restored catalog, items, working revisions, vocabulary, topic associations, audio generations, assets, receipts and migration history match the source database.'

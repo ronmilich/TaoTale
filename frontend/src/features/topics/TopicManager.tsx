@@ -15,7 +15,8 @@ export default function TopicManager(props: {
   const [error, setError] = createSignal("");
 
   async function remove(topic: Topic) {
-    const impact = `${topic.usageCount} ${topic.usageCount === 1 ? "item" : "items"} and 0 words`;
+    const words = topic.vocabularyUsageCount ?? 0;
+    const impact = `${topic.usageCount} ${topic.usageCount === 1 ? "item" : "items"} and ${words} ${words === 1 ? "word" : "words"}`;
     if (
       deleting() ||
       !window.confirm(`Delete "${topic.name}"? This will remove the topic from ${impact}.`)

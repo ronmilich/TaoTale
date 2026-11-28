@@ -21,6 +21,18 @@ export function formatTime(ms: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+export function playbackResumeKey(itemId: string, assetId: string) {
+  return `taotale.playback.v1.${itemId}.${assetId}`;
+}
+
+export function clearPlaybackResume(itemId: string, assetId: string) {
+  try {
+    localStorage.removeItem(playbackResumeKey(itemId, assetId));
+  } catch {
+    // Local storage may be unavailable.
+  }
+}
+
 export function readResume(key: string, durationMs: number) {
   try {
     const ms = Number(localStorage.getItem(key));

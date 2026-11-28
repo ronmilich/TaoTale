@@ -11,16 +11,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countTopicItems = `-- name: CountTopicItems :one
-SELECT count(*) FROM public.item_topics
-WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND topic_id = $1
+const countTopicUsage = `-- name: CountTopicUsage :one
+SELECT (SELECT count(*) FROM public.item_topics WHERE user_id = t.user_id AND topic_id = t.id) AS item_count,
+    (SELECT count(*) FROM public.vocabulary_topics WHERE user_id = t.user_id AND topic_id = t.id) AS word_count
+FROM public.topics t
+WHERE t.user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND t.id = $1
 `
 
-func (q *Queries) CountTopicItems(ctx context.Context, topicID pgtype.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countTopicItems, topicID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+type CountTopicUsageRow struct {
+	ItemCount int64
+	WordCount int64
+}
+
+func (q *Queries) CountTopicUsage(ctx context.Context, id pgtype.UUID) (CountTopicUsageRow, error) {
+	row := q.db.QueryRow(ctx, countTopicUsage, id)
+	var i CountTopicUsageRow
+	err := row.Scan(&i.ItemCount, &i.WordCount)
+	return i, err
 }
 
 const deleteCustomTopic = `-- name: DeleteCustomTopic :exec

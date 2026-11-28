@@ -25,6 +25,8 @@ RETURNING *;
 DELETE FROM public.topics WHERE topics.id = $1 AND user_id = (SELECT u.id FROM public.users u WHERE u.singleton)
 AND system_key IS NULL;
 
--- name: CountTopicItems :one
-SELECT count(*) FROM public.item_topics
-WHERE user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND topic_id = $1;
+-- name: CountTopicUsage :one
+SELECT (SELECT count(*) FROM public.item_topics WHERE user_id = t.user_id AND topic_id = t.id) AS item_count,
+    (SELECT count(*) FROM public.vocabulary_topics WHERE user_id = t.user_id AND topic_id = t.id) AS word_count
+FROM public.topics t
+WHERE t.user_id = (SELECT u.id FROM public.users u WHERE u.singleton) AND t.id = $1;

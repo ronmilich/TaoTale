@@ -4,13 +4,17 @@ import {
   draftAudioURLs,
   generateDraft,
   generatePreview,
+  generateRevision,
   getDraftGeneration,
   getPreview,
+  getRevision,
   listVoices,
   previewAudioURLs,
+  revisionAudioURLs,
   type Item,
   type PreviewInput,
   type Voice,
+  type WorkingRevision,
 } from "../../api/client";
 import {
   readSpeechPreference,
@@ -20,9 +24,10 @@ import {
 } from "../../preferences/storage";
 import type { DraftFields } from "./draft";
 
-type Target =
+type SavedTarget =
   | { kind: "draft"; itemId: string; version: number }
-  | { kind: "preview"; inputs: PreviewInput };
+  | { kind: "revision"; itemId: string; revisionId: string; version: number };
+type Target = SavedTarget | { kind: "preview"; inputs: PreviewInput };
 type Attempt = { key: string; target: Target };
 type Job = Target & { id: string };
 type AudioStatus = Item["audioStatus"] | "EXPIRED";
@@ -57,13 +62,20 @@ function matches(left: PreviewInput | undefined, right: PreviewInput) {
   );
 }
 
+function savedTarget(item: Item | WorkingRevision): SavedTarget {
+  return "itemId" in item
+    ? { kind: "revision", itemId: item.itemId, revisionId: item.id, version: item.version }
+    : { kind: "draft", itemId: item.id, version: item.version };
+}
+
 export function useDraftAudio(options: {
   enabled: Accessor<boolean>;
-  item: Accessor<Item | null>;
-  values: Accessor<DraftFields>;
+  item: Accessor<Item | WorkingRevision | null>;
+  values: Accessor<Pick<DraftFields, "languageCode" | "sourceText" | "speakingRate" | "voiceId">>;
   synthesisChanged: Accessor<boolean>;
   editingBlocked: Accessor<boolean>;
   setSpeech: (voiceId: string | null, speakingRate: SpeechRate | null) => void;
+  review?: () => void;
 }) {
   const [catalog, setCatalog] = createSignal<{
     language: PreviewInput["languageCode"];
@@ -160,11 +172,17 @@ export function useDraftAudio(options: {
     const item = options.item();
     const local = accepted();
     if (!item) return local?.kind === "preview" ? local : undefined;
-    if (local?.kind === "draft" && local.itemId === item.id && local.version === item.version)
+    const target = savedTarget(item);
+    if (
+      local?.kind !== "preview" &&
+      local?.itemId === target.itemId &&
+      local.version === target.version &&
+      (target.kind === "draft"
+        ? local.kind === "draft"
+        : local.kind === "revision" && local.revisionId === target.revisionId)
+    )
       return local;
-    return item.audioGenerationId
-      ? { kind: "draft", itemId: item.id, version: item.version, id: item.audioGenerationId }
-      : undefined;
+    return item.audioGenerationId ? { ...target, id: item.audioGenerationId } : undefined;
   });
   const observed = createMemo(() => {
     const latest = observation();
@@ -206,9 +224,14 @@ export function useDraftAudio(options: {
     const asset = assetId();
     const current = job();
     if (!asset || !current) return;
-    return current.kind === "preview"
-      ? previewAudioURLs(current.id)
-      : draftAudioURLs(current.itemId, asset);
+    switch (current.kind) {
+      case "preview":
+        return previewAudioURLs(current.id);
+      case "revision":
+        return revisionAudioURLs(current.itemId, current.revisionId, asset);
+      case "draft":
+        return draftAudioURLs(current.itemId, asset);
+    }
   });
 
   createEffect(
@@ -230,14 +253,27 @@ export function useDraftAudio(options: {
           const result =
             current.kind === "draft"
               ? await getDraftGeneration(current.itemId, current.id, controller.signal)
-              : await getPreview(current.id, controller.signal);
+              : current.kind === "revision"
+                ? await getRevision(current.itemId, current.revisionId, controller.signal)
+                : await getPreview(current.id, controller.signal);
           if (controller.signal.aborted) return;
-          const lifecycle = "jobStatus" in result ? result.jobStatus : result.status;
+          if (
+            "audioStatus" in result &&
+            (current.kind !== "revision" ||
+              result.version !== current.version ||
+              result.audioGenerationId !== current.id)
+          ) {
+            clearTimeout(stop);
+            setObservation({ job: current, status: "OUTDATED" });
+            return;
+          }
+          const status = "audioStatus" in result ? result.audioStatus : result.status;
+          const lifecycle = "jobStatus" in result ? result.jobStatus : status;
           const expiresAt = "expiresAt" in result ? result.expiresAt : undefined;
           const isActive = lifecycle === "PENDING" || lifecycle === "PROCESSING";
           setObservation({
             job: current,
-            status: result.status,
+            status,
             assetId: result.audioAssetId,
             error: result.errorCode,
             expiresAt,
@@ -308,7 +344,15 @@ export function useDraftAudio(options: {
       const receipt =
         target.kind === "draft"
           ? await generateDraft(target.itemId, target.version, intent.key, signal)
-          : await generatePreview(target.inputs, intent.key, signal);
+          : target.kind === "revision"
+            ? await generateRevision(
+                target.itemId,
+                target.revisionId,
+                target.version,
+                intent.key,
+                signal,
+              )
+            : await generatePreview(target.inputs, intent.key, signal);
       if (controller.signal.aborted) return;
       setAccepted({ ...target, id: receipt.generationId });
       setAttempt(undefined);
@@ -316,8 +360,9 @@ export function useDraftAudio(options: {
       if (controller.signal.aborted) return;
       if (error instanceof ApiError && (error.status < 500 || error.code === "TTS_UNAVAILABLE")) {
         setAttempt(undefined);
+        if (error.code === "VERSION_CONFLICT") options.review?.();
         setActionError(
-          error.code === "VERSION_CONFLICT"
+          error.code === "VERSION_CONFLICT" && intent.target.kind === "draft"
             ? "The saved draft changed. Reopen it before generating audio."
             : error.message,
         );
@@ -338,9 +383,7 @@ export function useDraftAudio(options: {
     const currentInputs = inputs();
     if (!canGenerate() || !currentInputs) return;
     const item = options.item();
-    const target: Target = item
-      ? { kind: "draft", itemId: item.id, version: item.version }
-      : { kind: "preview", inputs: currentInputs };
+    const target: Target = item ? savedTarget(item) : { kind: "preview", inputs: currentInputs };
     void submit({ target, key: crypto.randomUUID() });
   }
 
