@@ -57,7 +57,7 @@ func startAudioTest(t *testing.T, provider tts.TTSProvider) (*pgxpool.Pool, stri
 		worker.Close()
 	})
 	store := &persistence.Library{Pool: pool, MediaRoot: root, Limits: persistence.GenerationLimits{Active: 2, Hourly: 1000}}
-	api := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil, provider, store)
+	api := Router(HealthChecks{}, slog.New(slog.DiscardHandler), "", nil, nil, provider, store)
 
 	call := func(method, endpoint, key, body string, ranges ...string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, "http://localhost/api/v1"+endpoint, strings.NewReader(body))

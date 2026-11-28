@@ -95,7 +95,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-39 | Vocabulary view | 7 | TAO-28, TAO-37 | Done |
 | TAO-40 | Reader vocabulary panel | 7 | TAO-38 | Done |
 | TAO-41 | Verified Chinese automatic matching *(conditional)* | 7 | TAO-12, TAO-40 | Done |
-| TAO-42 | Settings and local data | 8 | TAO-10, TAO-14, TAO-26, TAO-40 | Planned |
+| TAO-42 | Settings and local data | 8 | TAO-10, TAO-14, TAO-26, TAO-40 | Done |
 | TAO-43 | Cleanup, recovery and integrity checks | 8 | TAO-19, TAO-20, TAO-30, TAO-32 | Planned |
 | TAO-44 | Paired backup and restore | 8 | TAO-43 | Planned |
 | TAO-45 | Legacy import tooling | 9 | TAO-01, TAO-11, TAO-12, TAO-34, TAO-36 | Planned |
@@ -963,8 +963,8 @@ The "Edit Text & Voice" entry opens or resumes the working revision.
   - whether an in-app data reset exists. If yes, it needs confirmation and a prompt to back up first.
 
 **Exit criteria**
-- [ ] Corrupt or blocked browser storage falls back safely (tested).
-- [ ] Decisions recorded.
+- [x] Corrupt or blocked browser storage falls back safely (tested).
+- [x] TT-039 records the media mount, separate restore, reset and vocabulary visibility decisions.
 
 **Depends on:** TAO-10, TAO-14, TAO-26, TAO-40
 
@@ -1177,7 +1177,7 @@ Each item needs a scope decision in 01 and 02 first (TAO-52). Each is broken int
 | `/topics` vs `/tags` | OPEN-14 | TAO-17 |
 | Tablet/browser matrix and performance thresholds | OPEN-15 | TAO-47, TAO-48 |
 | OpenAPI tooling and conformance | OPEN-16 | TAO-08 |
-| How much media path to show; in-app data reset | 01 §4.6 vs 10/11 | TAO-42 |
+| Media path and in-app data reset | TT-039 shows the Docker mount and restores into a fresh project | TAO-42 |
 
 ## 9. MVP acceptance traceability
 

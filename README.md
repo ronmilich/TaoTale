@@ -2,6 +2,26 @@
 
 The SolidJS app lives in [frontend](frontend/README.md), the Go service in [backend](backend/README.md), and the Compose stack in [infra](infra). The [roadmap](docs/taotale-roadmap.md) tracks milestone status.
 
+## Run locally on Windows
+
+Start Docker Desktop. On first setup, copy `infra/.env.example` to `infra/.env` and set `POSTGRES_PASSWORD`. Keep the same password when reusing the database volume.
+
+Run this from the repository root.
+
+```powershell
+.\taotale.cmd
+```
+
+This builds the frontend and backend and starts PostgreSQL. The backend serves the built frontend on the same port as the API. With the default port, open the [TaoTale Library](http://127.0.0.1:8080/library).
+
+To generate audio with Azure Speech, set `TAOTALE_BACKEND_TARGET=speech-runtime` in `infra/.env` and fill in `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION`. Run the same start command to rebuild with the speech runtime. Settings shows its local readiness and provides backup and restore commands.
+
+To stop the stack and keep your database and recordings, run this from the root.
+
+```powershell
+.\taotale.cmd stop
+```
+
 ## Development checks
 
 Install Node 24.19.0 from `.nvmrc`, pnpm 11.25.0 from `frontend/package.json`, and Go 1.27.4 from `backend/go.mod`. Docker runs the pinned Gitleaks scanner and the local database stack.

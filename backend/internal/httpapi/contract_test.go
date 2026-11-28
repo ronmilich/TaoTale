@@ -28,9 +28,11 @@ func TestOpenAPIConformance(t *testing.T) {
 	}
 	logger := slog.New(slog.DiscardHandler)
 	catalog := contractCatalog(t)
-	healthy := Router(func(context.Context) error { return nil }, logger, "", catalog, nil, tts.Mock{}, nil)
+	good := func(context.Context) error { return nil }
+	healthy := Router(HealthChecks{Database: good, Schema: good, Media: good, ExpectedSchemaRevision: 9}, logger, "", catalog, nil, tts.Mock{}, nil)
 	storageError := errors.New("private catalog error")
-	unavailable := Router(func(context.Context) error { return storageError }, logger, "", fixtureCatalog{err: storageError}, nil, tts.NewAzure("", "", "", 0), nil)
+	checkFailure := func(context.Context) error { return storageError }
+	unavailable := Router(HealthChecks{Database: checkFailure, Schema: checkFailure, Media: good}, logger, "", fixtureCatalog{err: storageError}, nil, tts.NewAzure("speech-key-canary", "private-region-canary", "/private/worker-canary", 0), nil)
 
 	operations := make(map[string]*routers.Route)
 	for template, item := range spec.Paths.Map() {
@@ -125,6 +127,22 @@ func TestOpenAPIConformance(t *testing.T) {
 			requireContractResponse(t, req, contractRoute, result, status)
 
 			switch operation {
+			case "getSystemStatus":
+				if !strings.Contains(result.Body.String(), `"schema":"current"`) {
+					t.Fatal(result.Body.String())
+				}
+				result = httptest.NewRecorder()
+				unavailable.ServeHTTP(result, req)
+				requireContractResponse(t, req, contractRoute, result, http.StatusOK)
+				if result.Header().Get("Cache-Control") != "no-store" ||
+					strings.Contains(result.Body.String(), storageError.Error()) ||
+					strings.Contains(result.Body.String(), "canary") ||
+					!strings.Contains(result.Body.String(), `"available":false`) ||
+					!strings.Contains(result.Body.String(), `"azureConfigured":true`) ||
+					!strings.Contains(result.Body.String(), `"database":"unavailable"`) ||
+					!strings.Contains(result.Body.String(), `"media":"writable"`) {
+					t.Fatal(result.Body.String())
+				}
 			case "listTTSVoices":
 				if !strings.Contains(result.Body.String(), "SunHi (mock)") || strings.Contains(result.Body.String(), "zh-CN") {
 					t.Fatal("expected only a labeled Korean voice")

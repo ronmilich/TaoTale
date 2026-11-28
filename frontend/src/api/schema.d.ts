@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect local storage, speech configuration and versions */
+        get: operations["getSystemStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/languages": {
         parameters: {
             query?: never;
@@ -710,6 +727,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SystemStatus: {
+            appVersion: string;
+            /** @enum {string} */
+            database: "ready" | "unavailable";
+            /**
+             * @description Current only when the applied migration history matches this build.
+             * @enum {string}
+             */
+            schema: "current" | "unavailable";
+            expectedSchemaRevision: number | null;
+            /** @enum {string} */
+            media: "writable" | "unavailable";
+            speech: {
+                /** @enum {string} */
+                provider: "azure" | "mock";
+                azureConfigured: boolean;
+                /** @description Local generation prerequisites are present. Credentials and network are verified during synthesis. */
+                available: boolean;
+            };
+            segmentation: {
+                languageCode: string;
+                strategyId: string;
+                version: string;
+            }[];
+        };
         /** @enum {string} */
         VocabularyLanguage: "zh-CN" | "ko-KR";
         /** @enum {string} */
@@ -1296,6 +1338,30 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+        };
+    };
+    getSystemStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sanitized status snapshot, including any unavailable components. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemStatus"];
+                };
+            };
+            403: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
         };
     };
     listLanguages: {

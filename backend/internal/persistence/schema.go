@@ -26,6 +26,8 @@ type Schema struct {
 	migrations []migration
 }
 
+func (s Schema) Revision() int64 { return s.migrations[len(s.migrations)-1].version }
+
 type migration struct {
 	version  int64
 	checksum string

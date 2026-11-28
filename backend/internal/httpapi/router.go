@@ -13,7 +13,7 @@ import (
 
 const RequestTimeout = 10 * time.Second
 
-func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.VoiceCatalog, library *persistence.Library) *gin.Engine {
+func Router(health HealthChecks, logger *slog.Logger, devOrigin string, catalog Catalog, spa *SPA, provider tts.VoiceCatalog, library *persistence.Library) *gin.Engine {
 	router := gin.New()
 	router.HandleMethodNotAllowed = true
 	router.RedirectTrailingSlash = false
@@ -35,13 +35,14 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 		group.GET("/ready", func(c *gin.Context) {
 			ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 			defer cancel()
-			if err := ready(ctx); err != nil {
+			if !passes(ctx, health.Schema) || !passes(ctx, health.Media) {
 				fail(c, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Backend storage unavailable.")
 				return
 			}
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 	}
+	router.GET("/api/v1/system/status", systemStatus(health, provider))
 	router.GET("/api/v1/languages", listLanguages(catalog))
 	router.GET("/api/v1/topics", listTopics(catalog))
 	router.GET("/api/v1/tts/voices", listVoices(provider))

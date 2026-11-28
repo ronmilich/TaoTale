@@ -180,8 +180,8 @@ Use this **ordered, language-independent, user-assigned three-level set** on Lib
 ### 4.6 Settings, local storage and backup
 
 - **MVP:** settings for light/dark/system scheme, active language, per-language default voice and synthesis rate, Reader playback speed and vocabulary popup visibility.
-- **MVP:** show configured local filesystem asset path, PostgreSQL/Docker storage and backup guidance, data reset/delete confirmation and Azure TTS connection status. **No account management page**.
-- **MVP:** support **consistent backup and restore** of all locally owned data: database, article covers, audio, timings, settings and vocabulary. Provide a verifiable recovery test before treating backup as reliable. At minimum, a tested `pg_dump`/restore plus asset-backup procedure is required; one-click UI can follow the first stable release.
+- **MVP:** show the standard media mount inside the Docker container, PostgreSQL and media volume guidance, copyable backup and restore commands, and local Azure TTS readiness. Restore opens a separate Compose installation with fresh volumes. Settings has neither a data reset nor account management.
+- **MVP:** support **consistent backup and restore** of the database and media, including covers, audio, timings and vocabulary. Preserve browser preferences by keeping the browser profile. A verified `pg_dump`/restore and asset recovery procedure is a release requirement. A one-click backup can follow the first stable release.
 - **MVP:** on startup, resolve/create the single user idempotently and load stored data; do not introduce a registration flow.
 - **Later:** encrypted backup, optional user-managed sync to a trusted storage location, remote access and multi-device synchronization (each is a separate architecture/security decision).
 

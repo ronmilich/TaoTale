@@ -3,12 +3,17 @@ import type { LearningLanguage } from "../api/client";
 export type Language = LearningLanguage["code"];
 export const speechRates = [0.75, 1, 1.25] as const;
 export type SpeechRate = (typeof speechRates)[number];
-type SpeechPreference = { voiceId: string; speakingRate: SpeechRate };
+export type SpeechPreference = { voiceId: string; speakingRate: SpeechRate };
 export const themes = ["system", "light", "dark"] as const;
 export type Theme = (typeof themes)[number];
 export const playbackSpeeds = ["0.75", "1", "1.25", "1.5"] as const;
+export type PlaybackSpeed = (typeof playbackSpeeds)[number];
 export const vocabularyDisplays = ["both", "learning", "acquired"] as const;
 export type VocabularyDisplay = (typeof vocabularyDisplays)[number];
+export type ReaderPreferences = {
+  vocabularyDisplay: VocabularyDisplay;
+  showVocabularyDetails: boolean;
+};
 type Preferences = {
   theme: Theme;
   language: Language;
@@ -65,18 +70,22 @@ export function saveSpeechPreference(language: Language, value: SpeechPreference
   }
 }
 
-export function readVocabularyDisplay(): VocabularyDisplay {
+export function readReaderPreferences(): ReaderPreferences {
   try {
     const value = JSON.parse(window.localStorage.getItem(prefix + "reader") ?? "null");
-    return vocabularyDisplays.find((option) => option === value?.vocabularyDisplay) ?? "both";
+    return {
+      vocabularyDisplay:
+        vocabularyDisplays.find((option) => option === value?.vocabularyDisplay) ?? "both",
+      showVocabularyDetails: value?.showVocabularyDetails === true,
+    };
   } catch {
-    return "both";
+    return { vocabularyDisplay: "both", showVocabularyDetails: false };
   }
 }
 
-export function saveVocabularyDisplay(value: VocabularyDisplay) {
+export function saveReaderPreferences(value: ReaderPreferences) {
   try {
-    window.localStorage.setItem(prefix + "reader", JSON.stringify({ vocabularyDisplay: value }));
+    window.localStorage.setItem(prefix + "reader", JSON.stringify(value));
   } catch {
     // The panel still uses the selected display in memory.
   }

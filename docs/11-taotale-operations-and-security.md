@@ -91,6 +91,8 @@ TaoTale app-local CSS and native controls are presentation only, **never securit
 
 **Backup must represent one consistent point in time across database and filesystem.** Tested manual backup/restore is an MVP gate; an automated Settings button is optional/post-MVP.
 
+Settings provides copyable PowerShell commands for the default Compose installation. They pause the API, save the paired database dump and media archive, and restore them into an independent Compose project. Preserve the browser profile and local setup credentials separately. TAO-44 owns the release manifest and full integrity comparison.
+
 **Backup procedure (conceptual):**
 
 1. Quiesce Gin writes and TTS worker (or stop backend cleanly); make sure no file promotions or cleanup are in progress.

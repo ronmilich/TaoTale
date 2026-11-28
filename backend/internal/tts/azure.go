@@ -34,6 +34,8 @@ func NewAzure(key, region, worker string, timeout time.Duration) *Azure {
 
 func (*Azure) ProviderID() string { return "azure" }
 
+func (a *Azure) Configured() bool { return a != nil && a.key != "" && a.region != "" }
+
 func (a *Azure) ListVoices(ctx context.Context, language string) ([]Voice, error) {
 	if err := contextError(ctx); err != nil {
 		return nil, err
@@ -42,7 +44,7 @@ func (a *Azure) ListVoices(ctx context.Context, language string) ([]Voice, error
 	if err != nil {
 		return nil, err
 	}
-	if a == nil || a.key == "" || !azureRegion.MatchString(a.region) || !filepath.IsAbs(a.worker) {
+	if !a.Configured() || !azureRegion.MatchString(a.region) || !filepath.IsAbs(a.worker) {
 		return nil, &Error{Unavailable}
 	}
 	info, err := os.Stat(a.worker)

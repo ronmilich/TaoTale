@@ -13,8 +13,15 @@ import {
   applyTheme,
   darkMedia,
   readPreference,
+  readReaderPreferences,
+  readSpeechPreference,
   savePreference,
+  saveReaderPreferences,
+  saveSpeechPreference,
   type Language,
+  type PlaybackSpeed,
+  type ReaderPreferences,
+  type SpeechPreference,
   type Theme,
 } from "./storage";
 
@@ -26,6 +33,12 @@ interface LocalPreferences {
   languages: Accessor<LearningLanguage[] | undefined>;
   languageError: Accessor<boolean>;
   retryLanguages: () => void;
+  playbackSpeed: Accessor<PlaybackSpeed>;
+  changePlaybackSpeed: (speed: PlaybackSpeed) => void;
+  speech: (language: Language) => SpeechPreference | undefined;
+  changeSpeech: (language: Language, value: SpeechPreference) => void;
+  reader: Accessor<ReaderPreferences>;
+  changeReader: (patch: Partial<ReaderPreferences>) => void;
 }
 
 const Preferences = createContext<LocalPreferences>();
@@ -33,6 +46,12 @@ const Preferences = createContext<LocalPreferences>();
 export function PreferenceProvider(props: ParentProps) {
   const [theme, setTheme] = createSignal(readPreference("theme"));
   const [preferredLanguage, setPreferredLanguage] = createSignal(readPreference("language"));
+  const [playbackSpeed, setPlaybackSpeed] = createSignal(readPreference("playbackSpeed"));
+  const [reader, setReader] = createSignal(readReaderPreferences());
+  const [speech, setSpeech] = createSignal({
+    "zh-CN": readSpeechPreference("zh-CN"),
+    "ko-KR": readSpeechPreference("ko-KR"),
+  });
   const [languages, setLanguages] = createSignal<LearningLanguage[]>();
   const [languageError, setLanguageError] = createSignal(false);
   const [languageAttempt, setLanguageAttempt] = createSignal(0);
@@ -84,6 +103,22 @@ export function PreferenceProvider(props: ParentProps) {
     retryLanguages() {
       setLanguageError(false);
       setLanguageAttempt((attempt) => attempt + 1);
+    },
+    playbackSpeed,
+    changePlaybackSpeed(speed) {
+      setPlaybackSpeed(speed);
+      savePreference("playbackSpeed", speed);
+    },
+    speech: (code) => speech()[code],
+    changeSpeech(code, value) {
+      setSpeech((previous) => ({ ...previous, [code]: value }));
+      saveSpeechPreference(code, value);
+    },
+    reader,
+    changeReader(patch) {
+      const value = { ...reader(), ...patch };
+      setReader(value);
+      saveReaderPreferences(value);
     },
   };
   return <Preferences value={value}>{props.children}</Preferences>;

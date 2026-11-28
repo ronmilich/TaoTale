@@ -26,7 +26,7 @@ func TestVocabularyPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	api := Router(nil, slog.New(slog.DiscardHandler), "", queries.New(pool), nil, tts.Mock{}, &persistence.Library{Pool: pool})
+	api := Router(HealthChecks{}, slog.New(slog.DiscardHandler), "", queries.New(pool), nil, tts.Mock{}, &persistence.Library{Pool: pool})
 	send := func(method, path string, payload any) (*http.Request, *httptest.ResponseRecorder) {
 		var body []byte
 		if payload != nil {
@@ -302,7 +302,7 @@ func TestVocabularyScalePostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer traced.Close()
-	api := Router(nil, slog.New(slog.DiscardHandler), "", queries.New(traced), nil, tts.Mock{}, &persistence.Library{Pool: traced})
+	api := Router(HealthChecks{}, slog.New(slog.DiscardHandler), "", queries.New(traced), nil, tts.Mock{}, &persistence.Library{Pool: traced})
 	get := func(path string, target any) {
 		t.Helper()
 		res := httptest.NewRecorder()

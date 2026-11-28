@@ -48,7 +48,7 @@ func TestLibraryPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	api := Router(nil, slog.New(slog.DiscardHandler), "", queries.New(pool), nil, tts.Mock{}, &persistence.Library{Pool: pool})
+	api := Router(HealthChecks{}, slog.New(slog.DiscardHandler), "", queries.New(pool), nil, tts.Mock{}, &persistence.Library{Pool: pool})
 	call := func(method, route, endpoint, body string, status int) map[string]any {
 		t.Helper()
 		req := httptest.NewRequest(method, "http://localhost/api/v1"+endpoint, strings.NewReader(body))

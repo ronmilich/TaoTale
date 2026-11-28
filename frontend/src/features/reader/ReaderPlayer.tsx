@@ -1,11 +1,7 @@
 import { For, Show, createSignal, onSettled } from "solid-js";
 import controls from "../../components/Controls.module.css";
-import {
-  playbackSpeeds,
-  readPreference,
-  savePreference,
-  validatePreference,
-} from "../../preferences/storage";
+import { usePreferences } from "../../preferences/Preferences";
+import { playbackSpeeds, validatePreference } from "../../preferences/storage";
 import { bindPlayback, formatTime, type Transcript } from "./playback";
 import styles from "./ReaderArticle.module.css";
 
@@ -29,7 +25,8 @@ export default function ReaderPlayer(props: {
   const [playing, setPlaying] = createSignal(false);
   const [buffering, setBuffering] = createSignal(false);
   const [position, setPosition] = createSignal(0);
-  const [speed, setSpeed] = createSignal(readPreference("playbackSpeed"));
+  const preferences = usePreferences();
+  const speed = preferences.playbackSpeed;
   const duration = () => props.recording.transcript.durationMs;
   const seek = (ms: number) => binding?.seek(ms);
 
@@ -124,8 +121,7 @@ export default function ReaderPlayer(props: {
           onChange={(event) => {
             const value = validatePreference("playbackSpeed", event.currentTarget.value);
             audio.playbackRate = Number(value);
-            setSpeed(value);
-            savePreference("playbackSpeed", value);
+            preferences.changePlaybackSpeed(value);
           }}
         >
           <For each={playbackSpeeds}>

@@ -57,7 +57,7 @@ func TestGenerationPostgres(t *testing.T) {
 	}
 	voices := &admissionVoices{}
 	mediaRoot := t.TempDir()
-	api := Router(nil, slog.New(slog.DiscardHandler), "", nil, nil, voices, &persistence.Library{Pool: pool, MediaRoot: mediaRoot})
+	api := Router(HealthChecks{}, slog.New(slog.DiscardHandler), "", nil, nil, voices, &persistence.Library{Pool: pool, MediaRoot: mediaRoot})
 	request := func(method, template, item, job, key, body string) admissionResponse {
 		path := strings.NewReplacer("{itemId}", item, "{generationId}", job).Replace(template)
 		req := httptest.NewRequest(method, "http://localhost/api/v1"+path, strings.NewReader(body))

@@ -48,15 +48,19 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return errors.New("cannot migrate and seed PostgreSQL")
 	}
 
-	ready := func(ctx context.Context) error {
-		if err := schema.Check(ctx, pool); err != nil {
-			return err
-		}
-		file, err := os.CreateTemp(config.MediaRoot, ".health-*")
-		if err != nil {
-			return err
-		}
-		return errors.Join(file.Close(), os.Remove(file.Name()))
+	health := httpapi.HealthChecks{
+		Database: pool.Ping, ExpectedSchemaRevision: schema.Revision(),
+		Schema: func(ctx context.Context) error { return schema.Check(ctx, pool) },
+		Media: func(ctx context.Context) error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			file, err := os.CreateTemp(config.MediaRoot, ".health-*")
+			if err != nil {
+				return err
+			}
+			return errors.Join(file.Close(), os.Remove(file.Name()))
+		},
 	}
 	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", config.Listen)
 	if err != nil {
@@ -75,7 +79,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 	}
 	defer worker.Close()
 	server := &http.Server{
-		Handler: httpapi.Router(ready, logger, config.DevOrigin, queries.New(pool), spa, provider,
+		Handler: httpapi.Router(health, logger, config.DevOrigin, queries.New(pool), spa, provider,
 			&persistence.Library{Pool: pool, MediaRoot: config.MediaRoot, Limits: config.GenerationLimits}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,

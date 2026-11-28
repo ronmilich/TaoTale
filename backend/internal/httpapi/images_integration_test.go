@@ -30,7 +30,7 @@ func TestCoverPostgres(t *testing.T) {
 	if err := media.PrepareRoot(root); err != nil {
 		t.Fatal(err)
 	}
-	api := Router(nil, slog.New(slog.DiscardHandler), "", queries.New(pool), nil, tts.Mock{}, &persistence.Library{Pool: pool, MediaRoot: root})
+	api := Router(HealthChecks{}, slog.New(slog.DiscardHandler), "", queries.New(pool), nil, tts.Mock{}, &persistence.Library{Pool: pool, MediaRoot: root})
 	call := func(method, target, contentType string, body io.Reader, etag string, status int) *httptest.ResponseRecorder {
 		t.Helper()
 		req := httptest.NewRequest(method, "http://localhost/api/v1"+target, body)

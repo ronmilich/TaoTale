@@ -1,6 +1,6 @@
 # 10 — TaoTale API contract and compatibility
 
-The canonical OpenAPI 3.1 contract covers health, the enabled learning languages and the Topic list. The inventory below describes subsequent MVP operations. [Canonical OpenAPI](../backend/api/openapi.yaml)
+The canonical OpenAPI 3.1 contract defines the shipped API. The inventory below describes the MVP operations. [Canonical OpenAPI](../backend/api/openapi.yaml)
 
 **Authority:** [01 — Overview](01-taotale-overview-and-features.md), [04 — Go backend](04-taotale-backend.md), [05 — PostgreSQL/sqlc schema](05-taotale-database.md), [06 — Alignment](06-taotale-segmentation-and-audio.md) and [09 — UI states](09-taotale-ui-states.md).
 
@@ -43,6 +43,7 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 | Method | Proposed path | Intent / key contract |
 |---|---|---|
 | GET | `/languages` | Enabled supported-language catalog; do not expose unsupported Japanese as usable. |
+| GET | `/system/status` | Sanitized component status for Settings, including PostgreSQL, schema, media, speech, and app and segmentation versions. |
 | GET | `/items` | Mixed draft/published, filtered by **required `languageCode`**, title, topics, difficulty, favorite, status; stable sorting/paging + total. |
 | POST | `/items` | Save draft; incomplete title/text allowed, optional owned preview claim. |
 | POST | `/items/publish` | Direct publish from complete item + exact validated READY preview; idempotency key required. |
@@ -82,7 +83,7 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 | GET | `/health/live` | Process liveness. |
 | GET | `/health/ready` | Live PostgreSQL/schema/media/owner/recovery state, sanitized failure. |
 
-**Settings:** current theme, active language, playback and per-language voice preferences remain **validated client-local values**. Do not invent a required `/settings` write API or redundant preference table. Expose only the backend configuration/status needed to explain whether Azure generation is available, without returning secrets.
+**Settings:** theme, active language, playback, vocabulary display and per-language voice/rate defaults are validated browser preferences. The status endpoint returns `200` with component states even when one or more checks fail. Azure configuration reports whether both credentials are present. Availability checks the locally installed speech tools and supported-language catalogs. Credential authentication happens during synthesis. The status response excludes credentials, host paths and probe errors.
 
 ## 4. Query, shape and pagination requirements
 

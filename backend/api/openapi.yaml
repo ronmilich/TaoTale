@@ -52,6 +52,20 @@ paths:
                   code: SERVICE_UNAVAILABLE
                   message: Backend storage unavailable.
                   requestId: example-request-id
+  /system/status:
+    get:
+      operationId: getSystemStatus
+      summary: Inspect local storage, speech configuration and versions
+      responses:
+        '200':
+          description: Sanitized status snapshot, including any unavailable components.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SystemStatus'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
   /languages:
     get:
       operationId: listLanguages
@@ -1508,6 +1522,34 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    SystemStatus:
+      type: object
+      additionalProperties: false
+      required: [appVersion, database, schema, expectedSchemaRevision, media, speech, segmentation]
+      properties:
+        appVersion: {type: string, minLength: 1}
+        database: {type: string, enum: [ready, unavailable]}
+        schema: {type: string, enum: [current, unavailable], description: Current only when the applied migration history matches this build.}
+        expectedSchemaRevision: {type: [integer, 'null'], minimum: 1}
+        media: {type: string, enum: [writable, unavailable]}
+        speech:
+          type: object
+          additionalProperties: false
+          required: [provider, azureConfigured, available]
+          properties:
+            provider: {type: string, enum: [azure, mock]}
+            azureConfigured: {type: boolean}
+            available: {type: boolean, description: Local generation prerequisites are present. Credentials and network are verified during synthesis.}
+        segmentation:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [languageCode, strategyId, version]
+            properties:
+              languageCode: {type: string}
+              strategyId: {type: string}
+              version: {type: string}
     VocabularyLanguage:
       type: string
       enum: [zh-CN, ko-KR]

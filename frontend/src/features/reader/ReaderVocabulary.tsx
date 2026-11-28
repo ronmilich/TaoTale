@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onSettled } from "solid-js";
 import {
   getItemVocabulary,
   patchVocabulary,
@@ -8,12 +8,8 @@ import {
   type ItemVocabularyEntry,
 } from "../../api/client";
 import controls from "../../components/Controls.module.css";
-import {
-  readVocabularyDisplay,
-  saveVocabularyDisplay,
-  vocabularyDisplays,
-  type VocabularyDisplay,
-} from "../../preferences/storage";
+import { usePreferences } from "../../preferences/Preferences";
+import { vocabularyDisplays, type VocabularyDisplay } from "../../preferences/storage";
 import { useTopics } from "../topics/topics";
 import { WordStatus, WordTopics } from "../vocabulary/WordBadges";
 import styles from "../vocabulary/Vocabulary.module.css";
@@ -28,9 +24,13 @@ export default function ReaderVocabulary(props: {
   highlights: (view: ItemVocabulary | undefined, display: VocabularyDisplay) => void;
 }) {
   const topics = useTopics();
+  const preferences = usePreferences();
   const [collection, setCollection] = createSignal<TranscriptSelection>();
   const [confirmation, setConfirmation] = createSignal("");
   const [open, setOpen] = createSignal(false);
+  onSettled(() => {
+    setOpen(preferences.reader().showVocabularyDetails);
+  });
   const [refresh, setRefresh] = createSignal(0);
   const [view, setView] = createSignal<ItemVocabulary>();
   const [loading, setLoading] = createSignal(false);
@@ -38,7 +38,7 @@ export default function ReaderVocabulary(props: {
   const [pending, setPending] = createSignal<string>();
   const [syncing, setSyncing] = createSignal(false);
   const [statusError, setStatusError] = createSignal("");
-  const [display, setDisplay] = createSignal(readVocabularyDisplay());
+  const display = () => preferences.reader().vocabularyDisplay;
   const broadcast = useVocabularyChanges((language) => {
     if (language === props.item.languageCode) setRefresh((number) => number + 1);
   });
@@ -174,7 +174,11 @@ export default function ReaderVocabulary(props: {
           <span data-vocabulary-status="ACQUIRED">Acquired</span>
         </div>
       </Show>
-      <details class={styles.panel} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <details
+        class={styles.panel}
+        open={open()}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
+      >
         <summary>Article vocabulary</summary>
         <div class={styles.header}>
           <div class={styles.entryActions}>
@@ -187,8 +191,7 @@ export default function ReaderVocabulary(props: {
                   (value) => value === event.currentTarget.value,
                 );
                 if (selected) {
-                  setDisplay(selected);
-                  saveVocabularyDisplay(selected);
+                  preferences.changeReader({ vocabularyDisplay: selected });
                 }
               }}
             >

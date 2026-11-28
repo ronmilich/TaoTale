@@ -16,12 +16,8 @@ import {
   type Voice,
   type WorkingRevision,
 } from "../../api/client";
-import {
-  readSpeechPreference,
-  saveSpeechPreference,
-  speechRates,
-  type SpeechRate,
-} from "../../preferences/storage";
+import { usePreferences } from "../../preferences/Preferences";
+import { speechRates, type SpeechRate } from "../../preferences/storage";
 import type { DraftFields } from "./draft";
 
 type SavedTarget =
@@ -77,6 +73,7 @@ export function useDraftAudio(options: {
   setSpeech: (voiceId: string | null, speakingRate: SpeechRate | null) => void;
   review?: () => void;
 }) {
+  const preferences = usePreferences();
   const [catalog, setCatalog] = createSignal<{
     language: PreviewInput["languageCode"];
     items: Voice[];
@@ -92,7 +89,7 @@ export function useDraftAudio(options: {
     const values = options.values();
     const available = voices();
     if (!values.languageCode || !available?.length) return;
-    const preferred = options.item() ? undefined : readSpeechPreference(values.languageCode);
+    const preferred = options.item() ? undefined : preferences.speech(values.languageCode);
     const voice = values.voiceId
       ? available.find((entry) => entry.voiceId === values.voiceId)
       : (available.find((entry) => entry.voiceId === preferred?.voiceId) ?? available[0]);
@@ -155,7 +152,7 @@ export function useDraftAudio(options: {
       item?.voiceId === null && voiceId === voices()?.[0]?.voiceId ? null : voiceId,
       item?.speakingRate === null && speakingRate === 1 ? null : speakingRate,
     );
-    saveSpeechPreference(code, { voiceId, speakingRate });
+    preferences.changeSpeech(code, { voiceId, speakingRate });
   }
 
   const [accepted, setAccepted] = createSignal<Job>();
