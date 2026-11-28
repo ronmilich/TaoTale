@@ -400,6 +400,188 @@ paths:
           $ref: '#/components/responses/APIError'
         '503':
           $ref: '#/components/responses/APIError'
+  /items/{itemId}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+    post:
+      operationId: openRevision
+      summary: Open or resume the working revision
+      responses:
+        '200': {$ref: '#/components/responses/WorkingRevision'}
+        '201': {$ref: '#/components/responses/WorkingRevision'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /items/{itemId}/revisions/{revisionId}:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/RevisionId'
+    get:
+      operationId: getRevision
+      summary: Read the saved revision and its latest candidate status
+      responses:
+        '200': {$ref: '#/components/responses/WorkingRevision'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+    patch:
+      operationId: patchRevision
+      summary: Save revision speech inputs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expectedVersion]
+              properties:
+                expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
+                sourceText: {type: string, maxLength: 1500, description: Exact source of up to 1500 UTF-16 units.}
+                voiceId: {type: [string, 'null']}
+                speakingRate: {type: [number, 'null'], enum: [0.75, 1, 1.25, null]}
+      responses:
+        '200': {$ref: '#/components/responses/WorkingRevision'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+    delete:
+      operationId: discardRevision
+      summary: Discard the saved revision and its candidate recordings
+      parameters:
+        - name: expectedVersion
+          in: query
+          required: true
+          schema: {type: integer, minimum: 1, maximum: 2147483647}
+      responses:
+        '204': {$ref: '#/components/responses/Deleted'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /items/{itemId}/revisions/{revisionId}/audio/generate:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/RevisionId'
+    post:
+      operationId: generateRevisionAudio
+      summary: Generate audio for the saved revision version
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expectedVersion]
+              properties:
+                expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
+      responses:
+        '202': {$ref: '#/components/responses/GenerationReceipt'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '429': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /items/{itemId}/revisions/{revisionId}/audio:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/RevisionId'
+      - $ref: '#/components/parameters/AudioAssetPin'
+      - $ref: '#/components/parameters/AudioRange'
+    get:
+      operationId: streamRevisionAudio
+      summary: Stream the pinned revision candidate
+      responses:
+        '200': {$ref: '#/components/responses/AudioStream'}
+        '206': {$ref: '#/components/responses/PartialAudioStream'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '416': {$ref: '#/components/responses/InvalidAudioRange'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /items/{itemId}/revisions/{revisionId}/audio/download:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/RevisionId'
+      - $ref: '#/components/parameters/AudioAssetPin'
+      - $ref: '#/components/parameters/AudioRange'
+    get:
+      operationId: downloadRevisionAudio
+      summary: Download the pinned revision candidate
+      responses:
+        '200': {$ref: '#/components/responses/AudioDownload'}
+        '206': {$ref: '#/components/responses/PartialAudioDownload'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '416': {$ref: '#/components/responses/InvalidAudioRange'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
+  /items/{itemId}/revisions/{revisionId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/ItemId'
+      - $ref: '#/components/parameters/RevisionId'
+    post:
+      operationId: publishRevision
+      summary: Publish the verified candidate against the current item version and base recording
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expectedVersion, expectedItemVersion]
+              properties:
+                expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
+                expectedItemVersion: {type: integer, minimum: 1, maximum: 2147483647}
+                audioAssetId: {type: string, format: uuid}
+      responses:
+        '200': {$ref: '#/components/responses/Publication'}
+        '400': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '413': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '500': {$ref: '#/components/responses/APIError'}
+        '503': {$ref: '#/components/responses/APIError'}
+        '504': {$ref: '#/components/responses/APIError'}
   /tts/previews:
     post:
       operationId: createTTSPreview
@@ -551,18 +733,7 @@ paths:
                 expectedVersion: {type: integer, minimum: 1, maximum: 2147483647}
       responses:
         '202':
-          description: Durable generation receipt, identical on replay.
-          headers:
-            X-Request-Id:
-              $ref: '#/components/headers/RequestId'
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [generationId]
-                additionalProperties: false
-                properties:
-                  generationId: {type: string, format: uuid}
+          $ref: '#/components/responses/GenerationReceipt'
         '400':
           $ref: '#/components/responses/APIError'
         '403':
@@ -836,6 +1007,11 @@ paths:
                   requestId: example-request-id
 components:
   parameters:
+    RevisionId:
+      name: revisionId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
     AudioAssetPin:
       name: audioAssetId
       in: query
@@ -875,6 +1051,28 @@ components:
       schema:
         type: string
   responses:
+    GenerationReceipt:
+      description: Durable generation receipt, identical on replay.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [generationId]
+            additionalProperties: false
+            properties:
+              generationId: {type: string, format: uuid}
+    WorkingRevision:
+      description: Saved working revision with its current candidate status.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WorkingRevision'
     Publication:
       description: Published item address.
       headers:
@@ -1031,6 +1229,26 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
+    WorkingRevision:
+      type: object
+      additionalProperties: false
+      required: [id, itemId, baseAudioAssetId, version, itemVersion, languageCode, sourceText, voiceId, speakingRate, audioStatus, audioGenerationId, audioAssetId, errorCode, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        itemId: {type: string, format: uuid}
+        baseAudioAssetId: {type: string, format: uuid}
+        version: {type: integer, minimum: 1, maximum: 2147483647}
+        itemVersion: {type: integer, minimum: 1, maximum: 2147483647}
+        languageCode: {type: string, enum: [zh-CN, ko-KR]}
+        sourceText: {type: string, maxLength: 1500, description: Exact source of up to 1500 UTF-16 units.}
+        voiceId: {type: [string, 'null']}
+        speakingRate: {type: [number, 'null'], enum: [0.75, 1, 1.25, null]}
+        audioStatus: {type: string, enum: [NOT_GENERATED, PENDING, PROCESSING, READY, FAILED, OUTDATED]}
+        audioGenerationId: {type: [string, 'null'], format: uuid}
+        audioAssetId: {type: [string, 'null'], format: uuid}
+        errorCode: {type: [string, 'null']}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
     ErrorEnvelope:
       type: object
       required: [error]

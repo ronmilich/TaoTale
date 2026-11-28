@@ -10,8 +10,20 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgtype"
 	"taotale/backend/internal/persistence"
 )
+
+func audioAssetPin(c *gin.Context) (pgtype.UUID, bool) {
+	query, err := url.ParseQuery(c.Request.URL.RawQuery)
+	if pins := query["audioAssetId"]; err == nil && len(pins) == 1 {
+		if pin, ok := parseID(pins[0]); ok {
+			return pin, true
+		}
+	}
+	fail(c, 400, "VALIDATION_ERROR", "Send one expected audioAssetId.")
+	return pgtype.UUID{}, false
+}
 
 func itemAudio(store *persistence.Library, download bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -19,18 +31,8 @@ func itemAudio(store *persistence.Library, download bool) gin.HandlerFunc {
 		if !ok {
 			return
 		}
-		query, err := url.ParseQuery(c.Request.URL.RawQuery)
-		pins := query["audioAssetId"]
-		if err != nil || len(pins) != 1 {
-			fail(c, 400, "VALIDATION_ERROR", "Send one expected audioAssetId.")
-			return
-		}
-		pin, ok := parseID(pins[0])
-		if !ok {
-			fail(c, 400, "VALIDATION_ERROR", "Send one expected audioAssetId.")
-			return
-		}
-		if !hasLibrary(c, store) {
+		pin, ok := audioAssetPin(c)
+		if !ok || !hasLibrary(c, store) {
 			return
 		}
 		file, size, err := store.OpenItemAudio(c.Request.Context(), id, pin)

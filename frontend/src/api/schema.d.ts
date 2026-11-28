@@ -196,6 +196,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/{itemId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open or resume the working revision */
+        post: operations["openRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/revisions/{revisionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        /** Read the saved revision and its latest candidate status */
+        get: operations["getRevision"];
+        put?: never;
+        post?: never;
+        /** Discard the saved revision and its candidate recordings */
+        delete: operations["discardRevision"];
+        options?: never;
+        head?: never;
+        /** Save revision speech inputs */
+        patch: operations["patchRevision"];
+        trace?: never;
+    };
+    "/items/{itemId}/revisions/{revisionId}/audio/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate audio for the saved revision version */
+        post: operations["generateRevisionAudio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/revisions/{revisionId}/audio": {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        /** Stream the pinned revision candidate */
+        get: operations["streamRevisionAudio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/revisions/{revisionId}/audio/download": {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        /** Download the pinned revision candidate */
+        get: operations["downloadRevisionAudio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/revisions/{revisionId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the verified candidate against the current item version and base recording */
+        post: operations["publishRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tts/previews": {
         parameters: {
             query?: never;
@@ -410,6 +543,34 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        WorkingRevision: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            baseAudioAssetId: string;
+            version: number;
+            itemVersion: number;
+            /** @enum {string} */
+            languageCode: "zh-CN" | "ko-KR";
+            /** @description Exact source of up to 1500 UTF-16 units. */
+            sourceText: string;
+            voiceId: string | null;
+            /** @enum {number|null} */
+            speakingRate: 0.75 | 1 | 1.25 | null;
+            /** @enum {string} */
+            audioStatus: "NOT_GENERATED" | "PENDING" | "PROCESSING" | "READY" | "FAILED" | "OUTDATED";
+            /** Format: uuid */
+            audioGenerationId: string | null;
+            /** Format: uuid */
+            audioAssetId: string | null;
+            errorCode: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         ErrorEnvelope: {
             error: {
                 code: string;
@@ -609,6 +770,29 @@ export interface components {
         };
     };
     responses: {
+        /** @description Durable generation receipt, identical on replay. */
+        GenerationReceipt: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    generationId: string;
+                };
+            };
+        };
+        /** @description Saved working revision with its current candidate status. */
+        WorkingRevision: {
+            headers: {
+                "X-Request-Id": components["headers"]["RequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["WorkingRevision"];
+            };
+        };
         /** @description Published item address. */
         Publication: {
             headers: {
@@ -765,6 +949,7 @@ export interface components {
         };
     };
     parameters: {
+        RevisionId: string;
         /** @description Expected asset identity. A stale or unknown recording returns 404. */
         AudioAssetPin: string;
         PreviewId: string;
@@ -1135,6 +1320,237 @@ export interface operations {
             503: components["responses"]["APIError"];
         };
     };
+    openRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["WorkingRevision"];
+            201: components["responses"]["WorkingRevision"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    getRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["WorkingRevision"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    discardRevision: {
+        parameters: {
+            query: {
+                expectedVersion: number;
+            };
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: components["responses"]["Deleted"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    patchRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    /** @description Exact source of up to 1500 UTF-16 units. */
+                    sourceText?: string;
+                    voiceId?: string | null;
+                    /** @enum {number|null} */
+                    speakingRate?: 0.75 | 1 | 1.25 | null;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["WorkingRevision"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    generateRevisionAudio: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                };
+            };
+        };
+        responses: {
+            202: components["responses"]["GenerationReceipt"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            429: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    streamRevisionAudio: {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AudioStream"];
+            206: components["responses"]["PartialAudioStream"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            416: components["responses"]["InvalidAudioRange"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    downloadRevisionAudio: {
+        parameters: {
+            query: {
+                /** @description Expected asset identity. A stale or unknown recording returns 404. */
+                audioAssetId: components["parameters"]["AudioAssetPin"];
+            };
+            header?: {
+                /** @description A single byte range, including open-ended and suffix ranges. */
+                Range?: components["parameters"]["AudioRange"];
+            };
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AudioDownload"];
+            206: components["responses"]["PartialAudioDownload"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            416: components["responses"]["InvalidAudioRange"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    publishRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+                revisionId: components["parameters"]["RevisionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    expectedItemVersion: number;
+                    /** Format: uuid */
+                    audioAssetId?: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Publication"];
+            400: components["responses"]["APIError"];
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            415: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
     createTTSPreview: {
         parameters: {
             query?: never;
@@ -1271,19 +1687,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Durable generation receipt, identical on replay. */
-            202: {
-                headers: {
-                    "X-Request-Id": components["headers"]["RequestId"];
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        generationId: string;
-                    };
-                };
-            };
+            202: components["responses"]["GenerationReceipt"];
             400: components["responses"]["APIError"];
             403: components["responses"]["APIError"];
             404: components["responses"]["APIError"];

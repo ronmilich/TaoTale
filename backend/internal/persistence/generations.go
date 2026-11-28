@@ -59,6 +59,14 @@ func (s Library) identity(item queries.LibraryItem) (fingerprint.Identity, error
 }
 
 func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID, expectedVersion *int32) (pgtype.UUID, error) {
+	return s.admitSavedGeneration(ctx, itemID, pgtype.UUID{}, key, expectedVersion)
+}
+
+func (s Library) AdmitRevisionGeneration(ctx context.Context, itemID, revisionID, key pgtype.UUID, version int32) (pgtype.UUID, error) {
+	return s.admitSavedGeneration(ctx, itemID, revisionID, key, &version)
+}
+
+func (s Library) admitSavedGeneration(ctx context.Context, itemID, revisionID, key pgtype.UUID, expectedVersion *int32) (pgtype.UUID, error) {
 	var id pgtype.UUID
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := queries.New(tx)
@@ -68,13 +76,19 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID, e
 		if err != nil {
 			return err
 		}
-		canonical := draftOperation + "/" + itemID.String()
+		operation := draftOperation
+		target := itemID.String()
+		if revisionID.Valid {
+			operation = "generate_revision_audio"
+			target += "/" + revisionID.String()
+		}
+		canonical := operation + "/" + target
 		if expectedVersion != nil {
 			canonical += "/" + strconv.FormatInt(int64(*expectedVersion), 10)
 		}
 		digest := sha256.Sum256([]byte(canonical))
 		intent := hex.EncodeToString(digest[:])
-		id, err = generationReceipt(ctx, q, owner, key, draftOperation, intent)
+		id, err = generationReceipt(ctx, q, owner, key, operation, intent)
 		if err != nil || id.Valid {
 			return err
 		}
@@ -82,7 +96,13 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID, e
 		if err != nil {
 			return missing(err, ErrItemNotFound)
 		}
-		if item.PublishedAt.Valid {
+		if revisionID.Valid {
+			rev, err := lockRevision(ctx, q, item, revisionID)
+			if err != nil {
+				return err
+			}
+			item = revisionInputs(item, rev)
+		} else if item.PublishedAt.Valid {
 			return ErrInvalidDraft
 		}
 		if expectedVersion != nil && item.Version != *expectedVersion {
@@ -98,7 +118,7 @@ func (s Library) AdmitGeneration(ctx context.Context, itemID, key pgtype.UUID, e
 		if err := validateSynthesis(identity); err != nil {
 			return ErrInvalidDraft
 		}
-		id, err = s.queueSynthesis(ctx, q, owner, itemID, key, draftOperation, intent, identity)
+		id, err = s.queueSynthesis(ctx, q, owner, itemID, revisionID, key, operation, intent, identity)
 		return err
 	})
 	return id, err
@@ -131,7 +151,7 @@ func validateSynthesis(id fingerprint.Identity) error {
 		VoiceID: id.VoiceID, Source: id.ExactSourceText, Rate: id.SpeakingRate})
 }
 
-func (s Library) queueSynthesis(ctx context.Context, q *queries.Queries, owner, itemID, key pgtype.UUID, operation, intent string, identity fingerprint.Identity) (pgtype.UUID, error) {
+func (s Library) queueSynthesis(ctx context.Context, q *queries.Queries, owner, itemID, revisionID, key pgtype.UUID, operation, intent string, identity fingerprint.Identity) (pgtype.UUID, error) {
 	// Voice discovery only inspects the local configuration and worker binary.
 	voices, err := s.Voices.ListVoices(ctx, identity.LanguageCode)
 	if err != nil || !slices.ContainsFunc(voices, func(v tts.Voice) bool {
@@ -148,7 +168,7 @@ func (s Library) queueSynthesis(ctx context.Context, q *queries.Queries, owner, 
 		return pgtype.UUID{}, err
 	}
 	err = q.InsertGeneration(ctx, queries.InsertGenerationParams{
-		ID: id, UserID: owner, ItemID: itemID, Operation: operation, IdempotencyKey: key,
+		ID: id, UserID: owner, ItemID: itemID, RevisionID: revisionID, Operation: operation, IdempotencyKey: key,
 		LanguageCode: identity.LanguageCode, ProviderID: identity.ProviderID, VoiceID: identity.VoiceID,
 		SpeakingRate: identity.SpeakingRate, StrategyID: identity.StrategyID, StrategyVersion: identity.StrategyVersion,
 		FingerprintFormatVersion: fingerprint.SchemaVersion, SourceText: identity.ExactSourceText, SourceFingerprint: sum,

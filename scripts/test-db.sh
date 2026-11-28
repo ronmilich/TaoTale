@@ -41,6 +41,7 @@ docker run --rm --network "$test_network" -v "$root/backend:/src:ro" -w /src \
                           apt-get update -qq
                           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null
                           go test -count=1 -v ./internal/httpapi -run "^TestPreviewAudioPostgres$"
+                          go test -count=1 -v ./internal/httpapi -run "^TestWorkingRevisionPostgres$"
                           go test -count=1 -v ./internal/generation -run "^TestWorkerPostgres$"'
 
 restored_db=$(fresh_postgres --network none)
@@ -56,6 +57,7 @@ snapshot() {
             (SELECT jsonb_agg(l ORDER BY code) FROM public.learning_languages AS l),
             (SELECT jsonb_agg(t ORDER BY id) FROM public.topics AS t),
             (SELECT jsonb_agg(i ORDER BY id) FROM public.library_items AS i),
+            (SELECT jsonb_agg(r ORDER BY id) FROM public.working_revisions AS r),
             (SELECT jsonb_agg(i ORDER BY id) FROM public.media_images AS i),
             (SELECT jsonb_agg(it ORDER BY item_id, topic_id) FROM public.item_topics AS it),
             (SELECT jsonb_agg(g ORDER BY id) FROM public.audio_generations AS g),
@@ -67,4 +69,4 @@ snapshot() {
 original=$(snapshot "$source_db")
 restored=$(snapshot "$restored_db")
 [[ "$original" == "$restored" ]]
-echo 'Restored catalog, items, topic associations, audio generations, assets, receipts and migration history match the source database.'
+echo 'Restored catalog, items, working revisions, topic associations, audio generations, assets, receipts and migration history match the source database.'

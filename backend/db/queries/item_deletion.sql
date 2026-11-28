@@ -15,6 +15,7 @@ ORDER BY id FOR UPDATE;
 DELETE FROM public.audio_assets a
 WHERE a.user_id = $1 AND a.id = ANY(sqlc.arg(asset_ids)::uuid[])
   AND NOT EXISTS (SELECT 1 FROM public.library_items i WHERE (i.user_id, i.active_audio_asset_id) = (a.user_id, a.id))
+  AND NOT EXISTS (SELECT 1 FROM public.working_revisions r WHERE (r.user_id, r.base_audio_asset_id) = (a.user_id, a.id))
   AND NOT EXISTS (SELECT 1 FROM public.audio_generations g WHERE (g.user_id, g.audio_asset_id) = (a.user_id, a.id))
 RETURNING storage_key;
 

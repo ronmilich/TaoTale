@@ -40,28 +40,9 @@ func (s Library) publish(ctx context.Context, q *queries.Queries, item queries.L
 	if strings.TrimSpace(item.Title.String) == "" || strings.TrimSpace(item.SourceText) == "" {
 		return ErrPublicationIncomplete
 	}
-	identity, err := s.identity(item)
-	if err != nil {
-		return ErrAudioNotReady
-	}
-	sum, err := identity.Sum()
+	audio, err := s.publicationAudio(ctx, q, item, pgtype.UUID{}, pin)
 	if err != nil {
 		return err
-	}
-	audio, err := q.LockPublicationAudio(ctx, queries.LockPublicationAudioParams{
-		ItemID: item.ID, UserID: item.UserID, SourceText: item.SourceText, SourceFingerprint: sum,
-		LanguageCode: identity.LanguageCode, ProviderID: identity.ProviderID, VoiceID: identity.VoiceID,
-		SpeakingRate: identity.SpeakingRate, StrategyID: identity.StrategyID, StrategyVersion: identity.StrategyVersion,
-		FingerprintFormatVersion: fingerprint.SchemaVersion,
-	})
-	if err != nil {
-		return missing(err, ErrAudioNotReady)
-	}
-	if pin.Valid && pin != audio.ID {
-		return ErrAudioNotReady
-	}
-	if !s.audioPresent(audio.ID, audio.StorageKey, audio.ByteSize) {
-		return media.ErrAudioUnavailable
 	}
 	count, err := q.PublishItem(ctx, queries.PublishItemParams{
 		ItemID: item.ID, ExpectedVersion: item.Version, AssetID: audio.ID,
@@ -72,6 +53,35 @@ func (s Library) publish(ctx context.Context, q *queries.Queries, item queries.L
 		return ErrInvalidDraft
 	}
 	return err
+}
+
+func (s Library) publicationAudio(ctx context.Context, q *queries.Queries, item queries.LibraryItem, revisionID, pin pgtype.UUID) (queries.LockPublicationAudioRow, error) {
+	var audio queries.LockPublicationAudioRow
+	identity, err := s.identity(item)
+	if err != nil {
+		return audio, ErrAudioNotReady
+	}
+	sum, err := identity.Sum()
+	if err != nil {
+		return audio, err
+	}
+	audio, err = q.LockPublicationAudio(ctx, queries.LockPublicationAudioParams{
+		RevisionID: revisionID,
+		ItemID:     item.ID, UserID: item.UserID, SourceText: item.SourceText, SourceFingerprint: sum,
+		LanguageCode: identity.LanguageCode, ProviderID: identity.ProviderID, VoiceID: identity.VoiceID,
+		SpeakingRate: identity.SpeakingRate, StrategyID: identity.StrategyID, StrategyVersion: identity.StrategyVersion,
+		FingerprintFormatVersion: fingerprint.SchemaVersion,
+	})
+	if err != nil {
+		return audio, missing(err, ErrAudioNotReady)
+	}
+	if pin.Valid && pin != audio.ID {
+		return audio, ErrAudioNotReady
+	}
+	if !s.audioPresent(audio.ID, audio.StorageKey, audio.ByteSize) {
+		return audio, media.ErrAudioUnavailable
+	}
+	return audio, nil
 }
 
 type NewItem struct {

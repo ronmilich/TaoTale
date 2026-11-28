@@ -8,6 +8,7 @@ JOIN public.audio_assets a ON (a.user_id, a.id, a.source_fingerprint)
 WHERE g.id = (
     SELECT latest.id FROM public.audio_generations latest
     WHERE latest.item_id = sqlc.arg(item_id) AND latest.user_id = sqlc.arg(user_id)
+      AND latest.revision_id IS NOT DISTINCT FROM sqlc.narg(revision_id)::uuid
     ORDER BY latest.admission_order DESC LIMIT 1
 )
   AND g.status = 'READY' AND g.source_text = sqlc.arg(source_text)

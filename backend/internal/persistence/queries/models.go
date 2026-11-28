@@ -51,6 +51,7 @@ type AudioGeneration struct {
 	HeartbeatAt              pgtype.Timestamptz
 	CompletedAt              pgtype.Timestamptz
 	ExpiresAt                pgtype.Timestamptz
+	RevisionID               pgtype.UUID
 }
 
 type IdempotencyRecord struct {
@@ -129,4 +130,17 @@ type User struct {
 	DisplayName pgtype.Text
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+}
+
+type WorkingRevision struct {
+	ID               pgtype.UUID
+	UserID           pgtype.UUID
+	ItemID           pgtype.UUID
+	BaseAudioAssetID pgtype.UUID
+	SourceText       string
+	VoiceID          pgtype.Text
+	SpeakingRate     pgtype.Float8
+	Version          int32
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }

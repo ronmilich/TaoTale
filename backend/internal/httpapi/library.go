@@ -365,6 +365,12 @@ func failLibrary(c *gin.Context, err error) {
 		failDetails(c, 409, "DUPLICATE_TOPIC", "A topic already has that name.", gin.H{"existingId": duplicate.ID})
 	case errors.Is(err, persistence.ErrItemNotFound):
 		fail(c, 404, "ITEM_NOT_FOUND", "Resource not found.")
+	case errors.Is(err, persistence.ErrRevisionNotFound):
+		fail(c, 404, "REVISION_NOT_FOUND", "Working revision not found.")
+	case errors.Is(err, persistence.ErrUnpublished):
+		fail(c, 409, "INVALID_ITEM_STATE", "Publish the item before opening a working revision.")
+	case errors.Is(err, persistence.ErrRevisionBase):
+		fail(c, 409, "REVISION_BASE_CHANGED", "The published recording has changed since this revision was opened.")
 	case errors.Is(err, persistence.ErrCoverNotFound):
 		fail(c, 404, "IMAGE_NOT_FOUND", "The cover image is unavailable.")
 	case errors.Is(err, persistence.ErrPreviewNotFound):

@@ -52,6 +52,7 @@ func Router(ready func(context.Context) error, logger *slog.Logger, devOrigin st
 	}
 	registerLibrary(router, library, provider.ProviderID())
 	registerPublication(router, library, provider.ProviderID())
+	registerRevisions(router, library, provider.ProviderID())
 	registerGenerations(router, library)
 	registerPreviews(router, library)
 	router.GET("/api/v1/items/:itemId/audio", itemAudio(library, false))

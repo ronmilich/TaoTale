@@ -29,18 +29,9 @@ func (s Library) DeleteItem(ctx context.Context, id pgtype.UUID) error {
 		if _, err := q.DeleteItem(ctx, id); err != nil {
 			return err
 		}
-		assetIDs = slices.DeleteFunc(append(assetIDs, item.ActiveAudioAssetID), func(id pgtype.UUID) bool {
-			return !id.Valid
-		})
-		if len(assetIDs) > 0 {
-			params := queries.LockDeletionAudioParams{UserID: item.UserID, AssetIds: assetIDs}
-			if err := q.LockDeletionAudio(ctx, params); err != nil {
-				return err
-			}
-			audioKeys, err = q.DeleteUnreferencedAudio(ctx, queries.DeleteUnreferencedAudioParams(params))
-			if err != nil {
-				return err
-			}
+		audioKeys, err = deleteUnusedAudio(ctx, q, item.UserID, append(assetIDs, item.ActiveAudioAssetID))
+		if err != nil {
+			return err
 		}
 		if item.CoverImageID.Valid {
 			params := queries.LockDeletionCoverParams{OwnerID: item.UserID, ID: item.CoverImageID}
@@ -63,6 +54,18 @@ func (s Library) DeleteItem(ctx context.Context, id pgtype.UUID) error {
 		slog.WarnContext(ctx, "Could not release deleted item media", "item_id", id.String())
 	}
 	return nil
+}
+
+func deleteUnusedAudio(ctx context.Context, q *queries.Queries, owner pgtype.UUID, ids []pgtype.UUID) ([]string, error) {
+	ids = slices.DeleteFunc(ids, func(id pgtype.UUID) bool { return !id.Valid })
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	params := queries.LockDeletionAudioParams{UserID: owner, AssetIds: ids}
+	if err := q.LockDeletionAudio(ctx, params); err != nil {
+		return nil, err
+	}
+	return q.DeleteUnreferencedAudio(ctx, queries.DeleteUnreferencedAudioParams(params))
 }
 
 func (s Library) releaseItemMedia(audioKeys []string, coverKey string) error {

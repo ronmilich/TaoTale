@@ -43,7 +43,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				servers = *operation.Servers
 			}
 			for _, server := range servers {
-				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{topicId}", ":topicId", "{generationId}", ":generationId", "{imageId}", ":imageId").Replace(path.Join(server.URL, template))
+				key := method + " " + strings.NewReplacer("{itemId}", ":itemId", "{revisionId}", ":revisionId", "{topicId}", ":topicId", "{generationId}", ":generationId", "{imageId}", ":imageId").Replace(path.Join(server.URL, template))
 				if operations[key] != nil {
 					t.Fatalf("duplicate contract route %s", key)
 				}
@@ -60,7 +60,7 @@ func TestOpenAPIConformance(t *testing.T) {
 		}
 		delete(operations, key)
 		t.Run(key, func(t *testing.T) {
-			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":topicId", contractID, ":generationId", contractID, ":imageId", contractID).Replace(route.Path)
+			url := "http://127.0.0.1" + strings.NewReplacer(":itemId", contractID, ":revisionId", contractID, ":topicId", contractID, ":generationId", contractID, ":imageId", contractID).Replace(route.Path)
 			operation := contractRoute.Operation.OperationID
 			var body string
 			status := http.StatusOK
@@ -71,11 +71,11 @@ func TestOpenAPIConformance(t *testing.T) {
 				url += "?languageCode=ko-KR"
 				status = http.StatusServiceUnavailable
 			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration",
-				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview", "getCoverImage":
+				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview", "getCoverImage", "openRevision", "getRevision":
 				status = http.StatusServiceUnavailable
 			case "uploadCoverImage":
 				body, status = "image bytes", http.StatusServiceUnavailable
-			case "streamItemAudio", "downloadItemAudio":
+			case "streamItemAudio", "downloadItemAudio", "streamRevisionAudio", "downloadRevisionAudio":
 				url += "?audioAssetId=" + contractID
 				status = http.StatusServiceUnavailable
 			case "createTTSPreview":
@@ -84,7 +84,12 @@ func TestOpenAPIConformance(t *testing.T) {
 				body, status = `{"languageCode":"zh-CN"}`, http.StatusServiceUnavailable
 			case "publishPreview":
 				body, status = `{"languageCode":"zh-CN","title":"Title","sourceText":"你好。","previewGenerationId":"`+contractID+`"}`, http.StatusServiceUnavailable
-			case "publishDraft":
+			case "discardRevision":
+				url += "?expectedVersion=1"
+				status = http.StatusServiceUnavailable
+			case "publishRevision":
+				body, status = `{"expectedVersion":1,"expectedItemVersion":1}`, http.StatusServiceUnavailable
+			case "publishDraft", "patchRevision", "generateRevisionAudio":
 				body, status = `{"expectedVersion":1}`, http.StatusServiceUnavailable
 			case "patchItem":
 				body, status = `{"expectedVersion":1,"notes":"Example"}`, http.StatusServiceUnavailable
@@ -94,7 +99,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				body, status = `{"name":"Example"}`, http.StatusServiceUnavailable
 			}
 			req := httptest.NewRequest(route.Method, url, strings.NewReader(body))
-			if operation == "generateDraftAudio" || operation == "createTTSPreview" || operation == "publishPreview" {
+			if operation == "generateDraftAudio" || operation == "generateRevisionAudio" || operation == "createTTSPreview" || operation == "publishPreview" {
 				req.Header.Set("Idempotency-Key", contractID)
 			}
 			if body != "" {

@@ -87,7 +87,7 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-31 | Cover UI | 5 | TAO-21, TAO-22, TAO-30 | Done |
 | TAO-32 | Deletion and downloads in the Library | 5 | TAO-20, TAO-22 | Done |
 | TAO-33 | Published metadata edit | 6 | TAO-24, TAO-28, TAO-31 | Done |
-| TAO-34 | Working revisions: backend | 6 | TAO-19, TAO-24 | Planned |
+| TAO-34 | Working revisions: backend | 6 | TAO-19, TAO-24 | Done |
 | TAO-35 | Working revisions: client | 6 | TAO-23, TAO-33, TAO-34 | Planned |
 | TAO-36 | Vocabulary data model and core API | 7 | TAO-16, TAO-17 | Planned |
 | TAO-37 | Vocabulary list, statistics and bulk API | 7 | TAO-36 | Planned |
@@ -823,8 +823,8 @@ The "Edit Text & Voice" entry shows an availability message until TAO-34 and TAO
   - swap source, voice, rate and asset atomically, keeping the metadata and favorite.
 
 **Exit criteria**
-- [ ] A failed or abandoned candidate leaves the published pair playable.
-- [ ] A stale revision → 409.
+- [x] A failed or abandoned candidate leaves the published pair playable.
+- [x] A stale revision → 409.
 
 **Depends on:** TAO-19, TAO-24
 

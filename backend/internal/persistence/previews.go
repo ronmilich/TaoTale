@@ -53,7 +53,7 @@ func (s Library) AdmitPreview(ctx context.Context, key pgtype.UUID, request tts.
 		if err := s.checkCapacity(ctx, q, owner, itemID); err != nil {
 			return err
 		}
-		id, err = s.queueSynthesis(ctx, q, owner, itemID, key, previewOperation, intent, identity)
+		id, err = s.queueSynthesis(ctx, q, owner, itemID, pgtype.UUID{}, key, previewOperation, intent, identity)
 		return err
 	})
 	return id, err

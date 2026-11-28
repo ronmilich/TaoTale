@@ -96,6 +96,12 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 
 ## 5. Mutations, idempotency and errors
 
+Opening a working revision copies the published speech inputs and records the current asset as `baseAudioAssetId`. The response is `201` on creation or `200` when resuming. Poll the revision with GET for its `version`, current parent `itemVersion`, and `audioStatus`. Each new revision starts at `NOT_GENERATED`.
+
+Revision PATCH accepts `sourceText`, `voiceId`, and `speakingRate`. PATCH and audio generation require the revision's `expectedVersion` in the JSON body. Generation also requires a UUID `Idempotency-Key`. Stream and download require the candidate's `audioAssetId` query parameter. A stale pin returns `404 AUDIO_NOT_FOUND`. To discard, send DELETE with `?expectedVersion=<version>`.
+
+Revision publication requires `expectedVersion` and `expectedItemVersion` in the JSON body and accepts the reviewed `audioAssetId`. A stale version returns `409 VERSION_CONFLICT`. A changed base recording returns `409 REVISION_BASE_CHANGED`. Successful publication returns `200` with `itemId`, advances the item version, and closes the revision.
+
 The draft API accepts omitted fields as defaults at creation. A PATCH carries `expectedVersion`. Omission preserves a field, `null` clears nullable metadata, an empty string is stored as typed, and an empty `topicIds` clears associations. Send `coverImageId` to attach or replace a cover on create, direct publication or PATCH. Send `coverImageId: null` on PATCH to clear it. Use `PUT /items/{itemId}/favorite` to set or clear the favorite flag on an existing item. The default sort is newest creation timestamp first, and all sorts break ties by descending item ID.
 
 Topics use `/topics` across all learning languages. Writes accept `colorPreset` and the server resolves the stored colors. New Topics default to Iris. Names are unique after Unicode whitespace trimming and case folding. `DUPLICATE_TOPIC` includes `error.details.existingId`. The `usageCount` counts linked items across languages. Default Topics can be renamed and recolored while their system keys and deletion protection persist.

@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"taotale/backend/internal/generation"
 	"taotale/backend/internal/media"
 	"taotale/backend/internal/persistence"
@@ -32,13 +33,15 @@ func (p *previewProvider) Synthesize(ctx context.Context, input tts.Request) (tt
 	return p.Mock.Synthesize(ctx, input)
 }
 
-func TestPreviewAudioPostgres(t *testing.T) {
+type audioTestCall func(method, endpoint, key, body string, ranges ...string) *httptest.ResponseRecorder
+
+func startAudioTest(t *testing.T, provider tts.TTSProvider) (*pgxpool.Pool, string, *persistence.Library, audioTestCall) {
+	t.Helper()
 	pool, _ := libraryTestDatabase(t)
 	root := t.TempDir()
 	if err := media.PrepareRoot(root); err != nil {
 		t.Fatal(err)
 	}
-	provider := &previewProvider{}
 	worker, err := generation.Open(t.Context(), pool, root, provider)
 	if err != nil {
 		t.Fatal(err)
@@ -71,13 +74,24 @@ func TestPreviewAudioPostgres(t *testing.T) {
 		api.ServeHTTP(res, req)
 		return res
 	}
+	return pool, root, store, call
+}
+
+func audioResult(t *testing.T, res *httptest.ResponseRecorder, status int) map[string]any {
+	t.Helper()
+	var result map[string]any
+	if res.Code != status || json.Unmarshal(res.Body.Bytes(), &result) != nil {
+		t.Fatalf("wanted %d, got %d: %s", status, res.Code, res.Body)
+	}
+	return result
+}
+
+func TestPreviewAudioPostgres(t *testing.T) {
+	provider := &previewProvider{}
+	pool, root, store, call := startAudioTest(t, provider)
 	object := func(res *httptest.ResponseRecorder, status int) map[string]any {
 		t.Helper()
-		var result map[string]any
-		if res.Code != status || json.Unmarshal(res.Body.Bytes(), &result) != nil {
-			t.Fatalf("wanted %d, got %d: %s", status, res.Code, res.Body)
-		}
-		return result
+		return audioResult(t, res, status)
 	}
 	itemCount := func() int {
 		t.Helper()
@@ -290,7 +304,7 @@ func TestPreviewAudioPostgres(t *testing.T) {
 	expired := admit(expiryKey, firstBody)
 	expiredAsset := ready(expired)
 	var expiresIn24Hours bool
-	err = pool.QueryRow(t.Context(), "SELECT expires_at - created_at = interval '24 hours' FROM audio_generations WHERE id=$1", expired).Scan(&expiresIn24Hours)
+	err := pool.QueryRow(t.Context(), "SELECT expires_at - created_at = interval '24 hours' FROM audio_generations WHERE id=$1", expired).Scan(&expiresIn24Hours)
 	if err != nil || !expiresIn24Hours {
 		t.Fatalf("preview retention should be 24 hours: %v", err)
 	}

@@ -19,21 +19,23 @@ JOIN public.audio_assets a ON (a.user_id, a.id, a.source_fingerprint)
 WHERE g.id = (
     SELECT latest.id FROM public.audio_generations latest
     WHERE latest.item_id = $1 AND latest.user_id = $2
+      AND latest.revision_id IS NOT DISTINCT FROM $3::uuid
     ORDER BY latest.admission_order DESC LIMIT 1
 )
-  AND g.status = 'READY' AND g.source_text = $3
-  AND g.source_fingerprint = $4
+  AND g.status = 'READY' AND g.source_text = $4
+  AND g.source_fingerprint = $5
   AND (g.language_code, g.provider_id, g.voice_id, g.speaking_rate, g.strategy_id, g.strategy_version, g.fingerprint_format_version)
     = (a.language_code, a.provider_id, a.voice_id, a.speaking_rate, a.strategy_id, a.strategy_version, a.fingerprint_format_version)
   AND (a.language_code, a.provider_id, a.voice_id, a.speaking_rate, a.strategy_id, a.strategy_version, a.fingerprint_format_version)
-    = ($5, $6, $7::text, $8::float8,
-       $9, $10, $11::int)
+    = ($6, $7, $8::text, $9::float8,
+       $10, $11, $12::int)
 FOR SHARE OF g, a
 `
 
 type LockPublicationAudioParams struct {
 	ItemID                   pgtype.UUID
 	UserID                   pgtype.UUID
+	RevisionID               pgtype.UUID
 	SourceText               string
 	SourceFingerprint        string
 	LanguageCode             string
@@ -59,6 +61,7 @@ func (q *Queries) LockPublicationAudio(ctx context.Context, arg LockPublicationA
 	row := q.db.QueryRow(ctx, lockPublicationAudio,
 		arg.ItemID,
 		arg.UserID,
+		arg.RevisionID,
 		arg.SourceText,
 		arg.SourceFingerprint,
 		arg.LanguageCode,

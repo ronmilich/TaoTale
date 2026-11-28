@@ -72,9 +72,9 @@ func generationKey(c *gin.Context) (pgtype.UUID, bool) {
 func failGeneration(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, persistence.ErrGenerationActive):
-		fail(c, 409, "GENERATION_IN_PROGRESS", "This draft already has an active generation.")
+		fail(c, 409, "GENERATION_IN_PROGRESS", "This item already has an active generation.")
 	case errors.Is(err, persistence.ErrInvalidDraft):
-		fail(c, 409, "INVALID_ITEM_STATE", "Save a draft with valid speech text, voice and rate before generating.")
+		fail(c, 409, "INVALID_ITEM_STATE", "Save a draft or working revision with valid speech inputs before generating.")
 	case errors.Is(err, persistence.ErrGenerationNotFound):
 		fail(c, 404, "GENERATION_NOT_FOUND", "Resource not found.")
 	case tts.CodeOf(err) == tts.RateLimited:
