@@ -83,7 +83,7 @@ func TestOpenAPIConformance(t *testing.T) {
 				body, status = `{"languageCode":"ko-KR","action":"delete","ids":["`+contractID+`"]}`, http.StatusServiceUnavailable
 			case "getItem", "deleteItem", "deleteTopic", "generateDraftAudio", "getDraftGeneration",
 				"getTTSPreview", "streamTTSPreview", "downloadTTSPreview", "getCoverImage", "openRevision", "getRevision",
-				"getVocabulary", "deleteVocabulary", "getItemVocabulary", "unlinkVocabularyReference":
+				"getVocabulary", "deleteVocabulary", "getItemVocabulary", "syncItemVocabulary", "unlinkVocabularyReference":
 				status = http.StatusServiceUnavailable
 			case "uploadCoverImage":
 				body, status = "image bytes", http.StatusServiceUnavailable

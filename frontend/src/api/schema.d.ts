@@ -348,6 +348,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/{itemId}/vocabulary/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconcile exact vocabulary matches for one published Mandarin item */
+        post: operations["syncItemVocabulary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vocabulary": {
         parameters: {
             query?: never;
@@ -750,9 +769,21 @@ export interface components {
             references: components["schemas"]["VocabularyReferenceDetail"][];
         };
         ItemVocabulary: {
+            /** @description Exact published text that the annotation ranges apply to, omitted for unsupported languages. */
+            sourceText?: string;
+            /** @description Non-overlapping ranges in source order, present when matching is enabled for the item. */
+            annotations?: components["schemas"]["VocabularyAnnotation"][];
             items: (components["schemas"]["VocabularyEntry"] & {
                 reference: components["schemas"]["VocabularyReference"];
             })[];
+        };
+        VocabularyAnnotation: {
+            /** Format: uuid */
+            vocabularyId: string;
+            /** @description Inclusive UTF-16 offset. */
+            start: number;
+            /** @description Exclusive UTF-16 offset. */
+            end: number;
         };
         VocabularyLink: {
             /** Format: uuid */
@@ -927,6 +958,8 @@ export interface components {
             id: string;
             /** @enum {string} */
             languageCode: "zh-CN" | "ko-KR";
+            /** @description A verified automatic vocabulary matcher is enabled for this published item. */
+            automaticVocabularyMatching?: boolean;
             /** Format: uuid */
             coverImageId?: string | null;
             /** @enum {string} */
@@ -1808,7 +1841,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Vocabulary and reference provenance for this item. */
+            /** @description Vocabulary, reference provenance and verified text annotations for this item. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1820,6 +1853,47 @@ export interface operations {
             403: components["responses"]["APIError"];
             404: components["responses"]["APIError"];
             413: components["responses"]["APIError"];
+            500: components["responses"]["APIError"];
+            503: components["responses"]["APIError"];
+            504: components["responses"]["APIError"];
+        };
+    };
+    syncItemVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Number of distinct vocabulary entries found in the exact published text. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        matched: number;
+                    };
+                };
+            };
+            403: components["responses"]["APIError"];
+            404: components["responses"]["APIError"];
+            409: components["responses"]["APIError"];
+            413: components["responses"]["APIError"];
+            /** @description VOCABULARY_MATCHING_UNSUPPORTED for an item language without a verified strategy. */
+            422: {
+                headers: {
+                    "X-Request-Id": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             500: components["responses"]["APIError"];
             503: components["responses"]["APIError"];
             504: components["responses"]["APIError"];

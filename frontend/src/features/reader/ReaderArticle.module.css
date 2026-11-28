@@ -95,6 +95,29 @@
   background: var(--color-highlight);
 }
 
+.vocabularyLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  margin-top: var(--space-12);
+  font-size: 0.875rem;
+}
+
+:is(.transcript, .vocabularyLegend) [data-vocabulary-status] {
+  text-decoration-line: underline;
+  text-underline-offset: 0.18em;
+}
+
+:is(.transcript, .vocabularyLegend) [data-vocabulary-status="LEARNING"] {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-primary);
+}
+
+:is(.transcript, .vocabularyLegend) [data-vocabulary-status="ACQUIRED"] {
+  text-decoration-style: solid;
+  text-decoration-color: var(--color-success);
+}
+
 .transcript [role="button"]:focus-visible {
   outline: 2px solid var(--color-primary);
 }

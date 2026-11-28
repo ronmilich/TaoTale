@@ -78,6 +78,7 @@ Modes: **new unsaved**, **saved draft**, **published metadata**, **working revis
 - **Add to Vocabulary** uses native text selection and a visible action/panel or native dialog; Reader language governs lookup. Existing word gets linked without overwriting metadata; new word requires explicit save. Cancel creates nothing. Manual status Learning/Acquired is reversible.
 - The Reader measures the selection against the original UTF-16 text and trims outer whitespace. Mandarin selections reject internal line breaks and `，。！？；`. Korean selections preserve the punctuation and spacing of the selected phrase.
 - Article vocabulary lists manually linked words. The Both, Learning and Acquired display choice is saved in `taotale.preferences.reader`. Confirmed status changes refresh open vocabulary views.
+- Mandarin articles also show automatically linked words and offer **Sync vocabulary** to check the current published text. Learning highlights use dotted underlines and Acquired highlights use solid underlines. The display choice applies to both the panel and the underlines. Updates to underline ranges wait for an active transcript selection to clear.
 - Automatic annotations only when a **verified language-specific matching strategy** exists. Do not apply Chinese substring behavior to Korean by assumption. A word panel should not modify transcript DOM offsets or reset playback.
 - Favorite reflects the same persisted item flag as Library. Notes use plain text Save/Cancel and do not change audio. Theme/notes/panels must not remount the audio element.
 

@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -10,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/text/unicode/norm"
 	"taotale/backend/internal/persistence/queries"
+	"taotale/backend/internal/vocabmatch"
 )
 
 var (
@@ -42,6 +44,12 @@ type VocabularyDetail struct {
 type ItemVocabularyEntry struct {
 	Vocabulary
 	Reference queries.VocabularyReference
+}
+
+type ItemVocabularyView struct {
+	Items       []ItemVocabularyEntry
+	SourceText  *string
+	Annotations []vocabmatch.Annotation
 }
 
 func (s Library) CreateVocabulary(ctx context.Context, input queries.InsertVocabularyParams, topics []pgtype.UUID, itemID pgtype.UUID) (VocabularyDetail, error) {
@@ -216,11 +224,12 @@ func (s Library) ChangeVocabularyReference(ctx context.Context, id, itemID pgtyp
 	return result, err
 }
 
-func (s Library) ItemVocabulary(ctx context.Context, id pgtype.UUID) ([]ItemVocabularyEntry, error) {
-	var result []ItemVocabularyEntry
+func (s Library) ItemVocabulary(ctx context.Context, id pgtype.UUID) (ItemVocabularyView, error) {
+	var result ItemVocabularyView
 	err := pgx.BeginTxFunc(ctx, s.Pool, snapshot, func(tx pgx.Tx) error {
 		q := queries.New(tx)
-		if _, err := q.GetItem(ctx, id); err != nil {
+		item, err := q.GetItem(ctx, id)
+		if err != nil {
 			return missing(err, ErrItemNotFound)
 		}
 		rows, err := q.ItemVocabulary(ctx, id)
@@ -236,16 +245,35 @@ func (s Library) ItemVocabulary(ctx context.Context, id pgtype.UUID) ([]ItemVoca
 			return err
 		}
 		for i, row := range rows {
-			result = append(result, ItemVocabularyEntry{
+			result.Items = append(result.Items, ItemVocabularyEntry{
 				Vocabulary: words[i],
 				Reference: queries.VocabularyReference{
 					LibraryItemID: id, AddedAt: row.AddedAt, ManualLinked: row.ManualLinked, AutoLinked: row.AutoLinked,
 				},
 			})
 		}
+		if item.PublishedAt.Valid && vocabmatch.Enabled(item.LanguageCode) {
+			result.SourceText = &item.SourceText
+		}
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return result, err
+	}
+	// An automatic-only link can outlive a word's previous spelling until
+	// the next sync. Show it in the Reader only while the exact match holds.
+	result.Items = slices.DeleteFunc(result.Items, func(entry ItemVocabularyEntry) bool {
+		return !entry.Reference.ManualLinked &&
+			(result.SourceText == nil || !strings.Contains(*result.SourceText, entry.Word))
+	})
+	if result.SourceText != nil {
+		words := make([]vocabmatch.Word, 0, len(result.Items))
+		for _, word := range result.Items {
+			words = append(words, vocabmatch.Word{ID: word.ID.String(), Text: word.Word})
+		}
+		result.Annotations = vocabmatch.Mandarin(*result.SourceText, words)
+	}
+	return result, nil
 }
 
 func loadVocabularyDetail(ctx context.Context, q *queries.Queries, row queries.VocabularyEntry) (VocabularyDetail, error) {

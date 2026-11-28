@@ -52,7 +52,7 @@ Paths below omit the `/api/v1` prefix. Update the canonical OpenAPI file to defi
 | PUT | `/items/{itemId}/favorite` | **Set** `isFavorite: boolean`; idempotent, independent of item content version, returns confirmed flag. |
 | POST | `/items/{itemId}/publish` | Publish saved draft with expected version and matching READY generation. |
 | GET | `/items/{itemId}/vocabulary` | Reader projection of manually linked and verified automatically matched words (if enabled). |
-| POST | `/items/{itemId}/vocabulary/sync` | **Conditional**: available only for a language with a verified matching strategy; otherwise typed unsupported response. |
+| POST | `/items/{itemId}/vocabulary/sync` | Reconcile exact matches for one published Mandarin item and return the number of distinct matching entries. Korean returns `422 VOCABULARY_MATCHING_UNSUPPORTED`. |
 | POST | `/items/{itemId}/audio/generate` | Saved-draft generation: snapshot saved synthesis inputs, return `202` + generation ID. |
 | GET | `/items/{itemId}/audio/generations/{generationId}` | Generation status and matching candidate identity; no false READY. |
 | GET | `/items/{itemId}/audio` | Current active or eligible matching candidate stream, asset-pinned when mutable route. |
@@ -112,6 +112,8 @@ Vocabulary spelling allows 1–120 Unicode code points after outer trim, includi
 Create defaults to `LEARNING` and accepts an optional same-language `itemId` for atomic creation and linking. Duplicate writes return `409 DUPLICATE_VOCABULARY` with `error.details.existingId` when available. Lookup returns `{"entry":null}` on a miss. Linking an existing entry sets its manual provenance and preserves its metadata and any automatic provenance. Unlinking removes the association. A cross-language link returns `400 VOCABULARY_LANGUAGE_MISMATCH`.
 
 Bulk requests pass `languageCode`, `action` (`setStatus` with `status`, or `delete`) and 1–100 distinct UUIDs in `ids`. If any entry is missing or outside the requested language, the request returns `404 VOCABULARY_SELECTION_NOT_FOUND` and applies no changes.
+
+Published item responses advertise the per-language `automaticVocabularyMatching` capability. For supported items, the vocabulary projection includes `sourceText` and non-overlapping UTF-16 `annotations` with `vocabularyId`, `start`, and `end`. Render ranges only against that exact source. Sync has no body and returns `{"matched": number}`. The sync operation preserves manual provenance and leaves the item version and recording intact.
 
 Saved-draft generation accepts an optional `expectedVersion`. A new request with an older version returns `409 VERSION_CONFLICT`. The server resolves an unset voice to the configured provider’s default for that language and an unset rate to 1. A new admission snapshots these values and the exact saved source. Its `202` receipt contains `generationId`. Retrying the same target, body and key returns the original receipt for 24 hours, including after draft edits or provider unavailability. After that window `409 IDEMPOTENCY_KEY_EXPIRED` reserves the old key permanently. Reusing a key for a different target or body returns `409 IDEMPOTENCY_KEY_REUSED`. Item reads expose the latest `audioGenerationId` so reopening a draft can resume status checks.
 

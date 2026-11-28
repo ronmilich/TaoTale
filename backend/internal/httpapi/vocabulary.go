@@ -198,6 +198,18 @@ func registerVocabulary(router *gin.Engine, store *persistence.Library) {
 	entry.POST("/references", func(c *gin.Context) { changeVocabularyReference(c, store, true) })
 	entry.DELETE("/references/:itemId", func(c *gin.Context) { changeVocabularyReference(c, store, false) })
 	router.GET("/api/v1/items/:itemId/vocabulary", func(c *gin.Context) { itemVocabulary(c, store) })
+	router.POST("/api/v1/items/:itemId/vocabulary/sync", func(c *gin.Context) {
+		id, ok := resourceID(c, "itemId", "ITEM_NOT_FOUND")
+		if !ok || !hasLibrary(c, store) {
+			return
+		}
+		matched, err := store.SyncItemVocabulary(c.Request.Context(), id)
+		if err != nil {
+			failLibrary(c, err)
+			return
+		}
+		c.JSON(200, gin.H{"matched": matched})
+	})
 }
 
 func createVocabulary(c *gin.Context, store *persistence.Library) {
@@ -388,7 +400,7 @@ func itemVocabulary(c *gin.Context, store *persistence.Library) {
 	if !ok || !hasLibrary(c, store) {
 		return
 	}
-	rows, err := store.ItemVocabulary(c.Request.Context(), id)
+	view, err := store.ItemVocabulary(c.Request.Context(), id)
 	if err != nil {
 		failLibrary(c, err)
 		return
@@ -397,11 +409,16 @@ func itemVocabulary(c *gin.Context, store *persistence.Library) {
 		vocabularyResponse
 		Reference vocabularyReference `json:"reference"`
 	}
-	items := make([]itemWord, 0, len(rows))
-	for _, row := range rows {
+	items := make([]itemWord, 0, len(view.Items))
+	for _, row := range view.Items {
 		items = append(items, itemWord{vocabularyDTO(row.Vocabulary), referenceDTO(row.Reference)})
 	}
-	c.JSON(200, gin.H{"items": items})
+	response := gin.H{"items": items}
+	if view.SourceText != nil {
+		response["sourceText"] = *view.SourceText
+		response["annotations"] = view.Annotations
+	}
+	c.JSON(200, response)
 }
 
 func bulkVocabulary(c *gin.Context, store *persistence.Library) {

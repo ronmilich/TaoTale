@@ -146,8 +146,9 @@ TAO-29 ran `EXPLAIN (ANALYZE, BUFFERS)` on the generated page and count queries 
 
 When an automatic matcher is **enabled and verified** for an individual language:
 
-- Match only same-language words against the **exact published source** under that language's declared matching rules. Preserve separate `manual_linked` and `auto_linked` flags. Never rewrite spelling, reading, meaning, `status` or topic metadata.
+- Mandarin reconciliation uses a case-sensitive literal substring of the **exact published source** and the stored display spelling. Each matching word receives automatic provenance, including shorter matches covered by a longer visual underline. Preserve separate `manual_linked` and `auto_linked` flags and keep vocabulary metadata intact.
 - Add/update automatic references transactionally on publication; missing matches remove only the `auto_linked` flag, and delete joins only when neither provenance flag remains. Existing manual references stay untouched.
+- The Reader shows an automatic-only reference while its current display spelling still occurs in the published source. The next reconciliation removes obsolete automatic provenance after a spelling edit.
 - Explicit manual link upgrades an automatic link to manual. Explicit unlink removes the association; a later *enabled* sync can rediscover it according to the documented policy. No background Library-wide scans for MVP.
 - If a language's matcher is not approved (especially Korean in MVP), skip automatic reconciliation **without blocking item publication**. Manual references/highlights based on known links remain available.
 

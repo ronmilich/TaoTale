@@ -49,9 +49,13 @@ func (s Library) publish(ctx context.Context, q *queries.Queries, item queries.L
 		VoiceID:      pgtype.Text{String: audio.VoiceID, Valid: true},
 		SpeakingRate: pgtype.Float8{Float64: audio.SpeakingRate, Valid: true},
 	})
-	if err == nil && count != 1 {
+	if err != nil {
+		return err
+	}
+	if count != 1 {
 		return ErrInvalidDraft
 	}
+	_, err = reconcileVocabulary(ctx, q, item)
 	return err
 }
 

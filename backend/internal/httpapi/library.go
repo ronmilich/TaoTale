@@ -16,6 +16,7 @@ import (
 	"taotale/backend/internal/persistence/queries"
 	"taotale/backend/internal/sourcetext"
 	"taotale/backend/internal/tts"
+	"taotale/backend/internal/vocabmatch"
 )
 
 // An explicit null clears a nullable field. Omitted fields stay untouched.
@@ -168,6 +169,9 @@ func itemResponse(item persistence.Item) gin.H {
 		"createdAt": r.CreatedAt.Time.UTC(), "updatedAt": r.UpdatedAt.Time.UTC(),
 		"audioStatus": item.Audio.Status, "audioAssetId": item.Audio.AssetID, "audioGenerationId": item.Audio.ID,
 		"coverImageId": r.CoverImageID,
+	}
+	if r.PublishedAt.Valid {
+		response["automaticVocabularyMatching"] = vocabmatch.Enabled(r.LanguageCode)
 	}
 	if transcript := readTranscript(item.Transcript); transcript != nil {
 		response["transcript"] = transcript
@@ -370,6 +374,10 @@ func failLibrary(c *gin.Context, err error) {
 		fail(c, 404, "VOCABULARY_NOT_FOUND", "The vocabulary entry was not found.")
 	case errors.Is(err, persistence.ErrVocabularyLanguage):
 		fail(c, 400, "VOCABULARY_LANGUAGE_MISMATCH", "The item and vocabulary entry must use the same language.")
+	case errors.Is(err, persistence.ErrVocabularyMatchingUnsupported):
+		fail(c, 422, "VOCABULARY_MATCHING_UNSUPPORTED", "Automatic vocabulary matching is unavailable for this language.")
+	case errors.Is(err, persistence.ErrVocabularySyncUnpublished):
+		fail(c, 409, "INVALID_ITEM_STATE", "Publish the item before syncing vocabulary.")
 	case errors.Is(err, persistence.ErrVocabularySelection):
 		fail(c, 404, "VOCABULARY_SELECTION_NOT_FOUND", "One or more selected entries are unavailable in this language.")
 	case errors.As(err, &conflict):

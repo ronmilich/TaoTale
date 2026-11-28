@@ -114,7 +114,9 @@ for (const languageCode of ["zh-CN", "ko-KR"] as const) {
     await expect(add).toHaveCount(0);
     const lookupURL = `${vocabulary}/lookup?${new URLSearchParams({ languageCode, word })}`;
     expect(await (await request.get(lookupURL)).json()).toEqual({ entry: null });
-    expect(await (await request.get(`/api/v1${route}/vocabulary`)).json()).toEqual({ items: [] });
+    expect(await (await request.get(`/api/v1${route}/vocabulary`)).json()).toMatchObject({
+      items: [],
+    });
 
     await selectText(transcript, word);
     await choose.click();
@@ -182,6 +184,10 @@ for (const languageCode of ["zh-CN", "ko-KR"] as const) {
       .locator("details")
       .filter({ has: page.getByText("Article vocabulary", { exact: true }) });
     await page.getByText("Article vocabulary", { exact: true }).click();
+    if (!isMandarin) {
+      await expect(panel.getByRole("button", { name: "Sync vocabulary" })).toHaveCount(0);
+      await expect(transcript.locator("[data-vocabulary-id]")).toHaveCount(0);
+    }
     await expect(panel.getByText("Manual reading", { exact: false })).toBeVisible();
     await expect(panel.getByText("Culture", { exact: true })).toBeVisible();
     const acquire = panel.getByRole("button", { name: /as Acquired$/ });
@@ -354,4 +360,109 @@ test("browses vocabulary by language, edits metadata, and applies atomic bulk ac
   await editor.getByRole("button", { name: "Delete Word" }).click();
   await expect(table.getByRole("button", { name: `${key} 직접 추가` })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("highlights and syncs exact Mandarin matches while keeping native selections and seek targets", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(45_000);
+  const token = crypto.randomUUID().slice(0, 6);
+  const shorter = `𠀀${token}学习`;
+  const compound = `${shorter}。 \n  语言`;
+  const later = `复习${token}`;
+  const source = `${compound}。 ${later}。`;
+  const add = async (word: string, status: "LEARNING" | "ACQUIRED") => {
+    const result = await request.post(vocabulary, {
+      data: { languageCode: "zh-CN", word, status },
+    });
+    expect(result.status()).toBe(201);
+    return ((await result.json()) as VocabularyDetail).id;
+  };
+  const shorterID = await add(shorter, "LEARNING");
+  const compoundID = await add(compound, "ACQUIRED");
+  const id = await publish(request, "zh-CN", source, `Automatic vocabulary ${token}`);
+  await page.goto(`/items/${id}`);
+  const transcript = page.getByRole("region", { name: "Transcript" });
+  const annotation = (wordID: string) => transcript.locator(`[data-vocabulary-id="${wordID}"]`);
+  await expect(annotation(compoundID)).toHaveCount(3);
+  await expect(annotation(shorterID)).toHaveCount(0);
+  expect((await annotation(compoundID).allTextContents()).join("")).toBe(compound);
+  expect(await transcript.textContent()).toBe(source);
+  await expect(annotation(compoundID).first()).toHaveCSS("text-decoration-style", "solid");
+  await expect(page.getByLabel("Vocabulary highlight legend")).toBeVisible();
+
+  const player = page.getByRole("region", { name: "Article audio" });
+  await expect(player.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+  const audio = (await player.locator("audio").elementHandle())!;
+  const secondSegment = transcript.locator('[data-segment-index="1"]');
+  const timedNode = (await secondSegment.elementHandle())!;
+  const lateID = await add(later, "LEARNING");
+  await page.getByText("Article vocabulary", { exact: true }).click();
+  const panel = page
+    .locator("details")
+    .filter({ has: page.getByText("Article vocabulary", { exact: true }) });
+  await expect(panel.getByText("Matched in article")).toHaveCount(2);
+
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    `**/api/v1/items/${id}/vocabulary/sync`,
+    async (route) => {
+      const response = await route.fetch();
+      await gate;
+      await route.fulfill({ response });
+    },
+    { times: 1 },
+  );
+  try {
+    await panel.getByRole("button", { name: "Sync vocabulary" }).click();
+    await expect(panel.getByRole("button", { name: "Syncing…" })).toBeDisabled();
+    await selectText(transcript, shorter);
+    await expect(page.getByRole("button", { name: "Add to Vocabulary" })).toBeEnabled();
+  } finally {
+    release();
+  }
+  await expect(page.getByText("3 vocabulary matches in this article.")).toBeVisible();
+  await expect(panel.getByText(later, { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(shorter);
+  await expect(annotation(lateID)).toHaveCount(0);
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  await expect(annotation(lateID)).toHaveCSS("text-decoration-style", "dotted");
+  expect(
+    await timedNode.evaluate(
+      (element) => element === document.querySelector('[data-segment-index="1"]'),
+    ),
+  ).toBe(true);
+  await secondSegment.press("Enter");
+  await expect(secondSegment).toHaveAttribute("data-active", "true");
+  await expect(annotation(compoundID).last()).toHaveCSS("text-decoration-style", "solid");
+  const compoundRow = panel.getByRole("listitem").filter({ hasText: compound });
+  await compoundRow.getByRole("button", { name: /as Learning$/ }).click();
+  await expect(annotation(compoundID).first()).toHaveCSS("text-decoration-style", "dotted");
+  await panel.getByLabel("Show").selectOption("acquired");
+  await expect(annotation(compoundID).first()).toHaveCSS("text-decoration-line", "none");
+  expect(await transcript.textContent()).toBe(source);
+  expect(await audio.evaluate((element) => element === document.querySelector("audio"))).toBe(true);
+
+  // With bad alignment, the same ranges decorate plain source text without seek targets.
+  await page.route(
+    `**/api/v1/items/${id}`,
+    async (route) => {
+      const response = await route.fetch();
+      const item = (await response.json()) as Item;
+      delete item.transcript;
+      await route.fulfill({ response, json: item });
+    },
+    { times: 1 },
+  );
+  await page.reload();
+  await expect(player.getByText("Audio unavailable. You can keep reading.")).toBeVisible();
+  await page.getByText("Article vocabulary", { exact: true }).click();
+  await panel.getByLabel("Show").selectOption("both");
+  await expect(annotation(compoundID)).toHaveCount(1);
+  await expect(annotation(compoundID)).toHaveCSS("text-decoration-style", "dotted");
+  expect(await transcript.textContent()).toBe(source);
 });

@@ -1,4 +1,4 @@
-type Run = { text: string; segmentIndex?: number };
+export type Run = { text: string; segmentIndex?: number };
 
 /** Reconstruct the authored string using the stored UTF-16 boundaries. */
 export function transcriptRuns(source: string, transcript: unknown): Run[] | undefined {

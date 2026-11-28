@@ -88,13 +88,13 @@ The diagram shows a recommended phase order, not extra blocking dependencies. Fo
 | TAO-32 | Deletion and downloads in the Library | 5 | TAO-20, TAO-22 | Done |
 | TAO-33 | Published metadata edit | 6 | TAO-24, TAO-28, TAO-31 | Done |
 | TAO-34 | Working revisions: backend | 6 | TAO-19, TAO-24 | Done |
-| TAO-35 | Working revisions: client | 6 | TAO-23, TAO-33, TAO-34 | Planned |
-| TAO-36 | Vocabulary data model and core API | 7 | TAO-16, TAO-17 | Planned |
-| TAO-37 | Vocabulary list, statistics and bulk API | 7 | TAO-36 | Planned |
-| TAO-38 | Reader vocabulary collection | 7 | TAO-26, TAO-36 | Planned |
-| TAO-39 | Vocabulary view | 7 | TAO-28, TAO-37 | Planned |
-| TAO-40 | Reader vocabulary panel | 7 | TAO-38 | Planned |
-| TAO-41 | Verified Chinese automatic matching *(conditional)* | 7 | TAO-12, TAO-40 | Planned |
+| TAO-35 | Working revisions: client | 6 | TAO-23, TAO-33, TAO-34 | Done |
+| TAO-36 | Vocabulary data model and core API | 7 | TAO-16, TAO-17 | Done |
+| TAO-37 | Vocabulary list, statistics and bulk API | 7 | TAO-36 | Done |
+| TAO-38 | Reader vocabulary collection | 7 | TAO-26, TAO-36 | Done |
+| TAO-39 | Vocabulary view | 7 | TAO-28, TAO-37 | Done |
+| TAO-40 | Reader vocabulary panel | 7 | TAO-38 | Done |
+| TAO-41 | Verified Chinese automatic matching *(conditional)* | 7 | TAO-12, TAO-40 | Done |
 | TAO-42 | Settings and local data | 8 | TAO-10, TAO-14, TAO-26, TAO-40 | Planned |
 | TAO-43 | Cleanup, recovery and integrity checks | 8 | TAO-19, TAO-20, TAO-30, TAO-32 | Planned |
 | TAO-44 | Paired backup and restore | 8 | TAO-43 | Planned |
@@ -941,9 +941,8 @@ The "Edit Text & Voice" entry opens or resumes the working revision.
 - For Korean (and for Chinese if not enabled): a typed "unsupported" response. No fake highlights or counts.
 
 **Exit criteria**
-- [ ] Decision recorded in 02.
-- [ ] If enabled: annotation never disturbs selection, seeking or audio.
-- [ ] This milestone may close as "Not enabled" without blocking the MVP.
+- [x] Decision recorded in 02. Mandarin exact matching is enabled and Korean remains manual.
+- [x] Browser tests verify that annotations preserve selection, seeking and the mounted audio player.
 
 **Depends on:** TAO-12, TAO-40
 

@@ -17,7 +17,9 @@ export type VocabularyDetail = components["schemas"]["VocabularyDetail"];
 export type VocabularyStatus = components["schemas"]["VocabularyStatus"];
 export type VocabularyPage = components["schemas"]["VocabularyPage"];
 export type VocabularyStats = components["schemas"]["VocabularyStats"];
-export type ItemVocabularyEntry = components["schemas"]["ItemVocabulary"]["items"][number];
+export type ItemVocabulary = components["schemas"]["ItemVocabulary"];
+export type ItemVocabularyEntry = ItemVocabulary["items"][number];
+export type VocabularyAnnotation = components["schemas"]["VocabularyAnnotation"];
 export type VocabularyCreate = components["schemas"]["VocabularyCreate"];
 export type VocabularyPatch = components["schemas"]["VocabularyPatch"];
 export type VocabularyBulk = components["schemas"]["VocabularyBulk"];
@@ -119,7 +121,14 @@ export function lookupVocabulary(
 }
 
 export function getItemVocabulary(id: string, signal: AbortSignal) {
-  return readJSON<components["schemas"]["ItemVocabulary"]>(`${itemPath(id)}/vocabulary`, signal);
+  return readJSON<ItemVocabulary>(`${itemPath(id)}/vocabulary`, signal);
+}
+
+export function syncItemVocabulary(id: string) {
+  return requestJSON<JSONResult<operations["syncItemVocabulary"]>>(
+    `${itemPath(id)}/vocabulary/sync`,
+    { method: "POST", signal: AbortSignal.timeout(15_000) },
+  );
 }
 
 export function getVocabulary(id: string, signal: AbortSignal) {

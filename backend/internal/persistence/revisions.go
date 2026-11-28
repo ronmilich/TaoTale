@@ -197,6 +197,9 @@ func (s Library) finishRevision(ctx context.Context, itemID, revisionID pgtype.U
 			if count != 1 {
 				return ErrRevisionBase
 			}
+			if _, err := reconcileVocabulary(ctx, q, revisionInputs(item, rev)); err != nil {
+				return err
+			}
 		}
 		ids, err := q.DeleteRevisionGenerations(ctx, rev.ID)
 		if err != nil {

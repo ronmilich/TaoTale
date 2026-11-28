@@ -2,7 +2,9 @@ import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import {
   getItemVocabulary,
   patchVocabulary,
+  syncItemVocabulary,
   type Item,
+  type ItemVocabulary,
   type ItemVocabularyEntry,
 } from "../../api/client";
 import controls from "../../components/Controls.module.css";
@@ -10,6 +12,7 @@ import {
   readVocabularyDisplay,
   saveVocabularyDisplay,
   vocabularyDisplays,
+  type VocabularyDisplay,
 } from "../../preferences/storage";
 import { useTopics } from "../topics/topics";
 import { WordStatus, WordTopics } from "../vocabulary/WordBadges";
@@ -19,16 +22,21 @@ import CollectVocabulary from "./CollectVocabulary";
 import readerStyles from "./ReaderArticle.module.css";
 import { selectionError, type TranscriptSelection } from "./selection";
 
-export default function ReaderVocabulary(props: { item: Item; selection?: TranscriptSelection }) {
+export default function ReaderVocabulary(props: {
+  item: Item;
+  selection?: TranscriptSelection;
+  highlights: (view: ItemVocabulary | undefined, display: VocabularyDisplay) => void;
+}) {
   const topics = useTopics();
   const [collection, setCollection] = createSignal<TranscriptSelection>();
   const [confirmation, setConfirmation] = createSignal("");
   const [open, setOpen] = createSignal(false);
   const [refresh, setRefresh] = createSignal(0);
-  const [rows, setRows] = createSignal<ItemVocabularyEntry[]>();
+  const [view, setView] = createSignal<ItemVocabulary>();
   const [loading, setLoading] = createSignal(false);
   const [failed, setFailed] = createSignal(false);
   const [pending, setPending] = createSignal<string>();
+  const [syncing, setSyncing] = createSignal(false);
   const [statusError, setStatusError] = createSignal("");
   const [display, setDisplay] = createSignal(readVocabularyDisplay());
   const broadcast = useVocabularyChanges((language) => {
@@ -36,15 +44,22 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
   });
   const invalid = () =>
     props.selection ? selectionError(props.selection.text, props.item.languageCode) : "";
+  const supportsMatching = () => props.item.automaticVocabularyMatching === true;
+  const shouldLoad = createMemo(() => open() || supportsMatching());
+  const rows = createMemo(() =>
+    view()?.items.filter(
+      (entry) => entry.reference.manualLinked || (supportsMatching() && entry.reference.autoLinked),
+    ),
+  );
   const visible = createMemo(() => {
     const filter = display();
     return rows()?.filter(({ status }) => filter === "both" || status.toLowerCase() === filter);
   });
 
   createEffect(
-    () => [open(), props.item.id, refresh()] as const,
-    ([opened, itemId]) => {
-      if (!opened) return;
+    () => [shouldLoad(), props.item.id, refresh()] as const,
+    ([enabled, itemId]) => {
+      if (!enabled) return;
       const controller = new AbortController();
       setLoading(true);
       setFailed(false);
@@ -52,9 +67,9 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
         itemId,
         AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]),
       ).then(
-        ({ items }) => {
+        (projection) => {
           if (controller.signal.aborted) return;
-          setRows(items.filter((entry) => entry.reference.manualLinked));
+          setView(projection);
           setLoading(false);
         },
         () => {
@@ -64,6 +79,13 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
         },
       );
       return () => controller.abort();
+    },
+  );
+
+  createEffect(
+    () => [view(), display()] as const,
+    ([projection, filter]) => {
+      props.highlights(projection, filter);
     },
   );
 
@@ -79,8 +101,12 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
     setConfirmation("");
     try {
       const saved = await patchVocabulary(entry.id, { status: otherStatus(entry.status) });
-      setRows((current) =>
-        current?.map((row) => (row.id === entry.id ? { ...row, ...saved } : row)),
+      setView(
+        (current) =>
+          current && {
+            ...current,
+            items: current.items.map((row) => (row.id === entry.id ? { ...row, ...saved } : row)),
+          },
       );
       setConfirmation(`${saved.word} is now ${statusLabel[saved.status]}.`);
       changed();
@@ -90,6 +116,26 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
       );
     } finally {
       setPending(undefined);
+    }
+  }
+
+  async function sync() {
+    if (syncing() || pending()) return;
+    setSyncing(true);
+    setStatusError("");
+    setConfirmation("");
+    try {
+      const { matched } = await syncItemVocabulary(props.item.id);
+      setConfirmation(
+        matched
+          ? `${matched} vocabulary ${matched === 1 ? "match" : "matches"} in this article.`
+          : "No vocabulary matches in this article.",
+      );
+      changed();
+    } catch {
+      setStatusError("Could not confirm vocabulary sync. Try again.");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -117,6 +163,16 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
       </div>
       <Show when={confirmation()}>
         <p role="status">{confirmation()}</p>
+      </Show>
+      <Show when={supportsMatching() && view()?.annotations?.length}>
+        <div
+          class={readerStyles.vocabularyLegend}
+          role="group"
+          aria-label="Vocabulary highlight legend"
+        >
+          <span data-vocabulary-status="LEARNING">Learning</span>
+          <span data-vocabulary-status="ACQUIRED">Acquired</span>
+        </div>
       </Show>
       <details class={styles.panel} onToggle={(event) => setOpen(event.currentTarget.open)}>
         <summary>Article vocabulary</summary>
@@ -147,7 +203,19 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
               </option>
             </select>
           </div>
-          <a href={`/vocabulary?languageCode=${props.item.languageCode}`}>Open Vocabulary</a>
+          <div class={styles.entryActions}>
+            <Show when={supportsMatching()}>
+              <button
+                type="button"
+                class={controls.secondary}
+                disabled={syncing() || Boolean(pending())}
+                onClick={() => void sync()}
+              >
+                {syncing() ? "Syncing…" : "Sync vocabulary"}
+              </button>
+            </Show>
+            <a href={`/vocabulary?languageCode=${props.item.languageCode}`}>Open Vocabulary</a>
+          </div>
         </div>
         <Show when={open()}>
           <Show when={loading() && !rows()}>
@@ -198,6 +266,9 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
                       {entry().word}
                     </strong>
                     <WordStatus status={entry().status} />
+                    <Show when={entry().reference.autoLinked && !entry().reference.manualLinked}>
+                      <small class={styles.muted}>Matched in article</small>
+                    </Show>
                   </div>
                   <Show when={entry().reading}>
                     <div>
@@ -213,7 +284,7 @@ export default function ReaderVocabulary(props: { item: Item; selection?: Transc
                     <button
                       type="button"
                       class={controls.secondary}
-                      disabled={Boolean(pending())}
+                      disabled={syncing() || Boolean(pending())}
                       aria-busy={pending() === entry().id ? "true" : undefined}
                       aria-label={`Mark ${entry().word} as ${statusLabel[otherStatus(entry().status)]}`}
                       onClick={() => void toggleStatus(entry())}
